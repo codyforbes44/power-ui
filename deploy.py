@@ -1,97 +1,50 @@
 #!/usr/bin/env python3
 """
 Claude Power UI — Netlify Deploy Script
-Deploys static files AND serverless functions via Netlify's file-digest API.
-No Node, npm, or CLI required — Python 3 stdlib only.
+Uses the Netlify CLI (bundled Node.js) for reliable deploys of
+both static files AND serverless functions in one command.
 
 Usage:
     python3 deploy.py
+
+Requirements: internet connection (Node.js downloaded on first run).
 """
 
-import hashlib, io, json, os, sys, time, urllib.request, urllib.error, zipfile
+import os, subprocess, sys, urllib.request
 from pathlib import Path
 
 ROOT       = Path(__file__).parent.resolve()
 TOKEN_FILE = ROOT / '.netlify-token'
 SITE_FILE  = ROOT / '.netlify-site'
-API        = 'https://api.netlify.com/api/v1'
 
-# ── Exclusions ────────────────────────────────────────────────────
-EXCLUDE = {
-    'app/server.py', 'app/cli.py',
-    'data', 'skills', '.git',
-    '.netlify-token', '.netlify-site',
-    'deploy.py', '.gitignore', '.netlifyignore',
-    '__pycache__',
-}
+NODE_VERSION = '20.18.0'
+NODE_DIR     = Path(f'/tmp/node-v{NODE_VERSION}-darwin-x64')
+NODE_BIN     = NODE_DIR / 'bin'
+NETLIFY_BIN  = Path('/tmp/netlify-cli/bin/netlify')
 
-FUNCTIONS_DIR = 'netlify/functions'
-FUNC_EXTS     = {'.js', '.mjs', '.cjs', '.ts'}
+def ensure_node():
+    if (NODE_BIN / 'node').exists():
+        return
+    import tarfile
+    print(f'⬇  Downloading Node.js {NODE_VERSION}…')
+    url = f'https://nodejs.org/dist/v{NODE_VERSION}/node-v{NODE_VERSION}-darwin-x64.tar.gz'
+    archive = '/tmp/node.tar.gz'
+    urllib.request.urlretrieve(url, archive)
+    print('   Extracting…')
+    with tarfile.open(archive) as tf:
+        tf.extractall('/tmp/')
+    print(f'   ✓ Node.js ready')
 
-# ── API helpers ───────────────────────────────────────────────────
-
-def _request(method, path, body=None, binary=None, ctype='application/json', token=None):
-    url = f'{API}{path}'
-    data, headers = None, {'Authorization': f'Bearer {token}'}
-    if body is not None:
-        data = json.dumps(body).encode()
-        headers['Content-Type'] = 'application/json'
-    elif binary is not None:
-        data = binary
-        headers['Content-Type'] = ctype
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        txt = e.read().decode()
-        print(f'\n❌ API {e.code}: {txt[:300]}')
-        sys.exit(1)
-
-def sha1(data: bytes) -> str:
-    return hashlib.sha1(data).hexdigest()
-
-def sha1_file(p: Path) -> str:
-    h = hashlib.sha1()
-    with open(p, 'rb') as f:
-        while chunk := f.read(65536):
-            h.update(chunk)
-    return h.hexdigest()
-
-# ── File collection ───────────────────────────────────────────────
-
-def excluded(rel: str) -> bool:
-    parts = Path(rel).parts
-    for pat in EXCLUDE:
-        pp = Path(pat).parts
-        if parts[:len(pp)] == pp:
-            return True
-    return False
-
-def collect():
-    static    = {}   # web_path → disk_path
-    functions = {}   # func_name → (disk_path, zip_bytes, sha)
-
-    for p in ROOT.rglob('*'):
-        if not p.is_file():
-            continue
-        rel = p.relative_to(ROOT).as_posix()
-        if excluded(rel):
-            continue
-
-        if rel.startswith(FUNCTIONS_DIR + '/') and p.suffix in FUNC_EXTS:
-            # Bundle function into a zip
-            buf = io.BytesIO()
-            with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
-                zf.write(p, p.name)
-            zipped = buf.getvalue()
-            functions[p.stem] = (p, zipped, sha1(zipped))
-        else:
-            static['/' + rel] = p
-
-    return static, functions
-
-# ── Deploy ────────────────────────────────────────────────────────
+def ensure_netlify_cli():
+    if NETLIFY_BIN.exists():
+        return
+    print('⬇  Installing netlify-cli…')
+    env = {**os.environ, 'PATH': f'{NODE_BIN}:{os.environ.get("PATH","")}'}
+    subprocess.run(
+        [str(NODE_BIN / 'npm'), 'install', '-g', 'netlify-cli', '--prefix', '/tmp/netlify-cli'],
+        env=env, check=True, capture_output=True,
+    )
+    print('   ✓ netlify-cli ready')
 
 def main():
     # Token
@@ -107,84 +60,33 @@ def main():
         TOKEN_FILE.write_text(token)
         os.chmod(TOKEN_FILE, 0o600)
 
-    # Site
-    if SITE_FILE.exists():
-        site_id = SITE_FILE.read_text().strip()
-        print(f'🌐 Site: {site_id}')
-    else:
-        site = _request('POST', '/sites', {'name': 'claude-power-ui'}, token=token)
-        site_id = site['id']
-        SITE_FILE.write_text(site_id)
-        print(f'🌐 Created: {site.get("ssl_url")}')
+    if not SITE_FILE.exists():
+        sys.exit('No .netlify-site file found. Run the initial setup first.')
 
-    # Collect
-    print('📋 Collecting files…')
-    static, functions = collect()
-    print(f'   {len(static)} static, {len(functions)} function(s): {list(functions)}')
+    site_id = SITE_FILE.read_text().strip()
 
-    # Build digests
-    file_shas  = {wp: sha1_file(dp) for wp, dp in static.items()}
-    func_shas  = {name: data[2] for name, data in functions.items()}
+    ensure_node()
+    ensure_netlify_cli()
 
-    # Create deploy
-    print('🚀 Creating deploy…')
-    deploy = _request('POST', f'/sites/{site_id}/deploys', {
-        'files':     file_shas,
-        'functions': func_shas,
-        'async':     False,
-    }, token=token)
-    did = deploy['id']
-    req_files = set(deploy.get('required', []))
-    req_funcs = set(deploy.get('required_functions', []))
-    print(f'   ID: {did}  |  need {len(req_files)} files + {len(req_funcs)} function(s)')
+    env = {
+        **os.environ,
+        'PATH':                f'{NODE_BIN}:{NETLIFY_BIN.parent}:{os.environ.get("PATH","")}',
+        'NETLIFY_AUTH_TOKEN':  token,
+        'NETLIFY_SITE_ID':     site_id,
+    }
 
-    # Upload missing static files
-    if req_files:
-        sha_to_disk = {sha1_file(dp): dp for dp in static.values()
-                       if sha1_file(dp) in req_files}
-        for i, s in enumerate(req_files, 1):
-            if s in sha_to_disk:
-                p = sha_to_disk[s]
-                print(f'   File {i}/{len(req_files)}: {p.name}' + ' '*20, end='\r')
-                _request('PUT', f'/deploys/{did}/files/{s}',
-                         binary=p.read_bytes(),
-                         ctype='application/octet-stream', token=token)
-        print(f'   ✓ {len(req_files)} files uploaded' + ' '*20)
+    print('🚀 Deploying to Netlify…')
+    result = subprocess.run(
+        [str(NETLIFY_BIN), 'deploy', '--prod',
+         '--dir', '.',
+         '--functions', 'netlify/functions',
+         '--message', 'Deployed via deploy.py'],
+        cwd=ROOT,
+        env=env,
+    )
 
-    # Upload missing functions
-    if req_funcs:
-        for name, (_, zipped, s) in functions.items():
-            if s in req_funcs:
-                print(f'⚡ Uploading function: {name}')
-                _request('PUT', f'/deploys/{did}/files/{s}',
-                         binary=zipped,
-                         ctype='application/zip', token=token)
-        print('   ✓ Functions uploaded')
-
-    # Poll until ready (Netlify processes async)
-    print('⏳ Waiting for deploy to go live…', end='', flush=True)
-    for _ in range(30):
-        time.sleep(2)
-        d = _request('GET', f'/deploys/{did}', token=token)
-        state = d.get('state', '')
-        print('.', end='', flush=True)
-        if state in ('ready', 'error'):
-            break
-    print()
-
-    site_url   = d.get('ssl_url') or d.get('url', '')
-    deploy_url = d.get('deploy_ssl_url') or d.get('deploy_url', '')
-    fn_count   = len(d.get('available_functions', []))
-    print()
-    print(f'✅ Deploy {d.get("state")}!')
-    print(f'   Site:      {site_url}')
-    print(f'   Deploy:    {deploy_url}')
-    print(f'   Functions: {fn_count}')
-    print(f'   App:       {site_url}/app/')
-    print()
-
-    import subprocess
-    subprocess.run(['open', f'{site_url}/app/'], check=False)
+    if result.returncode != 0:
+        sys.exit(f'Deploy failed (exit {result.returncode})')
 
 if __name__ == '__main__':
     main()
