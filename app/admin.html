@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Claude Power UI</title>
+  <meta name="description" content="Admin dashboard for Claude Power UI: analytics, user management, cost tracking, system health." />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#030712" />
+
+  <!-- Content-Security-Policy (meta only — frame-ancestors requires HTTP header) -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self';
+      script-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com data:;
+      connect-src 'self' https://api.anthropic.com https://api.openai.com
+        https://generativelanguage.googleapis.com https://api.groq.com
+        https://api.mistral.ai;
+      img-src 'self' data: blob:;" />
+
+  <!-- M4: Inline SVG favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>✦</text></svg>" />
+
+  <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+
+  <!-- Loading screen shown until auth is verified -->
+  <div id="admin-loading" class="admin-loading">
+    <div class="admin-loading-spinner"></div>
+    <span>Verifying access…</span>
+  </div>
+
+  <!-- Main admin layout (hidden until auth passes) -->
+  <div id="admin-app" class="admin-layout" style="display:none">
+
+    <!-- ── Sidebar ───────────────────────────────────────── -->
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-brand">
+        <div class="admin-brand-logo">✦</div>
+        <div>
+          <div class="admin-brand-text">Claude Power UI</div>
+          <div class="admin-brand-sub">Admin Dashboard</div>
+        </div>
+      </div>
+
+      <nav class="admin-nav">
+        <div class="admin-nav-section-label">Analytics</div>
+        <button class="admin-nav-item active" data-panel="overview" onclick="AdminApp.switchPanel('overview', this)">
+          <span class="admin-nav-icon">◈</span> Overview
+        </button>
+        <button class="admin-nav-item" data-panel="usage" onclick="AdminApp.switchPanel('usage', this)">
+          <span class="admin-nav-icon">📈</span> Usage &amp; Charts
+        </button>
+        <button class="admin-nav-item" data-panel="costs" onclick="AdminApp.switchPanel('costs', this)">
+          <span class="admin-nav-icon">💲</span> Cost Breakdown
+        </button>
+        <button class="admin-nav-item" data-panel="skills" onclick="AdminApp.switchPanel('skills', this)">
+          <span class="admin-nav-icon">⊞</span> Top Skills
+        </button>
+
+        <div class="admin-nav-section-label" style="margin-top:8px">Management</div>
+        <button class="admin-nav-item" data-panel="users" onclick="AdminApp.switchPanel('users', this)">
+          <span class="admin-nav-icon">👥</span> Users
+        </button>
+        <button class="admin-nav-item" data-panel="connections" onclick="AdminApp.switchPanel('connections', this)">
+          <span class="admin-nav-icon">🔌</span> API Keys &amp; MCP
+        </button>
+        <button class="admin-nav-item" data-panel="health" onclick="AdminApp.switchPanel('health', this)">
+          <span class="admin-nav-icon">🩺</span> System Health
+        </button>
+      </nav>
+
+      <div class="admin-sidebar-footer">
+        <a class="admin-back-btn" href="index.html">
+          <span>←</span> Back to App
+        </a>
+      </div>
+    </aside>
+
+    <!-- ── Main ─────────────────────────────────────────── -->
+    <main class="admin-main">
+
+      <!-- Topbar -->
+      <header class="admin-topbar">
+        <div>
+          <div class="admin-topbar-title" id="admin-topbar-title">Overview</div>
+          <div class="admin-topbar-meta" id="admin-topbar-meta">Loading…</div>
+        </div>
+        <div class="admin-topbar-right">
+          <div class="admin-topbar-badge" id="admin-user-badge">
+            <span>👤</span> <span id="admin-current-user">—</span>
+          </div>
+          <button class="admin-refresh-btn" onclick="AdminApp.refresh()" title="Refresh data">↺</button>
+        </div>
+      </header>
+
+      <!-- Content area -->
+      <div class="admin-content">
+
+        <!-- ── Overview Panel ──────────────────────────── -->
+        <section id="panel-overview" class="admin-panel active">
+          <div class="panel-title">Platform Overview</div>
+          <div class="panel-subtitle">All-time and today's usage across the platform</div>
+
+          <div class="kpi-grid" id="kpi-grid">
+            <!-- Rendered by JS -->
+          </div>
+
+          <div class="charts-grid">
+            <div class="chart-card wide">
+              <div class="chart-header">
+                <div>
+                  <div class="chart-title">Messages &amp; Cost — Last 30 Days</div>
+                  <div class="chart-subtitle">Daily activity trend</div>
+                </div>
+                <div class="chart-legend">
+                  <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#6366f1"></div>Messages</div>
+                  <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#06b6d4"></div>Cost ($)</div>
+                </div>
+              </div>
+              <canvas id="chart-daily" class="admin-chart" height="180"></canvas>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <div class="chart-title">Model Distribution</div>
+                  <div class="chart-subtitle">Messages by model</div>
+                </div>
+              </div>
+              <canvas id="chart-models" class="admin-chart" height="180"></canvas>
+              <div class="chart-legend" id="chart-models-legend" style="margin-top:12px;justify-content:center"></div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <div class="chart-title">Provider Distribution</div>
+                  <div class="chart-subtitle">Messages by provider</div>
+                </div>
+              </div>
+              <canvas id="chart-providers" class="admin-chart" height="180"></canvas>
+              <div class="chart-legend" id="chart-providers-legend" style="margin-top:12px;justify-content:center"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Usage Panel ─────────────────────────────── -->
+        <section id="panel-usage" class="admin-panel">
+          <div class="panel-title">Usage &amp; Charts</div>
+          <div class="panel-subtitle">Detailed usage patterns and time-of-day analysis</div>
+
+          <div class="charts-grid">
+            <div class="chart-card wide">
+              <div class="chart-header">
+                <div>
+                  <div class="chart-title">Hourly Usage Distribution</div>
+                  <div class="chart-subtitle">Messages sent by hour of day (all time)</div>
+                </div>
+              </div>
+              <canvas id="chart-hourly" class="admin-chart" height="160"></canvas>
+            </div>
+
+            <div class="chart-card wide">
+              <div class="chart-header">
+                <div>
+                  <div class="chart-title">Daily Cost Trend — 7-Day Rolling Average</div>
+                  <div class="chart-subtitle">Spend over the last 30 days with smoothed trend</div>
+                </div>
+                <div class="chart-legend">
+                  <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#06b6d4"></div>Daily cost</div>
+                  <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#f59e0b"></div>7-day avg</div>
+                </div>
+              </div>
+              <canvas id="chart-cost-trend" class="admin-chart" height="180"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Costs Panel ─────────────────────────────── -->
+        <section id="panel-costs" class="admin-panel">
+          <div class="panel-title">Cost Breakdown</div>
+          <div class="panel-subtitle">Spend by model, provider, and session</div>
+
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <div class="admin-table-title">By Model</div>
+            </div>
+            <table class="admin-table" id="table-model-costs">
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Provider</th>
+                  <th>Messages</th>
+                  <th>Total Cost</th>
+                  <th>Avg / Msg</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-model-costs"></tbody>
+            </table>
+          </div>
+
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <div class="admin-table-title">By User</div>
+            </div>
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Messages</th>
+                  <th>Total Cost</th>
+                  <th>Total Tokens</th>
+                  <th>Avg Cost / Msg</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-user-costs"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ── Skills Panel ────────────────────────────── -->
+        <section id="panel-skills" class="admin-panel">
+          <div class="panel-title">Top Skills</div>
+          <div class="panel-subtitle">Most-injected skills across all sessions</div>
+
+          <div class="chart-card" style="margin-bottom:24px">
+            <div class="chart-header">
+              <div class="chart-title">Skill Injection Frequency</div>
+            </div>
+            <div class="skill-bar-list" id="skills-bar-list">
+              <div class="admin-empty">No skill injections recorded yet.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Users Panel ─────────────────────────────── -->
+        <section id="panel-users" class="admin-panel">
+          <div class="panel-title">User Management</div>
+          <div class="panel-subtitle">Create and manage user accounts</div>
+
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <div class="admin-table-title">Create New User</div>
+            </div>
+            <div class="create-user-form">
+              <div class="create-user-field">
+                <label class="create-user-label">Username</label>
+                <input class="create-user-input" id="new-username" type="text" placeholder="e.g. johndoe" autocomplete="off" />
+              </div>
+              <div class="create-user-field">
+                <label class="create-user-label">Display Name</label>
+                <input class="create-user-input" id="new-displayname" type="text" placeholder="John Doe" autocomplete="off" />
+              </div>
+              <div class="create-user-field">
+                <label class="create-user-label">Password</label>
+                <input class="create-user-input" id="new-password" type="password" placeholder="Min 6 chars" autocomplete="new-password" />
+              </div>
+              <div class="create-user-field">
+                <label class="create-user-label">Role</label>
+                <select class="create-user-input" id="new-role">
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <button class="btn-sm primary" onclick="AdminApp.createUser()" style="margin-bottom:1px">
+                + Create
+              </button>
+            </div>
+
+            <table class="admin-table" id="users-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Messages</th>
+                  <th>Total Spend</th>
+                  <th>Last Login</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-users"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ── Health Panel ────────────────────────────── -->
+        <section id="panel-health" class="admin-panel">
+          <div class="panel-title">System Health</div>
+          <div class="panel-subtitle">Storage, analytics, API keys, and data management</div>
+
+          <div class="health-grid" id="health-grid">
+            <!-- Rendered by JS -->
+          </div>
+
+          <div class="admin-table-wrap" style="margin-bottom:20px">
+            <div class="admin-table-header">
+              <div class="admin-table-title">API Key Status</div>
+            </div>
+            <div style="padding:14px 18px;display:flex;flex-direction:column;gap:8px" id="api-key-status-list">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+
+          <div class="admin-table-wrap" style="margin-bottom:20px">
+            <div class="admin-table-header">
+              <div class="admin-table-title">Data Management</div>
+            </div>
+            <div style="padding:14px 18px;display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn-sm secondary" onclick="AdminApp.exportData()">⤓ Export All Data (JSON)</button>
+              <button class="btn-sm secondary" onclick="AdminApp.importData()">⤒ Import Backup</button>
+              <input type="file" id="import-file-input" style="display:none" accept=".json" onchange="AdminApp.handleImport(this)" />
+            </div>
+          </div>
+
+          <div class="danger-zone">
+            <div class="danger-zone-title">⚠ Danger Zone</div>
+            <div class="danger-zone-actions">
+              <button class="btn-sm danger" onclick="AdminApp.clearAnalytics()">Clear Analytics Data</button>
+              <button class="btn-sm danger" onclick="AdminApp.resetAllData()">Reset All App Data</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Connections Panel ──────────────────────── -->
+        <section id="panel-connections" class="admin-panel">
+          <div class="panel-title">API Keys &amp; MCP Resources</div>
+          <div class="panel-subtitle">Manage provider credentials and Model Context Protocol server connections</div>
+
+          <!-- ── API Keys ──────────────────────────────── -->
+          <div class="conn-section-label">Provider API Keys</div>
+          <div class="api-keys-grid" id="api-keys-grid">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- ── MCP Servers ────────────────────────────── -->
+          <div class="conn-section-label" style="margin-top:32px">
+            MCP Servers
+            <span class="conn-section-badge" id="mcp-server-count">0 connected</span>
+          </div>
+
+          <!-- Add server form -->
+          <div class="mcp-add-form" id="mcp-add-form">
+            <div class="mcp-add-form-header">
+              <span class="mcp-add-form-title">➕ Register MCP Server</span>
+              <button class="btn-sm secondary" id="mcp-add-toggle" onclick="AdminApp.toggleMcpAddForm()">Show Form</button>
+            </div>
+            <div class="mcp-add-fields" id="mcp-add-fields" style="display:none">
+              <div class="mcp-field-row">
+                <div class="mcp-field">
+                  <label class="mcp-label">Server Name</label>
+                  <input class="mcp-input" id="mcp-name" type="text" placeholder="e.g. filesystem, postgres, github" autocomplete="off" />
+                </div>
+                <div class="mcp-field">
+                  <label class="mcp-label">Transport Type</label>
+                  <select class="mcp-input" id="mcp-transport" onchange="AdminApp.onMcpTransportChange()">
+                    <option value="stdio">stdio (local process)</option>
+                    <option value="sse">SSE (HTTP server)</option>
+                    <option value="http">HTTP (REST)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mcp-field-row" id="mcp-url-row" style="display:none">
+                <div class="mcp-field mcp-field-wide">
+                  <label class="mcp-label">Server URL</label>
+                  <input class="mcp-input" id="mcp-url" type="url" placeholder="http://localhost:3000/sse" autocomplete="off" />
+                </div>
+                <div class="mcp-field">
+                  <label class="mcp-label">Auth Token (optional)</label>
+                  <input class="mcp-input" id="mcp-auth" type="password" placeholder="Bearer token…" autocomplete="off" />
+                </div>
+              </div>
+              <div class="mcp-field-row" id="mcp-cmd-row">
+                <div class="mcp-field mcp-field-wide">
+                  <label class="mcp-label">Command</label>
+                  <input class="mcp-input" id="mcp-cmd" type="text" placeholder="npx -y @modelcontextprotocol/server-filesystem /path" autocomplete="off" />
+                </div>
+                <div class="mcp-field">
+                  <label class="mcp-label">Environment Vars (JSON)</label>
+                  <input class="mcp-input" id="mcp-env" type="text" placeholder='{"KEY":"value"}' autocomplete="off" />
+                </div>
+              </div>
+              <div class="mcp-field-row">
+                <div class="mcp-field">
+                  <label class="mcp-label">Description (optional)</label>
+                  <input class="mcp-input" id="mcp-desc" type="text" placeholder="What does this server do?" autocomplete="off" />
+                </div>
+                <div class="mcp-field" style="align-self:flex-end">
+                  <button class="btn-sm primary" style="width:100%" onclick="AdminApp.addMcpServer()">Register Server</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Server list -->
+          <div id="mcp-servers-list">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- MCP Tool Explorer drawer -->
+          <div class="mcp-tool-drawer" id="mcp-tool-drawer" style="display:none">
+            <div class="mcp-tool-drawer-header">
+              <span class="mcp-tool-drawer-title" id="mcp-tool-drawer-title">Tools</span>
+              <button class="btn-sm secondary" onclick="AdminApp.closeMcpDrawer()">✕ Close</button>
+            </div>
+            <div class="mcp-tool-list" id="mcp-tool-list"></div>
+          </div>
+        </section>
+
+      </div><!-- /admin-content -->
+    </main>
+  </div><!-- /admin-app -->
+
+  <div id="admin-toast-container"></div>
+
+  <!-- L1: No-JS fallback -->
+  <noscript>
+    <div style="font-family:sans-serif;text-align:center;padding:80px 20px;background:#030712;color:#94a3b8;min-height:100vh">
+      <div style="font-size:40px;margin-bottom:16px">✦</div>
+      <h1 style="color:#e2e8f0;font-size:24px;margin-bottom:8px">Claude Power UI — Admin</h1>
+      <p>JavaScript is required. Please enable JavaScript in your browser settings.</p>
+    </div>
+  </noscript>
+
+  <!-- Compat: roundRect polyfill for browsers < Chrome 99 -->
+  <script>
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r) {
+        if (typeof r === 'undefined') r = 0;
+        const radius = Math.min(r, w/2, h/2);
+        this.beginPath();
+        this.moveTo(x + radius, y);
+        this.lineTo(x + w - radius, y);
+        this.arcTo(x+w, y, x+w, y+radius, radius);
+        this.lineTo(x + w, y + h - radius);
+        this.arcTo(x+w, y+h, x+w-radius, y+h, radius);
+        this.lineTo(x + radius, y + h);
+        this.arcTo(x, y+h, x, y+h-radius, radius);
+        this.lineTo(x, y + radius);
+        this.arcTo(x, y, x+radius, y, radius);
+        this.closePath();
+        return this;
+      };
+    }
+  </script>
+
+  <!-- Scripts: auth + analytics must load first -->
+  <script src="auth.js" defer></script>
+  <script src="analytics.js" defer></script>
+  <script src="admin.js" defer></script>
+
+</body>
+</html>

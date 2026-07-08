@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Claude Power UI</title>
+  <meta name="description" content="Claude Power UI Privacy Policy. We collect nothing. All data stays on your device. No accounts required." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/public.css" />
+  <style>
+    /* ── Page-level overrides ── */
+    .policy-hero {
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1230 50%, #0d1a2e 100%);
+      padding: 5rem 2rem 3rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+    }
+
+    .policy-hero h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #c4b5fd 0%, #818cf8 50%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0 0 0.5rem;
+    }
+
+    .policy-hero .last-updated {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.4);
+      margin: 0 0 2rem;
+      letter-spacing: 0.03em;
+    }
+
+    .tldr-box {
+      display: inline-flex;
+      align-items: flex-start;
+      gap: 1rem;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      border-radius: 1rem;
+      padding: 1.25rem 1.75rem;
+      max-width: 680px;
+      text-align: left;
+      margin: 0 auto;
+    }
+
+    .tldr-box .tldr-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .tldr-box p {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.975rem;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.85);
+      margin: 0;
+    }
+
+    .tldr-box p strong {
+      color: #c4b5fd;
+      font-weight: 600;
+    }
+
+    /* ── Layout ── */
+    .policy-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 3rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 3.5rem 2rem 5rem;
+      align-items: start;
+    }
+
+    /* ── Sidebar TOC ── */
+    .policy-toc {
+      position: sticky;
+      top: 5.5rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 0.875rem;
+      padding: 1.5rem;
+    }
+
+    .policy-toc h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255, 255, 255, 0.35);
+      margin: 0 0 1rem;
+    }
+
+    .policy-toc ol {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      counter-reset: toc-counter;
+    }
+
+    .policy-toc li {
+      counter-increment: toc-counter;
+      margin-bottom: 0.125rem;
+    }
+
+    .policy-toc a {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.5);
+      text-decoration: none;
+      padding: 0.35rem 0.5rem;
+      border-radius: 0.375rem;
+      transition: background 0.15s ease, color 0.15s ease;
+      line-height: 1.4;
+    }
+
+    .policy-toc a::before {
+      content: counter(toc-counter, decimal-leading-zero);
+      font-size: 0.65rem;
+      color: rgba(139, 92, 246, 0.5);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .policy-toc a:hover {
+      background: rgba(139, 92, 246, 0.1);
+      color: #c4b5fd;
+    }
+
+    .policy-toc a.active {
+      background: rgba(139, 92, 246, 0.15);
+      color: #c4b5fd;
+      font-weight: 500;
+    }
+
+    /* ── Prose ── */
+    .policy-content .prose {
+      display: flex;
+      flex-direction: column;
+      gap: 3.5rem;
+    }
+
+    .prose section {
+      scroll-margin-top: 6rem;
+    }
+
+    .prose section h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin: 0 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+    }
+
+    .prose section h2 .sec-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.75rem;
+      height: 1.75rem;
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 0.375rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #a78bfa;
+      flex-shrink: 0;
+    }
+
+    .prose p {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.975rem;
+      line-height: 1.8;
+      color: rgba(255, 255, 255, 0.65);
+      margin: 0 0 1rem;
+    }
+
+    .prose p:last-child {
+      margin-bottom: 0;
+    }
+
+    .prose p strong {
+      color: rgba(255, 255, 255, 0.85);
+      font-weight: 600;
+    }
+
+    .prose p a {
+      color: #818cf8;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-color: rgba(129, 140, 248, 0.35);
+      transition: color 0.15s ease, text-decoration-color 0.15s ease;
+    }
+
+    .prose p a:hover {
+      color: #c4b5fd;
+      text-decoration-color: rgba(196, 181, 253, 0.6);
+    }
+
+    .prose ul,
+    .prose ol {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.975rem;
+      line-height: 1.8;
+      color: rgba(255, 255, 255, 0.65);
+      padding-left: 1.5rem;
+      margin: 0.75rem 0;
+    }
+
+    .prose ul li,
+    .prose ol li {
+      margin-bottom: 0.375rem;
+    }
+
+    .prose ul li strong,
+    .prose ol li strong {
+      color: rgba(255, 255, 255, 0.85);
+      font-weight: 600;
+    }
+
+    .prose .highlight-box {
+      background: rgba(56, 189, 248, 0.06);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-left: 3px solid #38bdf8;
+      border-radius: 0 0.5rem 0.5rem 0;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .prose .highlight-box strong {
+      color: #7dd3fc;
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .prose .tech-box {
+      background: rgba(16, 16, 30, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 0.625rem;
+      padding: 1.125rem 1.375rem;
+      margin: 1rem 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .prose .tech-box .tech-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #a78bfa;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .prose .tech-box ul {
+      margin: 0;
+      padding-left: 1.25rem;
+      font-size: 0.875rem;
+    }
+
+    .prose .divider {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      margin: 0;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 800px) {
+      .policy-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .policy-toc {
+        position: static;
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ════════════════════════════════
+       NAV
+  ════════════════════════════════ -->
+  <header class="site-header" role="banner">
+    <nav class="nav-container" aria-label="Main navigation">
+      <a href="index.html" class="nav-logo" aria-label="Claude Power UI — Home">
+        <div class="logo-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <span class="logo-text">Claude <span class="logo-accent">Power UI</span></span>
+      </a>
+
+      <ul class="nav-links" role="list">
+        <li><a href="index.html#features">Features</a></li>
+        <li><a href="index.html#how-it-works">How It Works</a></li>
+        <li><a href="index.html#security">Security</a></li>
+        <li><a href="index.html#faq">FAQ</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="https://github.com/codyforbes/claude-power-ui" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+          </svg>
+          GitHub
+        </a>
+        <a href="index.html#get-started" class="btn btn-primary btn-sm">Get Started</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ════════════════════════════════
+       HERO
+  ════════════════════════════════ -->
+  <section class="policy-hero" aria-labelledby="policy-title">
+    <h1 id="policy-title">Privacy Policy</h1>
+    <p class="last-updated">Last updated: July 8, 2026</p>
+    <div class="tldr-box" role="note" aria-label="Summary">
+      <span class="tldr-icon" aria-hidden="true">🔒</span>
+      <p>
+        <strong>TL;DR:</strong> We collect nothing. All data stays on your device.
+        API keys are encrypted with AES-256-GCM before storage.
+        No accounts required for self-hosted use. No telemetry, no analytics, no surprises.
+      </p>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════
+       CONTENT
+  ════════════════════════════════ -->
+  <main id="main-content" class="policy-layout">
+
+    <!-- Sidebar TOC -->
+    <aside class="policy-toc" aria-label="Table of contents">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#overview" id="toc-overview">Overview</a></li>
+        <li><a href="#not-collected" id="toc-not-collected">What We Don't Collect</a></li>
+        <li><a href="#stored-locally" id="toc-stored-locally">Stored Locally</a></li>
+        <li><a href="#api-key-security" id="toc-api-key-security">API Key Security</a></li>
+        <li><a href="#third-party" id="toc-third-party">Third-Party Services</a></li>
+        <li><a href="#server-mode" id="toc-server-mode">Server Mode</a></li>
+        <li><a href="#cookies" id="toc-cookies">Cookies &amp; Storage</a></li>
+        <li><a href="#children" id="toc-children">Children's Privacy</a></li>
+        <li><a href="#changes" id="toc-changes">Policy Changes</a></li>
+        <li><a href="#contact" id="toc-contact">Contact</a></li>
+      </ol>
+    </aside>
+
+    <!-- Main prose -->
+    <article class="policy-content" aria-label="Privacy Policy content">
+      <div class="prose">
+
+        <!-- 1. Overview -->
+        <section id="overview" aria-labelledby="h-overview">
+          <h2 id="h-overview">
+            <span class="sec-num" aria-hidden="true">01</span>
+            Overview
+          </h2>
+          <p>
+            Claude Power UI is built on a <strong>local-first architecture</strong>. This is not a
+            marketing phrase — it's a hard constraint baked into how the application works.
+            There is no server owned by this project that your conversations pass through,
+            no database that stores your messages, and no account system that ties your
+            activity to an identity.
+          </p>
+          <p>
+            When you use Claude Power UI, every conversation you have, every setting you
+            configure, and every API key you add is held entirely on <strong>your device</strong>,
+            inside your browser's own storage. The application is a static front-end that
+            talks directly to the AI provider APIs you choose to use — nothing sits in between.
+          </p>
+          <div class="highlight-box">
+            <strong>Architecture in one sentence</strong>
+            Your browser ↔ AI provider API. That's it. No Claude Power UI servers in that chain.
+          </div>
+          <p>
+            This policy explains exactly what is stored, where, and how it is protected —
+            so you can make an informed decision about whether this tool is right for you.
+          </p>
+        </section>
+
+        <hr class="divider" aria-hidden="true" />
+
+        <!-- 2. What We Don't Collect -->
+        <section id="not-collected" aria-labelledby="h-not-collected">
+          <h2 id="h-not-collected">
+            <span class="sec-num" aria-hidden="true">02</span>
+            Information We Do Not Collect
+          </h2>
+          <p>
+            The list of things we do <strong>not</strong> collect is more useful than a list
+            of things we do. To be explicit:
+          </p>
+          <ul>
+            <li><strong>No telemetry.</strong> We don't track which features you use, how often you open the app, or how many messages you send.</li>
+            <li><strong>No analytics.</strong> There is no Google Analytics, Mixpanel, Amplitude, or any similar service embedded in this application.</li>
+            <li><strong>No crash reports.</strong> If the app crashes, we don't receive a report. You'd have to tell us via GitHub.</li>
+            <li><strong>No usage metrics.</strong> Token counts, message lengths, conversation durations — none of it is sent anywhere.</li>
+            <li><strong>No IP logging.</strong> We don't run the servers, so we can't log your IP. The AI providers receive your IP when you call their APIs — see Section 5 for details.</li>
+            <li><strong>No advertising IDs or fingerprinting.</strong> We make no attempt to identify you across sessions, devices, or sites.</li>
+            <li><strong>No account data.</strong> There is no sign-up form, no email field, no password we store.</li>
+          </ul>
+          <p>
+            The simplest mental model: if we don't run a server that receives your data,
+            we can't collect your data. That is the actual state of affairs.
+          </p>
+        </section>
+
+        <hr class="divider" aria-hidden="true" />
+
+        <!-- 3. Stored Locally -->
+        <section id="stored-locally" aria-labelledby="h-stored-locally">
+          <h2 id="h-stored-locally">
+            <span class="sec-num" aria-hidden="true">03</span>
+            Information Stored Locally on Your Device
+          </h2>
+          <p>
+            Claude Power UI does store data — just entirely on your device, in your
+            browser's own storage APIs. Here's a full breakdown of what gets saved
+            and why:
+          </p>
+
+          <div class="tech-box">
+            <span class="tech-label">localStorage — persisted across browser sessions</span>
+            <ul>
+              <li><strong>Conversation history</strong> — your messages and AI responses, stored so the app can restore them when you reopen it.</li>
+              <li><strong>App settings</strong> — theme, model selection, temperature, system prompt, sidebar state, etc.</li>
+              <li><strong>Encrypted API key vault</strong> — your API keys stored in AES-256-GCM encrypted form. The decryption key is never stored here; see Section 4.</li>
+              <li><strong>Memory entries</strong> — any facts or context you've explicitly asked the app to remember across conversations.</li>
+              <li><strong>Conversation metadata</strong> — titles, creation dates, and model used, so the sidebar list can be rendered without decrypting message content.</li>
+            </ul>
+          </div>
+
+          <div class="tech-box">
+            <span class="tech-label">sessionStorage — cleared when you close the tab</span>
+            <ul>
+              <li><strong>Vault decryption key</strong> — the key used to decrypt your API key vault for the current session. It's held here specifically because sessionStorage is wiped when the tab closes, limiting the window of exposure.</li>
+            </ul>
+          </div>
+
+          <p>
+            You can clear all of this at any time by opening your browser's developer tools
+            and clearing site data for the origin, or by using the built-in "Clear All Data"
+            option in the app's settings panel.
+          </p>
+          <p>
+            None of this data ever leaves your device unless you explicitly export it using
+            the app's export feature.
+          </p>
+        </section>
+
+        <hr class="divider" aria-hidden="true" />
+
+        <!-- 4. API Key Security -->
+        <section id="api-key-security" aria-labelledby="h-api-key-security">
+          <h2 id="h-api-key-security">
+            <span class="sec-num" aria-hidden="true">04</span>
+            API Key Security
+          </h2>
+          <p>
+            Your API keys are the most sensitive thing the application touches. We treat
+            them accordingly. Here is exactly how they are protected:
+          </p>
+
+          <div class="tech-box">
+            <span class="tech-label">Encryption pipeline</span>
+            <ul>
+              <li><strong>Key derivation:</strong> When you set a vault password, <strong>PBKDF2-SHA-256</strong> is used with 310,000 iterations and a random 16-byte salt to derive a 256-bit encryption key. This makes brute-force attacks computationally expensive.</li>
+              <li><strong>Encryption:</strong> The derived key encrypts your API keys using <strong>AES-256-GCM</strong>. Each encryption operation uses a freshly generated random 96-bit initialization vector (IV), making ciphertexts unique even for identical inputs.</li>
+              <li><strong>Storage:</strong> Only the encrypted ciphertext, the salt, and the IV are written to localStorage. The raw API key is never stored.</li>
+              <li><strong>Session key:</strong> Once you unlock the vault with your password, the derived encryption key lives only in <strong>sessionStorage</strong>. It's gone the moment you close the tab.</li>
+            </ul>
+          </div>
+
+          <p>
+            All cryptographic operations are performed by the browser's native
+            <strong>Web Crypto API</strong> (<code>window.crypto.subtle</code>).
+            No third-party crypto library is involved.
+          </p>
+          <p>
+            If you forget your vault password, your API keys cannot be recovered — this
+            is intentional. There is no password-reset mechanism because there is no server
+            to send a reset email from. Simply clear the vault and re-enter your keys.
+          </p>
+        </section>
+
+        <hr class="divider" aria-hidden="true" />
+
+        <!-- 5. Third-Party Services -->
+        <section id="third-party" aria-labelledby="h-third-party">
+          <h2 id="h-third-party">
+            <span class="sec-num" aria-hidden="true">05</span>
+            Third-Party Services
+          </h2>
+          <p>
+            When you send a message, it goes directly from your browser to the API endpoint
+            of the AI provider you have configured — Anthropic, OpenAI, Google, Mistral, or
+            any other compatible provider. <strong>We are not involved in that request.</strong>
+          </p>
+          <p>
+            This means those providers receive:
+          </p>
+          <ul>
+            <li>Your messages and any attached files you send</li>
+            <li>Your IP address (standard for any HTTP request)</li>
+            <li>Your API key (sent in the Authorization header, which is why we encrypt them at rest)</li>
+            <li>Any metadata the API requires (model name, parameters, etc.)</li>
+          </ul>
+          <p>
+            Each provider has their own privacy policy governing how they handle this data.
+            You should read them:
+          </p>
+          <ul>
+            <li><a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener noreferrer">Anthropic Privacy Policy</a></li>
+            <li><a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener noreferrer">OpenAI Privacy Policy</a></li>
+            <li><a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google Privacy Policy</a></li>
+            <li><a href="https://mistral.ai/privacy/" target="_blank" rel="noopener noreferrer">Mistral AI Privacy Policy</a></li>
+          </ul>
+          <p>
+            <strong>Google Fonts</strong> is also loaded by this page to render the Inter and
+            Outfit typefaces. When your browser fetches font files from Google's CDN, Google
+            receives your IP address. See
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's privacy policy</a>
+            for how they handle font CDN requests.
+          </p>
+          <p>
+            Aside from the AI providers you choose and Google Fonts, no other third-party
+            services are loaded by this application.
+          </p>
+        </section>
+
+        <hr class="divider" aria-hidden="true" />
+
+        <!-- 6. Server Mode -->
+        <section id="server-mode" aria-labelledby="h-server-mode">
+          <h2 id="h-server-mode">
+            <span class="sec-num" aria-hidden="true">06</span>
+            Server Mode (Optional)
+          </h2>
+          <p>
+            Claude Power UI includes an optional <code>server.py</code> that you can run
+            locally to enable a small number of server-assisted features — primarily
+            real-time updates via Server-Sent Events (SSE) for multi-tab synchronisation,
+            and local file-based storage as an alternative to the browser's localStorage.
+          </p>
+          <p>
+            Key things to understand about server mode:
+          </p>
+          <ul>
+            <li><strong>It runs on your machine.</strong> You start it yourself with <code>python server.py</code>. It binds to <code>localhost</code> by default and is not exposed to the internet unless you explicitly configure it to be.</li>
+            <li><strong>Data stays local.</strong> Any data the server persists is written to a <code>/data</code> directory next to <code>server.py</code> on your own filesystem.</li>
+            <li><strong>No external transmission.</strong> The server does not send data anywhere. It receives API requests from your browser and stores or broadcasts them locally.</li>
+            <li><strong>SSE broadcast.</strong> If you have multiple tabs open, the server can push updates between them over SSE. This traffic never leaves <code>localhost</code>.</li>
+            <li><strong>Your responsibility.</strong> If you choose to expose the server on your network (e.g., via port forwarding), you are responsible for securing that access. The server does not include authentication by default.</li>
+          </ul>
+          <p>
+            If you never run <code>server.py</code>, the application operates entirely in browser-only
+            mode and server mode is simply irrelevant.
+          </p>
+        </section>
+
+        <hr class="divider" aria-hidden="true" />
+
+        <!-- 7. Cookies & Storage -->
+        <section id="cookies" aria-labelledby="h-cookies">
+          <h2 id="h-cookies">
+            <span class="sec-num" aria-hidden="true">07</span>
+            Cookies &amp; Storage
+          </h2>
+          <p>
+            Claude Power UI does <strong>not</strong> set any cookies — first-party or
+            third-party. All persistent state is managed through the browser's Web Storage
+            APIs:
+          </p>
+          <ul>
+            <li><strong>localStorage</strong> — for data that should persist between browser sessions (conversations, settings, encrypted API keys).</li>
+            <li><strong>sessionStorage</strong> — for data that should be cleared when you close the tab (the vault decryption key).</li>
+          </ul>
+          <p>
+            No tracking cookies, no session cookies, no advertising cookies. The only
+            third-party storage that might be set is by Google Fonts if your browser
+            caches font files under Google's domain — that is outside our control and
+            governed by Google's policies.
+          </p>
+        </section>
+
+        <hr class="divider" aria-hidden="true" />
+
+        <!-- 8. Children's Privacy -->
+        <section id="children" aria-labelledby="h-children">
+          <h2 id="h-children">
+            <span class="sec-num" aria-hidden="true">08</span>
+            Children's Privacy
+          </h2>
+          <p>
+            Claude Power UI is not directed at children under the age of 13, and we do not
+            knowingly collect personal information from children under 13. Since the
+            application requires users to obtain and manage their own API keys from AI
+            providers — each of which has their own age requirements — the practical
+            minimum age for using this tool is determined by those providers' terms of service.
+          </p>
+          <p>
+            Anthropic, OpenAI, and other major providers generally require users to be at
+            least 13 years old, with parental consent often required for users under 18.
+            Please review the terms of service of whichever provider you use.
+          </p>
+        </section>
+
+        <hr class="divider" aria-hidden="true" />
+
+        <!-- 9. Changes -->
+        <section id="changes" aria-labelledby="h-changes">
+          <h2 id="h-changes">
+            <span class="sec-num" aria-hidden="true">09</span>
+            Changes to This Policy
+          </h2>
+          <p>
+            If this privacy policy changes in a meaningful way, we will:
+          </p>
+          <ul>
+            <li>Update the "Last updated" date at the top of this page</li>
+            <li>Create a GitHub release note or commit describing what changed and why</li>
+            <li>For significant changes, open a GitHub Discussion to allow community feedback before the change takes effect</li>
+          </ul>
+          <p>
+            Because there is no account system, we cannot email you about policy changes.
+            If you want to stay informed, <strong>watch the repository on GitHub</strong>
+            to receive notifications about releases and significant updates.
+          </p>
+          <p>
+            Continued use of the application after a policy change is published constitutes
+            acceptance of the updated policy. If you disagree with a change, you can stop
+            using the application and clear your local data at any time.
+          </p>
+        </section>
+
+        <hr class="divider" aria-hidden="true" />
+
+        <!-- 10. Contact -->
+        <section id="contact" aria-labelledby="h-contact">
+          <h2 id="h-contact">
+            <span class="sec-num" aria-hidden="true">10</span>
+            Contact
+          </h2>
+          <p>
+            If you have questions about this privacy policy, believe there is a privacy
+            issue with the application, or want to report a security concern related to
+            data handling, please open an issue on GitHub:
+          </p>
+          <div class="highlight-box">
+            <strong>GitHub Issues</strong>
+            <a href="https://github.com/codyforbes/claude-power-ui/issues" target="_blank" rel="noopener noreferrer">
+              github.com/codyforbes/claude-power-ui/issues
+            </a>
+            — tag your issue with the <code>privacy</code> or <code>security</code> label.
+          </div>
+          <p>
+            For sensitive security disclosures, please use GitHub's private
+            <a href="https://github.com/codyforbes/claude-power-ui/security/advisories" target="_blank" rel="noopener noreferrer">Security Advisory</a>
+            feature rather than opening a public issue. This allows us to review and
+            address the concern before it is publicly visible.
+          </p>
+          <p>
+            We are a small open-source project and do not have a dedicated privacy team or
+            a formal data protection officer. Response times may vary, but we take privacy
+            concerns seriously and will respond to every legitimate inquiry.
+          </p>
+        </section>
+
+      </div><!-- /.prose -->
+    </article>
+
+  </main>
+
+  <!-- ════════════════════════════════
+       FOOTER
+  ════════════════════════════════ -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <a href="index.html" class="footer-logo" aria-label="Claude Power UI — Home">
+          <div class="logo-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <span>Claude <strong>Power UI</strong></span>
+        </a>
+        <p class="footer-tagline">A local-first, open-source interface for the Claude API. Your data, your device, your control.</p>
+      </div>
+
+      <nav class="footer-links" aria-label="Footer navigation">
+        <div class="footer-col">
+          <h3>Product</h3>
+          <ul>
+            <li><a href="index.html#features">Features</a></li>
+            <li><a href="index.html#how-it-works">How It Works</a></li>
+            <li><a href="index.html#security">Security</a></li>
+            <li><a href="index.html#faq">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Legal</h3>
+          <ul>
+            <li><a href="privacy.html" aria-current="page">Privacy Policy</a></li>
+            <li><a href="terms.html">Terms of Use</a></li>
+            <li><a href="https://github.com/codyforbes/claude-power-ui/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Community</h3>
+          <ul>
+            <li><a href="https://github.com/codyforbes/claude-power-ui" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="https://github.com/codyforbes/claude-power-ui/issues" target="_blank" rel="noopener">Issues</a></li>
+            <li><a href="https://github.com/codyforbes/claude-power-ui/discussions" target="_blank" rel="noopener">Discussions</a></li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+
+    <div class="footer-bottom">
+      <p>&copy; 2026 Claude Power UI. Open-source under the MIT License.</p>
+      <p class="footer-disclaimer">Not affiliated with Anthropic. Claude™ is a trademark of Anthropic, PBC.</p>
+    </div>
+  </footer>
+
+  <!-- ════════════════════════════════
+       SCRIPTS
+  ════════════════════════════════ -->
+  <script>
+    // ── Sticky nav shadow on scroll ──
+    const header = document.querySelector('.site-header');
+    if (header) {
+      const onScroll = () => {
+        header.classList.toggle('scrolled', window.scrollY > 10);
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }
+
+    // ── Active TOC link on scroll ──
+    (function () {
+      const sections = document.querySelectorAll('.prose section[id]');
+      const tocLinks = document.querySelectorAll('.policy-toc a');
+      if (!sections.length || !tocLinks.length) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const id = entry.target.id;
+              tocLinks.forEach((link) => {
+                link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+              });
+            }
+          });
+        },
+        { rootMargin: '-20% 0px -70% 0px', threshold: 0 }
+      );
+
+      sections.forEach((sec) => observer.observe(sec));
+    })();
+
+    // ── Smooth scroll for TOC links ──
+    document.querySelectorAll('.policy-toc a[href^="#"]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = document.querySelector(link.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

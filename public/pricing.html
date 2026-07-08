@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing — Claude Power UI</title>
+  <meta name="description" content="Simple, transparent pricing for Claude Power UI. Free forever self-hosted, or upgrade for cloud hosting and team features.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/public.css">
+  <style>
+    .plan-hero { padding: 140px 0 72px; text-align: center; position: relative; }
+    .plan-hero .hero-glow { top: -30%; }
+
+    .pricing-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .enterprise-card {
+      background: linear-gradient(145deg, rgba(6,182,212,.08), rgba(99,102,241,.06));
+      border: 1px solid rgba(6,182,212,.25);
+    }
+    .enterprise-card:hover { border-color: rgba(6,182,212,.5); }
+
+    .compare-section { padding: 80px 0; }
+    .compare-table td.partial { color: var(--warning); }
+
+    .toggle-row {
+      display: flex; align-items: center; gap: 16px;
+      justify-content: center; margin-bottom: 52px;
+    }
+    .toggle-opt {
+      font-size: .9375rem; color: var(--text-muted); font-weight: 500;
+      transition: color var(--transition);
+    }
+    .toggle-opt.active { color: var(--text); font-weight: 600; }
+
+    .price-amount { transition: all .2s ease; }
+
+    @media (max-width: 1024px) { .pricing-grid-4 { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 640px)  { .pricing-grid-4 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-icon">✦</div>
+      Claude Power UI
+    </a>
+    <div class="nav-links">
+      <a href="features.html" class="nav-link">Features</a>
+      <a href="pricing.html" class="nav-link active">Pricing</a>
+      <a href="getting-started.html" class="nav-link">Docs</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+    <div class="nav-actions">
+      <a href="../app/index.html" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="../app/index.html" class="btn btn-primary btn-sm">Get Started Free →</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="plan-hero">
+  <div class="hero-glow"></div>
+  <div class="container">
+    <span class="badge badge-green" style="margin-bottom:20px;display:inline-flex;">Simple Pricing</span>
+    <h1 class="display" style="margin-bottom:16px;">
+      Pay for what you<br>
+      <span class="grad-text">actually need.</span>
+    </h1>
+    <p style="font-size:1.125rem;color:var(--text-muted);max-width:520px;margin:0 auto 40px;">
+      Start free forever with self-hosting. Upgrade only when you need cloud infrastructure or team collaboration.
+    </p>
+
+    <!-- Toggle -->
+    <div class="toggle-row">
+      <span class="toggle-opt active" id="lbl-monthly">Monthly</span>
+      <div class="toggle-pill" id="billingToggle" onclick="toggleBilling()">
+        <div class="toggle-knob"></div>
+      </div>
+      <span class="toggle-opt" id="lbl-annual">Annual <span class="discount-tag" style="margin-left:6px;">Save 20%</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing Cards -->
+<section style="padding-top:0;">
+  <div class="container">
+    <div class="pricing-grid-4">
+
+      <!-- Free -->
+      <div class="pricing-card">
+        <div class="pricing-name">Free</div>
+        <div class="pricing-price">
+          <span class="amount price-amount" data-monthly="$0" data-annual="$0">$0</span>
+          <span class="period">forever</span>
+        </div>
+        <div class="pricing-desc">Everything you need, self-hosted on your machine. No credit card, no account.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="icon yes">✓</span> All 72 skills</li>
+          <li><span class="icon yes">✓</span> All AI providers (BYOK)</li>
+          <li><span class="icon yes">✓</span> Unlimited workspaces</li>
+          <li><span class="icon yes">✓</span> Encrypted API key vault</li>
+          <li><span class="icon yes">✓</span> Memory &amp; history</li>
+          <li><span class="icon yes">✓</span> Admin dashboard</li>
+          <li><span class="icon yes">✓</span> Template gallery</li>
+          <li><span class="icon no">○</span> Cloud hosting</li>
+          <li><span class="icon no">○</span> Multi-device sync</li>
+          <li><span class="icon no">○</span> Auto-backups</li>
+        </ul>
+        <a href="../app/index.html" class="btn btn-ghost" style="width:100%;justify-content:center;">Start Free →</a>
+      </div>
+
+      <!-- Pro (featured) -->
+      <div class="pricing-card featured" style="position:relative;">
+        <div class="glow-ring" style="position:absolute;inset:-1px;border-radius:inherit;background:var(--grad);opacity:.25;filter:blur(8px);z-index:-1;"></div>
+        <div class="featured-badge">Most Popular</div>
+        <div class="pricing-name">Pro</div>
+        <div class="pricing-price">
+          <span class="amount price-amount" data-monthly="$15" data-annual="$12">$15</span>
+          <span class="period price-period">/mo</span>
+          <span class="original price-original" style="display:none;">$15</span>
+        </div>
+        <div class="pricing-desc">Hosted instance with multi-device sync, backups, and priority support. For serious solo users.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="icon yes">✓</span> Everything in Free</li>
+          <li><span class="icon yes">✓</span> Cloud-hosted instance</li>
+          <li><span class="icon yes">✓</span> Multi-device sync (SSE)</li>
+          <li><span class="icon yes">✓</span> Auto-backups (daily)</li>
+          <li><span class="icon yes">✓</span> Custom domain</li>
+          <li><span class="icon yes">✓</span> Priority email support</li>
+          <li><span class="icon yes">✓</span> 99.9% uptime SLA</li>
+          <li><span class="icon yes">✓</span> 1-click updates</li>
+          <li><span class="icon no">○</span> Team users</li>
+          <li><span class="icon no">○</span> Shared workspaces</li>
+        </ul>
+        <a href="../app/index.html" class="btn btn-primary" style="width:100%;justify-content:center;">Start 14-Day Trial</a>
+        <p style="text-align:center;font-size:.75rem;color:var(--text-dim);margin-top:10px;">No credit card for trial</p>
+      </div>
+
+      <!-- Team -->
+      <div class="pricing-card">
+        <div class="pricing-name">Team</div>
+        <div class="pricing-price">
+          <span class="amount price-amount" data-monthly="$39" data-annual="$29">$39</span>
+          <span class="period price-period">/mo</span>
+          <span class="original price-original" style="display:none;">$39</span>
+        </div>
+        <div class="pricing-desc">Collaboration, shared workspaces, and analytics for small teams. Up to 10 users.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="icon yes">✓</span> Everything in Pro</li>
+          <li><span class="icon yes">✓</span> Up to 10 users</li>
+          <li><span class="icon yes">✓</span> Shared workspaces</li>
+          <li><span class="icon yes">✓</span> Per-user analytics</li>
+          <li><span class="icon yes">✓</span> Shared skill library</li>
+          <li><span class="icon yes">✓</span> SSO / SAML</li>
+          <li><span class="icon yes">✓</span> Slack integration</li>
+          <li><span class="icon yes">✓</span> Audit logs</li>
+          <li><span class="icon yes">✓</span> Centralized API key mgmt</li>
+          <li><span class="icon no">○</span> Unlimited users</li>
+        </ul>
+        <a href="../app/index.html" class="btn btn-outline" style="width:100%;justify-content:center;">Start Team Trial</a>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="pricing-card enterprise-card">
+        <div class="pricing-name" style="color:#67e8f9;">Enterprise</div>
+        <div class="pricing-price">
+          <span class="amount" style="font-size:2rem;color:var(--text);">Custom</span>
+        </div>
+        <div class="pricing-desc">Unlimited users, on-premise deployment, dedicated support, and custom integrations.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="icon yes">✓</span> Everything in Team</li>
+          <li><span class="icon yes">✓</span> Unlimited users</li>
+          <li><span class="icon yes">✓</span> On-premise deployment</li>
+          <li><span class="icon yes">✓</span> Custom SAML / SSO</li>
+          <li><span class="icon yes">✓</span> Dedicated Slack support</li>
+          <li><span class="icon yes">✓</span> Custom SLA</li>
+          <li><span class="icon yes">✓</span> Custom integrations</li>
+          <li><span class="icon yes">✓</span> White-label option</li>
+          <li><span class="icon yes">✓</span> Security review</li>
+          <li><span class="icon yes">✓</span> Invoiced billing</li>
+        </ul>
+        <a href="about.html" class="btn btn-ghost" style="width:100%;justify-content:center;border-color:rgba(6,182,212,.3);color:#67e8f9;">Contact Sales →</a>
+      </div>
+    </div>
+
+    <p class="text-center text-muted" style="margin-top:32px;font-size:.875rem;">
+      All plans include every feature. API costs are separate — you pay your provider directly at their listed rates.
+    </p>
+  </div>
+</section>
+
+<!-- Feature Comparison Table -->
+<section class="compare-section">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-indigo">Full Comparison</span>
+      <h2 class="h2" style="margin-top:12px;">Every feature, every plan</h2>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th style="width:36%">Feature</th>
+            <th>Free</th>
+            <th class="highlight">Pro</th>
+            <th>Team</th>
+            <th>Enterprise</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5" style="background:var(--surface-2);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);padding:10px 20px;">Core AI</td></tr>
+          <tr><td>All AI providers (BYOK)</td><td class="check">✓</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Unlimited messages</td><td class="check">✓</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Streaming responses</td><td class="check">✓</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>72-skill library</td><td class="check">✓</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Auto skill detection</td><td class="check">✓</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Conversation branching</td><td class="check">✓</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td colspan="5" style="background:var(--surface-2);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);padding:10px 20px;">Data &amp; Storage</td></tr>
+          <tr><td>Local storage</td><td class="check">✓</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Cloud-hosted instance</td><td class="cross">✗</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Multi-device sync</td><td class="cross">✗</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Auto-backups</td><td class="cross">✗</td><td class="highlight check">✓ Daily</td><td class="check">✓ Hourly</td><td class="check">✓ Continuous</td></tr>
+          <tr><td>Data export</td><td class="check">✓ Manual</td><td class="highlight check">✓ Scheduled</td><td class="check">✓ Scheduled</td><td class="check">✓ Any format</td></tr>
+          <tr><td colspan="5" style="background:var(--surface-2);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);padding:10px 20px;">Security</td></tr>
+          <tr><td>AES-256-GCM key encryption</td><td class="check">✓</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>PBKDF2 password hashing</td><td class="check">✓</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>SSO / SAML</td><td class="cross">✗</td><td class="cross highlight">✗</td><td class="check">✓</td><td class="check">✓ Custom</td></tr>
+          <tr><td>Audit logs</td><td class="cross">✗</td><td class="cross highlight">✗</td><td class="check">✓ 30 days</td><td class="check">✓ Unlimited</td></tr>
+          <tr><td>Security review / pen test</td><td class="cross">✗</td><td class="cross highlight">✗</td><td class="cross">✗</td><td class="check">✓</td></tr>
+          <tr><td colspan="5" style="background:var(--surface-2);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);padding:10px 20px;">Team &amp; Collaboration</td></tr>
+          <tr><td>Users</td><td>1</td><td class="highlight">1</td><td>Up to 10</td><td>Unlimited</td></tr>
+          <tr><td>Shared workspaces</td><td class="cross">✗</td><td class="cross highlight">✗</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Per-user analytics</td><td class="cross">✗</td><td class="cross highlight">✗</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Shared skill library</td><td class="cross">✗</td><td class="cross highlight">✗</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Centralized API key management</td><td class="cross">✗</td><td class="cross highlight">✗</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td colspan="5" style="background:var(--surface-2);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);padding:10px 20px;">Support</td></tr>
+          <tr><td>Community (GitHub / Discord)</td><td class="check">✓</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Priority email support</td><td class="cross">✗</td><td class="highlight check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Dedicated Slack channel</td><td class="cross">✗</td><td class="cross highlight">✗</td><td class="cross">✗</td><td class="check">✓</td></tr>
+          <tr><td>Custom SLA</td><td class="cross">✗</td><td class="cross highlight">✗</td><td class="cross">✗</td><td class="check">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section style="background:linear-gradient(180deg,transparent,rgba(99,102,241,.03),transparent);">
+  <div class="container-sm">
+    <div class="section-header">
+      <span class="badge badge-indigo">FAQ</span>
+      <h2 class="h2" style="margin-top:12px;">Pricing questions</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">What do I actually pay in API costs? <span class="faq-arrow">⌄</span></button>
+        <div class="faq-a">You pay your AI provider directly at their standard rates — no markup from us. For example, Claude 3.5 Sonnet costs ~$3/MTok input, $15/MTok output at Anthropic. A typical power user spends $5–20/month on API calls, often less than a subscription. Cost tracking is built into the app so you always know your spend.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Can I cancel anytime? <span class="faq-arrow">⌄</span></button>
+        <div class="faq-a">Yes. Cancel at any time from your account dashboard. You keep access until the end of your billing period. For annual plans, we offer a prorated refund within the first 30 days. No questions asked.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">What happens to my data if I downgrade to Free? <span class="faq-arrow">⌄</span></button>
+        <div class="faq-a">Your data is yours. You can export everything before downgrading from the Admin dashboard. After downgrading, the cloud-hosted instance shuts down, but you can always run the app locally — all features remain available on Free when self-hosted.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Is there a free trial for paid plans? <span class="faq-arrow">⌄</span></button>
+        <div class="faq-a">Yes — Pro and Team both come with a 14-day free trial, no credit card required. You'll be prompted to add a payment method at the end of the trial if you want to continue.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Do you offer discounts for students, nonprofits, or open-source projects? <span class="faq-arrow">⌄</span></button>
+        <div class="faq-a">Yes. We offer 50% off Pro and Team for verified students, nonprofits, and open-source maintainers. Contact us via GitHub with proof of eligibility.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section>
+  <div class="container">
+    <div class="cta-band">
+      <span class="badge badge-indigo" style="margin-bottom:20px;">Not sure which plan?</span>
+      <h2 class="h2">Start free. Upgrade when you're ready.</h2>
+      <p>The Free plan is fully featured for solo use. You'll know when you need more.</p>
+      <div class="btn-group">
+        <a href="../app/index.html" class="btn btn-primary btn-lg">Open the App →</a>
+        <a href="getting-started.html" class="btn btn-ghost btn-lg">Read the Docs</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="nav-logo"><div class="nav-logo-icon">✦</div>Claude Power UI</a>
+        <p>A premium, privacy-first AI workspace. Multi-model. Local-first. Built for power users.</p>
+        <div class="footer-socials">
+          <a href="#" class="footer-social-link">⌘</a>
+          <a href="#" class="footer-social-link">𝕏</a>
+          <a href="#" class="footer-social-link">◈</a>
+        </div>
+      </div>
+      <div class="footer-col"><h4>Product</h4><ul><li><a href="features.html">Features</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="getting-started.html">Docs</a></li><li><a href="#">Changelog</a></li></ul></div>
+      <div class="footer-col"><h4>Company</h4><ul><li><a href="about.html">About</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="terms.html">Terms</a></li><li><a href="#">Contact</a></li></ul></div>
+      <div class="footer-col"><h4>Community</h4><ul><li><a href="#">Discord</a></li><li><a href="#">GitHub</a></li><li><a href="#">Twitter / X</a></li><li><a href="#">Feature Requests</a></li></ul></div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Claude Power UI. MIT License.</p>
+      <p>Not affiliated with Anthropic PBC.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  let isAnnual = false;
+
+  function toggleBilling() {
+    isAnnual = !isAnnual;
+    const pill = document.getElementById('billingToggle');
+    const lblM = document.getElementById('lbl-monthly');
+    const lblA = document.getElementById('lbl-annual');
+
+    pill.classList.toggle('active', isAnnual);
+    lblM.classList.toggle('active', !isAnnual);
+    lblA.classList.toggle('active', isAnnual);
+
+    document.querySelectorAll('.price-amount').forEach(el => {
+      el.textContent = isAnnual ? el.dataset.annual : el.dataset.monthly;
+    });
+    document.querySelectorAll('.price-period').forEach(el => {
+      el.textContent = isAnnual ? '/mo billed annually' : '/mo';
+    });
+    document.querySelectorAll('.price-original').forEach(el => {
+      if (isAnnual && el.dataset.monthly !== '$0') {
+        el.style.display = 'inline';
+        el.textContent = el.closest('.pricing-price').querySelector('.price-amount').dataset.monthly;
+      } else {
+        el.style.display = 'none';
+      }
+    });
+  }
+
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.style.background = window.scrollY > 40 ? 'rgba(3,7,18,.92)' : 'rgba(3,7,18,.70)';
+  });
+
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  }
+</script>
+</body>
+</html>

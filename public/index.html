@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Power UI — The AI Workspace You Deserve</title>
+  <meta name="description" content="A premium, privacy-first interface for Claude and every major AI model. Bring your own keys, keep full control. 72 expert skills, persistent memory, team workspaces.">
+  <meta property="og:title" content="Claude Power UI — The AI Workspace You Deserve">
+  <meta property="og:description" content="Premium multi-model AI workspace. BYOK, 72 skills, memory, workspaces. No data leaves your device.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/public.css">
+  <style>
+    /* Page-specific enhancements */
+    .hero-badge { animation: fadeUp .4s ease both; }
+    .hero-heading { animation: fadeUp .5s .1s ease both; }
+    .hero-subheading { animation: fadeUp .5s .2s ease both; }
+    .hero-actions { animation: fadeUp .5s .3s ease both; }
+    .hero-visual { animation: fadeUp .6s .4s ease both; }
+
+    .typing-cursor::after {
+      content: '|'; animation: blink 1s step-end infinite;
+      color: var(--primary-light);
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    .glow-ring {
+      position: absolute; inset: -1px; border-radius: inherit;
+      background: var(--grad); opacity: 0.3; filter: blur(8px);
+      z-index: -1; transition: opacity .3s;
+    }
+    .pricing-card.featured:hover .glow-ring { opacity: 0.55; }
+
+    .stat-card { padding: 32px 24px; background: var(--grad-card); border: 1px solid var(--border-s); border-radius: var(--r-lg); }
+    .stat-card:hover { border-color: var(--border); }
+
+    .scrolling-logos { overflow: hidden; }
+    .skill-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .skill-pill {
+      padding: 5px 12px; border-radius: 100px; font-size: .75rem; font-weight: 600;
+      background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.2);
+      color: var(--primary-light);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────────────── -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-icon">✦</div>
+      Claude Power UI
+    </a>
+    <div class="nav-links">
+      <a href="features.html" class="nav-link">Features</a>
+      <a href="pricing.html" class="nav-link">Pricing</a>
+      <a href="getting-started.html" class="nav-link">Docs</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+    <div class="nav-actions">
+      <a href="../app/index.html" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="../app/index.html" class="btn btn-primary btn-sm">Get Started Free →</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="container">
+    <div class="hero-grid">
+      <div class="hero-content">
+        <div class="hero-eyebrow hero-badge">
+          <span class="badge badge-indigo">✦ Open Source · Privacy First · BYOK</span>
+        </div>
+        <h1 class="display hero-heading">
+          The AI workspace<br>
+          <span class="grad-text">you deserve.</span>
+        </h1>
+        <p class="hero-sub hero-subheading">
+          A premium, local-first interface for Claude and every major AI model.
+          Bring your own keys, keep full control. 72 expert skills. Persistent memory. Built for power users.
+        </p>
+        <div class="hero-actions">
+          <a href="../app/index.html" class="btn btn-primary btn-lg">
+            Start for Free →
+          </a>
+          <a href="getting-started.html" class="btn btn-ghost btn-lg">
+            Read the Docs
+          </a>
+        </div>
+        <div class="hero-social-proof">
+          <span class="hero-stars">★★★★★</span>
+          <span>Loved by developers, researchers, and power users</span>
+          <span style="color:var(--border-s)">·</span>
+          <a href="https://github.com" style="color:var(--text-dim)">★ Star on GitHub</a>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-window" style="animation: float 6s ease-in-out infinite;">
+          <div class="hero-window-bar">
+            <div class="hero-dot" style="background:#ff5f57"></div>
+            <div class="hero-dot" style="background:#febc2e"></div>
+            <div class="hero-dot" style="background:#28c840"></div>
+            <div style="flex:1; text-align:center; font-size:.7rem; color:var(--text-dim)">Claude Power UI · claude-opus-4-5</div>
+          </div>
+          <div class="hero-window-body" style="min-height:280px; background:var(--bg);">
+            <div style="margin-bottom:14px;">
+              <div class="hero-msg-label">You</div>
+              <div class="hero-msg user">Can you refactor this Python class to use async/await and add proper error handling?</div>
+            </div>
+            <div>
+              <div class="hero-msg-label">Claude</div>
+              <div class="hero-msg ai" style="font-family:inherit; font-size:.8125rem; line-height:1.6;">
+                Of course! Here's the refactored version with full async support and structured error handling using <code style="background:rgba(99,102,241,.2);color:#818cf8;padding:1px 5px;border-radius:4px;">asyncio</code> and custom exception classes…
+                <div class="typing-cursor" style="display:inline"></div>
+              </div>
+            </div>
+            <div style="margin-top:12px; padding:10px; background:rgba(99,102,241,.06); border:1px solid rgba(99,102,241,.12); border-radius:8px;">
+              <div style="font-size:.65rem; color:var(--text-dim); font-weight:600; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px;">⚙ Auto-applied skill</div>
+              <div style="font-size:.75rem; color:var(--primary-light);">🐍 Python · code-refactoring · async-patterns</div>
+            </div>
+          </div>
+          <div style="padding:10px 20px; background:var(--surface); border-top:1px solid var(--border-s); display:flex; gap:8px; align-items:center;">
+            <div style="flex:1; background:var(--surface-2); border-radius:8px; padding:8px 12px; font-size:.75rem; color:var(--text-dim);">Message Claude…</div>
+            <div style="width:32px;height:32px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;">↑</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Provider Strip ───────────────────────────────────────────── -->
+<div class="providers">
+  <div class="container">
+    <p class="providers-label">Works with every major AI provider</p>
+    <div class="providers-row">
+      <div class="provider-logo"><span>🤖</span> Anthropic Claude</div>
+      <div class="provider-logo"><span>⚡</span> OpenAI GPT-4</div>
+      <div class="provider-logo"><span>♊</span> Google Gemini</div>
+      <div class="provider-logo"><span>🚀</span> Groq Llama</div>
+      <div class="provider-logo"><span>🌀</span> Mistral</div>
+      <div class="provider-logo"><span>🔮</span> + More</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Features ─────────────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-indigo">Features</span>
+      <h2 class="h2" style="margin-top:12px;">Everything claude.ai doesn't give you</h2>
+      <p>Built for people who demand more from their AI tools — more control, more context, more power.</p>
+    </div>
+    <div class="features-grid">
+      <div class="card feature-card">
+        <div class="card-icon" style="background:rgba(99,102,241,.15);">🧠</div>
+        <h3 class="h3" style="margin-bottom:8px;">72-Skill Library</h3>
+        <p style="color:var(--text-muted); font-size:.9375rem; line-height:1.6;">Skills are expert-level prompt injections that auto-activate based on your intent. Python debugging, legal drafting, data analysis — it knows when to apply them.</p>
+        <div class="skill-pills">
+          <span class="skill-pill">Python</span>
+          <span class="skill-pill">SQL</span>
+          <span class="skill-pill">Legal</span>
+          <span class="skill-pill">Docs</span>
+          <span class="skill-pill">+68 more</span>
+        </div>
+      </div>
+      <div class="card feature-card">
+        <div class="card-icon" style="background:rgba(6,182,212,.12);">🔑</div>
+        <h3 class="h3" style="margin-bottom:8px;">Bring Your Own Keys</h3>
+        <p style="color:var(--text-muted); font-size:.9375rem; line-height:1.6;">Connect directly to provider APIs with your own keys. No margin, no middleman. Pay what the API actually costs — often 10× cheaper than subscriptions.</p>
+      </div>
+      <div class="card feature-card">
+        <div class="card-icon" style="background:rgba(139,92,246,.15);">💾</div>
+        <h3 class="h3" style="margin-bottom:8px;">Persistent Memory</h3>
+        <p style="color:var(--text-muted); font-size:.9375rem; line-height:1.6;">Store and search facts across all your sessions. The app remembers your tech stack, preferences, project constraints — and injects them automatically.</p>
+      </div>
+      <div class="card feature-card">
+        <div class="card-icon" style="background:rgba(34,197,94,.1);">🗂️</div>
+        <h3 class="h3" style="margin-bottom:8px;">Workspaces</h3>
+        <p style="color:var(--text-muted); font-size:.9375rem; line-height:1.6;">Organize conversations by project, client, or context. Each workspace has its own system prompt prefix, memory store, and session history.</p>
+      </div>
+      <div class="card feature-card">
+        <div class="card-icon" style="background:rgba(245,158,11,.1);">🔒</div>
+        <h3 class="h3" style="margin-bottom:8px;">Local-First & Encrypted</h3>
+        <p style="color:var(--text-muted); font-size:.9375rem; line-height:1.6;">All data stays on your device. API keys are AES-GCM encrypted at rest, derived from your login password. No telemetry. No cloud sync unless you want it.</p>
+      </div>
+      <div class="card feature-card">
+        <div class="card-icon" style="background:rgba(99,102,241,.1);">📊</div>
+        <h3 class="h3" style="margin-bottom:8px;">Admin Dashboard</h3>
+        <p style="color:var(--text-muted); font-size:.9375rem; line-height:1.6;">Full analytics, user management, API key governance, MCP resource management, and usage cost tracking — for teams and self-hosted deployments.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it Works ──────────────────────────────────────────────── -->
+<section style="background:linear-gradient(180deg,transparent,rgba(99,102,241,.04),transparent);">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-cyan">Quick Start</span>
+      <h2 class="h2" style="margin-top:12px;">Up and running in 60 seconds</h2>
+      <p>No build step. No account required. Just open the file and go.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3 class="h3">Open the App</h3>
+        <p>Download the release, open <code style="background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;font-size:.85em;">app/index.html</code> in any modern browser — or run <code style="background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;font-size:.85em;">server.py</code> for multi-device sync.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3 class="h3">Add Your API Key</h3>
+        <p>Paste your Anthropic, OpenAI, Google, or Groq API key in Settings. Keys are encrypted immediately — never stored in plaintext.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3 class="h3">Start Chatting</h3>
+        <p>The skills engine detects your intent and injects expert context automatically. Just talk — the platform handles the rest.</p>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top:48px;">
+      <a href="getting-started.html" class="btn btn-outline">Full Setup Guide →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Stats ────────────────────────────────────────────────────── -->
+<section class="sm">
+  <div class="container">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num">72</div>
+        <div class="stat-label">Expert Skills</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">10+</div>
+        <div class="stat-label">AI Providers</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">0</div>
+        <div class="stat-label">Data Shared</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">∞</div>
+        <div class="stat-label">API Tokens</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Comparison ────────────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-indigo">Comparison</span>
+      <h2 class="h2" style="margin-top:12px;">Why not just use claude.ai?</h2>
+      <p>claude.ai is excellent — but it's designed for the average user. This is designed for you.</p>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th style="width:40%">Capability</th>
+            <th class="highlight">Claude Power UI</th>
+            <th>claude.ai Pro</th>
+            <th>ChatGPT Plus</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Multi-provider models</strong><br><span class="text-xs text-dim">Claude, GPT-4, Gemini, Groq, Llama</span></td>
+            <td class="highlight check">✓ All providers</td>
+            <td class="cross">✗ Claude only</td>
+            <td class="cross">✗ OpenAI only</td>
+          </tr>
+          <tr>
+            <td><strong>Bring Your Own API Key</strong><br><span class="text-xs text-dim">Direct API access, no markup</span></td>
+            <td class="highlight check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td><strong>Skills / Expert Prompts</strong><br><span class="text-xs text-dim">Auto-injected by intent</span></td>
+            <td class="highlight check">✓ 72 skills</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td><strong>Persistent Cross-Session Memory</strong><br><span class="text-xs text-dim">Semantic search across all sessions</span></td>
+            <td class="highlight check">✓</td>
+            <td>Limited</td>
+            <td>Limited</td>
+          </tr>
+          <tr>
+            <td><strong>Workspaces</strong><br><span class="text-xs text-dim">Per-project context, memory, prompts</span></td>
+            <td class="highlight check">✓ Unlimited</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td><strong>Local / Private by Default</strong><br><span class="text-xs text-dim">Zero telemetry, data on your device</span></td>
+            <td class="highlight check">✓</td>
+            <td class="cross">Cloud only</td>
+            <td class="cross">Cloud only</td>
+          </tr>
+          <tr>
+            <td><strong>Admin Dashboard</strong><br><span class="text-xs text-dim">Users, analytics, cost tracking</span></td>
+            <td class="highlight check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td><strong>MCP Server Integration</strong><br><span class="text-xs text-dim">Connect custom tools and databases</span></td>
+            <td class="highlight check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td><strong>Pricing</strong></td>
+            <td class="highlight" style="color:#4ade80;font-weight:700;">Free (your API cost only)</td>
+            <td style="color:var(--text-muted);">$20/mo + usage</td>
+            <td style="color:var(--text-muted);">$20/mo + usage</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ── Testimonials ──────────────────────────────────────────────── -->
+<section style="background:linear-gradient(180deg,transparent,rgba(139,92,246,.04),transparent);">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-indigo">Testimonials</span>
+      <h2 class="h2" style="margin-top:12px;">Built for people who push AI hard</h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="card testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-body">"The skills system alone is worth switching for. I run a legal research workflow and it automatically injects the right jurisdictional context. Saved me from writing the same system prompt over and over."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">SL</div>
+          <div>
+            <div class="testimonial-name">Sarah L.</div>
+            <div class="testimonial-role">Legal Research Analyst · New York</div>
+          </div>
+        </div>
+      </div>
+      <div class="card testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-body">"Finally — a chat UI that doesn't leak my client work to some training dataset. Full local storage, encrypted keys, and I can see every API call being made. This is how it should be."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">MK</div>
+          <div>
+            <div class="testimonial-name">Marcus K.</div>
+            <div class="testimonial-role">Senior Software Engineer · Berlin</div>
+          </div>
+        </div>
+      </div>
+      <div class="card testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-body">"I run six different AI research projects simultaneously. Workspaces are a game-changer — each project keeps its own memory, system prompt, and conversation history completely isolated."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">DR</div>
+          <div>
+            <div class="testimonial-name">Dr. Rebecca T.</div>
+            <div class="testimonial-role">AI Research Scientist · MIT</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Pricing Preview ───────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-green">Pricing</span>
+      <h2 class="h2" style="margin-top:12px;">Simple, transparent pricing</h2>
+      <p>Start free forever. Upgrade only if you need hosted infrastructure or team features.</p>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; max-width:900px; margin:0 auto;">
+      <!-- Free -->
+      <div class="pricing-card">
+        <div class="pricing-name">Free</div>
+        <div class="pricing-price"><span class="amount">$0</span></div>
+        <div class="pricing-desc">Everything you need, self-hosted. Forever free, no credit card.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="icon yes">✓</span> All 72 skills</li>
+          <li><span class="icon yes">✓</span> All providers (BYOK)</li>
+          <li><span class="icon yes">✓</span> Unlimited workspaces</li>
+          <li><span class="icon yes">✓</span> Memory &amp; history</li>
+          <li><span class="icon yes">✓</span> Admin dashboard</li>
+          <li><span class="icon no">○</span> Cloud hosting</li>
+          <li><span class="icon no">○</span> Multi-device sync</li>
+        </ul>
+        <a href="../app/index.html" class="btn btn-ghost" style="width:100%;justify-content:center;">Get Started Free</a>
+      </div>
+      <!-- Pro -->
+      <div class="pricing-card featured" style="position:relative;">
+        <div class="glow-ring"></div>
+        <div class="featured-badge">Most Popular</div>
+        <div class="pricing-name">Pro</div>
+        <div class="pricing-price"><span class="amount">$15</span><span class="period">/mo</span></div>
+        <div class="pricing-desc">Hosted instance, multi-device sync, auto-backups, priority support.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="icon yes">✓</span> Everything in Free</li>
+          <li><span class="icon yes">✓</span> Cloud-hosted instance</li>
+          <li><span class="icon yes">✓</span> Multi-device sync</li>
+          <li><span class="icon yes">✓</span> Automatic backups</li>
+          <li><span class="icon yes">✓</span> Custom domain</li>
+          <li><span class="icon yes">✓</span> Priority email support</li>
+          <li><span class="icon no">○</span> Team users</li>
+        </ul>
+        <a href="pricing.html" class="btn btn-primary" style="width:100%;justify-content:center;">Start Pro Trial</a>
+      </div>
+      <!-- Team -->
+      <div class="pricing-card">
+        <div class="pricing-name">Team</div>
+        <div class="pricing-price"><span class="amount">$39</span><span class="period">/mo</span></div>
+        <div class="pricing-desc">Shared workspaces, team analytics, multi-user with admin controls.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="icon yes">✓</span> Everything in Pro</li>
+          <li><span class="icon yes">✓</span> Up to 10 users</li>
+          <li><span class="icon yes">✓</span> Shared workspaces</li>
+          <li><span class="icon yes">✓</span> Per-user analytics</li>
+          <li><span class="icon yes">✓</span> Shared skill library</li>
+          <li><span class="icon yes">✓</span> SSO / SAML</li>
+          <li><span class="icon yes">✓</span> Slack integration</li>
+        </ul>
+        <a href="pricing.html" class="btn btn-ghost" style="width:100%;justify-content:center;">View Team Plans</a>
+      </div>
+    </div>
+    <p class="text-center text-muted" style="margin-top:28px; font-size:.875rem;">
+      All plans include every feature. <a href="pricing.html">See full comparison →</a>
+    </p>
+  </div>
+</section>
+
+<!-- ── FAQ ─────────────────────────────────────────────────────── -->
+<section style="background:linear-gradient(180deg,transparent,rgba(99,102,241,.03),transparent);">
+  <div class="container-sm">
+    <div class="section-header">
+      <span class="badge badge-indigo">FAQ</span>
+      <h2 class="h2" style="margin-top:12px;">Frequently asked questions</h2>
+    </div>
+    <div class="faq-list" id="faq">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          What does "bring your own key" actually mean?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">You create an API account directly with Anthropic, OpenAI, Google, or Groq, get your API key, and paste it into Settings. Requests go directly from your browser to the provider — no intermediary, no margin. You pay exactly what the provider charges.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Is my data actually private?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">Yes. All conversation history, settings, and memories are stored exclusively in your browser's localStorage (or your own server if you run server.py). API keys are AES-256-GCM encrypted using a key derived from your password — they are never stored in plaintext. We collect zero telemetry.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          How do skills work?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">Skills are expert-level prompt injections from a library of 72 specialist modules (Python, SQL, legal writing, data analysis, etc.). The skills engine analyzes your message and automatically prepends the most relevant skill context to your API request. You can also manually browse and apply skills from the skills panel.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Can I use this with my whole team?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">Yes. The built-in admin dashboard supports multi-user accounts with role-based access. For teams, we recommend the Team plan which includes shared workspaces, per-user analytics, and SSO. For self-hosted deployments, run server.py to enable multi-device sync and optionally put it behind your own authentication proxy.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Does it work offline?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">The interface works offline — you can browse conversation history, edit sessions, and manage settings. Sending new messages requires an internet connection to reach the AI provider APIs. An offline banner appears automatically when connectivity is lost.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          What happens to my data if I stop using it?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">It stays exactly where it is — in your browser's localStorage on your device. Nothing is on our servers. You can export all your data at any time from the admin panel, or simply clear your browser data to remove everything.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ──────────────────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <div class="cta-band">
+      <span class="badge badge-indigo" style="margin-bottom:20px;">Ready to upgrade?</span>
+      <h2 class="h2">Start using a smarter AI workspace today.</h2>
+      <p>Free forever. No credit card. No account required for the self-hosted version.</p>
+      <div class="btn-group">
+        <a href="../app/index.html" class="btn btn-primary btn-lg">Open the App →</a>
+        <a href="getting-started.html" class="btn btn-ghost btn-lg">Read the Docs</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="nav-logo" style="margin-bottom:0;">
+          <div class="nav-logo-icon">✦</div>
+          Claude Power UI
+        </a>
+        <p>A premium, privacy-first AI workspace. Multi-model. Local-first. Built for power users.</p>
+        <div class="footer-socials">
+          <a href="#" class="footer-social-link" title="GitHub">⌘</a>
+          <a href="#" class="footer-social-link" title="Twitter">𝕏</a>
+          <a href="#" class="footer-social-link" title="Discord">◈</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="features.html">Features</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="getting-started.html">Documentation</a></li>
+          <li><a href="#">Changelog</a></li>
+          <li><a href="#">GitHub</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <ul>
+          <li><a href="#">Discord</a></li>
+          <li><a href="#">Twitter / X</a></li>
+          <li><a href="#">GitHub Discussions</a></li>
+          <li><a href="#">Feature Requests</a></li>
+          <li><a href="#">Report a Bug</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Claude Power UI. Open source under MIT License.</p>
+      <p>Not affiliated with Anthropic PBC.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Nav scroll effect
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.style.background = window.scrollY > 40
+      ? 'rgba(3,7,18,.92)'
+      : 'rgba(3,7,18,.70)';
+  });
+
+  // Mobile hamburger
+  document.getElementById('hamburger').addEventListener('click', () => {
+    const links = document.querySelector('.nav-links');
+    const acts  = document.querySelector('.nav-actions');
+    const open  = links.style.display === 'flex';
+    [links, acts].forEach(el => {
+      el.style.display = open ? '' : 'flex';
+      el.style.flexDirection = 'column';
+      el.style.position = 'absolute';
+      el.style.top = '64px';
+      el.style.left = '0';
+      el.style.right = '0';
+      el.style.background = 'rgba(3,7,18,.98)';
+      el.style.padding = '16px 24px';
+      el.style.borderBottom = '1px solid rgba(255,255,255,.06)';
+    });
+    if (open) { links.style.display = ''; acts.style.display = ''; }
+  });
+
+  // FAQ accordion
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  }
+</script>
+</body>
+</html>

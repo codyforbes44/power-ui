@@ -1,0 +1,81 @@
+# Claude Power UI — Netlify Deploy Configuration
+# ────────────────────────────────────────────────────────────────
+# No build step — pure static HTML/CSS/JS.
+# Both /public/ (marketing site) and /app/ (AI workspace) are served.
+# The Python server.py is for local use only and is not deployed.
+# ────────────────────────────────────────────────────────────────
+
+[build]
+  publish = "."
+  ignore  = "exit 0"          # never skip (no build cache to check)
+
+# ── Security Headers ────────────────────────────────────────────
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options           = "DENY"
+    X-Content-Type-Options    = "nosniff"
+    Referrer-Policy           = "strict-origin-when-cross-origin"
+    Permissions-Policy        = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate"
+    Content-Security-Policy = """
+      frame-ancestors 'none';
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' https://unpkg.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com data:;
+      connect-src 'self'
+        https://api.anthropic.com
+        https://api.openai.com
+        https://generativelanguage.googleapis.com
+        https://api.groq.com
+        https://api.mistral.ai
+        https://unpkg.com;
+      frame-src blob:;
+      img-src 'self' data: blob:;
+    """
+
+# CSS/JS — long cache (content-addressed via Netlify asset fingerprinting)
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ── Routing / Redirects ─────────────────────────────────────────
+
+# Root → public marketing homepage (200 rewrite, not redirect)
+[[redirects]]
+  from   = "/"
+  to     = "/public/index.html"
+  status = 200
+
+# /app with no trailing slash
+[[redirects]]
+  from   = "/app"
+  to     = "/app/index.html"
+  status = 200
+
+# /app/ SPA fallback — any unknown /app/* path → app shell
+[[redirects]]
+  from   = "/app/*"
+  to     = "/app/index.html"
+  status = 200
+
+# /public/ — pass-through (static files served directly, no rewrite needed)
+# /api/* — not served on Netlify (local server only); return 404 gracefully
+[[redirects]]
+  from   = "/api/*"
+  to     = "/public/404.html"
+  status = 404
+  force  = false

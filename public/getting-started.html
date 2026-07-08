@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started — Claude Power UI</title>
+  <meta name="description" content="Complete quickstart guide for Claude Power UI. Learn how to install, configure API keys, use Skills, Memory, Workspaces, and Server Mode." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/public.css" />
+  <style>
+    /* ─── Docs Layout ─────────────────────────────────────────── */
+    .docs-wrapper {
+      display: flex;
+      min-height: calc(100vh - 72px);
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 24px;
+      gap: 0;
+    }
+
+    /* ─── Sidebar ─────────────────────────────────────────────── */
+    .docs-sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 88px;
+      height: calc(100vh - 100px);
+      overflow-y: auto;
+      padding: 40px 0 40px 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+    .docs-sidebar::-webkit-scrollbar { width: 4px; }
+    .docs-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+    .sidebar-label {
+      font-family: 'Outfit', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      padding: 0 20px;
+      margin-bottom: 10px;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .sidebar-nav li + li { margin-top: 2px; }
+
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      border-radius: 8px;
+      color: rgba(255,255,255,0.55);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .sidebar-nav a:hover {
+      color: rgba(255,255,255,0.9);
+      background: rgba(255,255,255,0.05);
+    }
+    .sidebar-nav a.active {
+      color: #fff;
+      background: rgba(139, 92, 246, 0.15);
+    }
+    .sidebar-nav a.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 20px;
+      background: linear-gradient(180deg, #8b5cf6, #a78bfa);
+      border-radius: 0 3px 3px 0;
+    }
+
+    .sidebar-nav .nav-icon {
+      font-size: 15px;
+      width: 18px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.07);
+      margin: 16px 20px;
+    }
+
+    /* ─── Content ─────────────────────────────────────────────── */
+    .docs-content {
+      flex: 1;
+      min-width: 0;
+      padding: 56px 0 100px 60px;
+      border-left: 1px solid rgba(255,255,255,0.07);
+    }
+
+    /* ─── Section ─────────────────────────────────────────────── */
+    .doc-section {
+      margin-bottom: 80px;
+      scroll-margin-top: 100px;
+    }
+
+    .doc-section:last-child { margin-bottom: 0; }
+
+    .section-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #8b5cf6;
+      font-family: 'Outfit', sans-serif;
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 30px;
+      font-weight: 700;
+      color: #fff;
+      margin: 0 0 18px 0;
+      line-height: 1.2;
+    }
+
+    .section-lead {
+      font-size: 16px;
+      line-height: 1.75;
+      color: rgba(255,255,255,0.65);
+      margin-bottom: 28px;
+      max-width: 680px;
+    }
+
+    .doc-prose {
+      font-size: 15px;
+      line-height: 1.8;
+      color: rgba(255,255,255,0.7);
+      max-width: 680px;
+    }
+
+    .doc-prose p { margin: 0 0 18px 0; }
+    .doc-prose p:last-child { margin-bottom: 0; }
+
+    .doc-prose strong {
+      color: rgba(255,255,255,0.9);
+      font-weight: 600;
+    }
+
+    .doc-prose a {
+      color: #a78bfa;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .doc-prose a:hover { color: #c4b5fd; }
+
+    .doc-prose ul, .doc-prose ol {
+      padding-left: 22px;
+      margin: 14px 0 18px 0;
+    }
+    .doc-prose li {
+      margin-bottom: 8px;
+      color: rgba(255,255,255,0.65);
+    }
+    .doc-prose li strong { color: rgba(255,255,255,0.9); }
+
+    /* ─── Code Blocks ─────────────────────────────────────────── */
+    .code-block {
+      background: #0d0d10;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      margin: 24px 0;
+      overflow: hidden;
+      max-width: 720px;
+    }
+
+    .code-block-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 18px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .code-block-lang {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.35);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .code-copy-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.45);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+    .code-copy-btn:hover {
+      border-color: rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.8);
+    }
+    .code-copy-btn.copied {
+      border-color: #10b981;
+      color: #10b981;
+    }
+
+    .code-block pre {
+      margin: 0;
+      padding: 20px 22px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: #e2e8f0;
+    }
+
+    .code-block code {
+      font-family: inherit;
+    }
+
+    /* syntax highlight helpers */
+    .tok-comment { color: #6b7280; font-style: italic; }
+    .tok-keyword { color: #f472b6; }
+    .tok-string  { color: #86efac; }
+    .tok-number  { color: #fb923c; }
+    .tok-fn      { color: #60a5fa; }
+    .tok-path    { color: #fde68a; }
+    .tok-flag    { color: #a5f3fc; }
+
+    /* Inline code */
+    code:not(pre code) {
+      background: rgba(139,92,246,0.15);
+      border: 1px solid rgba(139,92,246,0.25);
+      color: #c4b5fd;
+      padding: 1px 7px;
+      border-radius: 5px;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ─── Callouts ─────────────────────────────────────────────── */
+    .callout {
+      display: flex;
+      gap: 14px;
+      padding: 18px 20px;
+      border-radius: 12px;
+      margin: 24px 0;
+      max-width: 720px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .callout-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .callout-body { flex: 1; color: rgba(255,255,255,0.75); }
+    .callout-body strong { font-weight: 600; display: block; margin-bottom: 4px; }
+
+    .callout-tip {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .callout-tip .callout-icon { color: #10b981; }
+    .callout-tip .callout-body strong { color: #34d399; }
+
+    .callout-warning {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+    .callout-warning .callout-icon { color: #f59e0b; }
+    .callout-warning .callout-body strong { color: #fbbf24; }
+
+    .callout-info {
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+    .callout-info .callout-icon { color: #a78bfa; }
+    .callout-info .callout-body strong { color: #c4b5fd; }
+
+    .callout-danger {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .callout-danger .callout-icon { color: #f87171; }
+    .callout-danger .callout-body strong { color: #fca5a5; }
+
+    /* ─── Steps ───────────────────────────────────────────────── */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin: 24px 0;
+      max-width: 680px;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      padding-bottom: 32px;
+      position: relative;
+    }
+
+    .step:last-child { padding-bottom: 0; }
+
+    .step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 18px;
+      top: 40px;
+      bottom: 0;
+      width: 2px;
+      background: rgba(255,255,255,0.07);
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(167,139,250,0.15));
+      border: 1px solid rgba(139,92,246,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #c4b5fd;
+      flex-shrink: 0;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .step-body { flex: 1; padding-top: 6px; }
+    .step-body h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      margin: 0 0 8px 0;
+      font-family: 'Outfit', sans-serif;
+    }
+    .step-body p {
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    /* ─── Two-col option grid ─────────────────────────────────── */
+    .option-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0;
+      max-width: 720px;
+    }
+
+    @media (max-width: 640px) {
+      .option-grid { grid-template-columns: 1fr; }
+    }
+
+    .option-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+    .option-card:hover { border-color: rgba(139,92,246,0.3); }
+
+    .option-card .opt-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .opt-a .opt-badge { background: rgba(16,185,129,0.15); color: #10b981; }
+    .opt-b .opt-badge { background: rgba(139,92,246,0.15); color: #a78bfa; }
+
+    .option-card h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      margin: 0 0 8px 0;
+      font-family: 'Outfit', sans-serif;
+    }
+    .option-card p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.65;
+      margin: 0;
+    }
+
+    /* ─── Provider grid ───────────────────────────────────────── */
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin: 24px 0;
+      max-width: 720px;
+    }
+
+    @media (max-width: 640px) {
+      .provider-grid { grid-template-columns: 1fr; }
+    }
+
+    .provider-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 18px 20px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .provider-card:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.14);
+    }
+
+    .provider-card .prov-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      margin-bottom: 4px;
+    }
+    .provider-card .prov-model {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 10px;
+    }
+    .provider-card .prov-link {
+      font-size: 12px;
+      color: #8b5cf6;
+      text-decoration: none;
+      border: 1px solid rgba(139,92,246,0.3);
+      padding: 3px 10px;
+      border-radius: 5px;
+      display: inline-block;
+      transition: all 0.2s;
+    }
+    .provider-card .prov-link:hover {
+      background: rgba(139,92,246,0.15);
+      color: #c4b5fd;
+    }
+
+    /* ─── FAQ ─────────────────────────────────────────────────── */
+    .faq-list { max-width: 720px; margin: 0; }
+
+    .faq-item {
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .faq-item:hover { border-color: rgba(255,255,255,0.13); }
+
+    .faq-q {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      text-align: left;
+      transition: background 0.2s;
+    }
+    .faq-q:hover { background: rgba(255,255,255,0.03); }
+    .faq-q[aria-expanded="true"] { background: rgba(255,255,255,0.04); }
+
+    .faq-chevron {
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+      transition: transform 0.25s;
+      flex-shrink: 0;
+    }
+    .faq-q[aria-expanded="true"] .faq-chevron { transform: rotate(180deg); }
+
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+    .faq-a.open {
+      max-height: 400px;
+    }
+    .faq-a-inner {
+      padding: 0 22px 20px 22px;
+      font-size: 14px;
+      line-height: 1.75;
+      color: rgba(255,255,255,0.6);
+    }
+    .faq-a-inner a { color: #a78bfa; }
+
+    /* ─── Requirement badges ──────────────────────────────────── */
+    .req-table {
+      width: 100%;
+      max-width: 680px;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    .req-table th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      padding: 8px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .req-table td {
+      padding: 12px 16px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .req-table tr:last-child td { border-bottom: none; }
+    .req-table td:first-child { font-weight: 600; color: rgba(255,255,255,0.9); }
+
+    .badge-green {
+      display: inline-block;
+      background: rgba(16,185,129,0.15);
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 5px;
+    }
+    .badge-gray {
+      display: inline-block;
+      background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.45);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 5px;
+    }
+
+    /* ─── Page header breadcrumb ──────────────────────────────── */
+    .docs-page-header {
+      padding: 36px 0 0 0;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding-left: 24px;
+      padding-right: 24px;
+    }
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 0;
+    }
+    .breadcrumb a { color: rgba(255,255,255,0.45); text-decoration: none; }
+    .breadcrumb a:hover { color: rgba(255,255,255,0.8); }
+    .breadcrumb span { color: rgba(255,255,255,0.2); }
+
+    /* ─── Responsive ──────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .docs-sidebar {
+        display: none;
+      }
+      .docs-content {
+        padding-left: 0;
+        border-left: none;
+      }
+    }
+
+    /* ─── On-page nav highlight override ─────────────────────── */
+    .docs-content h2 { scroll-margin-top: 96px; }
+
+    /* ─── Separator ───────────────────────────────────────────── */
+    .doc-sep {
+      height: 1px;
+      background: linear-gradient(90deg, rgba(139,92,246,0.3), transparent);
+      margin: 56px 0;
+      max-width: 720px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Navigation ──────────────────────────────────────────── -->
+  <nav class="nav" id="main-nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo" aria-label="Claude Power UI Home">
+        <div class="nav-logo-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="nav-logo-text">Claude Power UI</span>
+      </a>
+
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="getting-started.html" class="nav-link active">Docs</a>
+        <a href="index.html#features" class="nav-link">Features</a>
+        <a href="index.html#pricing" class="nav-link">Pricing</a>
+      </div>
+
+      <div class="nav-actions">
+        <a href="../app/index.html" class="btn btn-primary" id="nav-launch-btn">
+          Launch App
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ─── Breadcrumb ───────────────────────────────────────────── -->
+  <div class="docs-page-header">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="index.html">Home</a>
+      <span>›</span>
+      <span style="color: rgba(255,255,255,0.65);">Getting Started</span>
+    </nav>
+  </div>
+
+  <!-- ─── Docs Layout ──────────────────────────────────────────── -->
+  <div class="docs-wrapper">
+
+    <!-- ── Sidebar ───────────────────────────────────────────── -->
+    <aside class="docs-sidebar" aria-label="Page navigation">
+      <div class="sidebar-label">On this page</div>
+      <ul class="sidebar-nav" id="sidebar-nav">
+        <li>
+          <a href="#quick-start" class="active">
+            <span class="nav-icon">⚡</span>
+            Quick Start
+          </a>
+        </li>
+        <li>
+          <a href="#requirements">
+            <span class="nav-icon">✅</span>
+            Requirements
+          </a>
+        </li>
+        <li>
+          <a href="#installation">
+            <span class="nav-icon">📦</span>
+            Installation
+          </a>
+        </li>
+        <li>
+          <a href="#api-keys">
+            <span class="nav-icon">🔑</span>
+            API Keys
+          </a>
+        </li>
+        <div class="sidebar-divider"></div>
+        <li>
+          <a href="#skills">
+            <span class="nav-icon">🧠</span>
+            Skills
+          </a>
+        </li>
+        <li>
+          <a href="#memory">
+            <span class="nav-icon">💾</span>
+            Memory
+          </a>
+        </li>
+        <li>
+          <a href="#workspaces">
+            <span class="nav-icon">🗂️</span>
+            Workspaces
+          </a>
+        </li>
+        <div class="sidebar-divider"></div>
+        <li>
+          <a href="#server-mode">
+            <span class="nav-icon">🖥️</span>
+            Server Mode
+          </a>
+        </li>
+        <li>
+          <a href="#admin-dashboard">
+            <span class="nav-icon">🛡️</span>
+            Admin Dashboard
+          </a>
+        </li>
+        <div class="sidebar-divider"></div>
+        <li>
+          <a href="#faq">
+            <span class="nav-icon">❓</span>
+            FAQ
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- ── Content ───────────────────────────────────────────── -->
+    <main class="docs-content" id="main-content">
+
+      <!-- ── QUICK START ─────────────────────────────────────── -->
+      <section class="doc-section" id="quick-start">
+        <div class="section-eyebrow">Getting Started</div>
+        <h1 class="section-title">Quick Start</h1>
+        <p class="section-lead">
+          Claude Power UI is a zero-dependency, browser-native AI chat interface. No build step, no Node.js, no npm. Just open a file and start chatting.
+        </p>
+
+        <div class="callout callout-tip">
+          <div class="callout-icon">✨</div>
+          <div class="callout-body">
+            <strong>Fastest path to running</strong>
+            Download or clone the repo, then open <code>app/index.html</code> in any modern browser. That's it.
+          </div>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>Download or clone the repository</h4>
+              <p>Get the source from GitHub — either download a ZIP or use git clone.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>Open <code>app/index.html</code> in your browser</h4>
+              <p>Double-click the file or drag it onto a browser window. No local server required.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>Enter an API key</h4>
+              <p>On first launch, the settings panel opens automatically. Paste your key and select a provider. Keys are encrypted in <code>localStorage</code> using AES-GCM.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4>Start a conversation</h4>
+              <p>Type in the composer and press <code>Enter</code> (or Shift+Enter for a newline). Streaming responses appear in real time.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-block-header">
+            <span class="code-block-lang">Shell</span>
+            <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="tok-comment"># Clone the repository</span>
+git clone https://github.com/your-org/claude-power-ui.git
+cd claude-power-ui
+
+<span class="tok-comment"># Open directly in browser (macOS)</span>
+open app/index.html
+
+<span class="tok-comment"># Open directly in browser (Linux)</span>
+xdg-open app/index.html
+
+<span class="tok-comment"># Open directly in browser (Windows)</span>
+start app/index.html</code></pre>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">ℹ️</div>
+          <div class="callout-body">
+            <strong>Want multi-device sync?</strong>
+            Run <code>python3 server.py</code> to enable real-time sync across devices via SSE. See <a href="#server-mode">Server Mode</a> for details.
+          </div>
+        </div>
+      </section>
+
+      <div class="doc-sep"></div>
+
+      <!-- ── REQUIREMENTS ────────────────────────────────────── -->
+      <section class="doc-section" id="requirements">
+        <div class="section-eyebrow">Prerequisites</div>
+        <h2 class="section-title">Requirements</h2>
+        <p class="section-lead">
+          Claude Power UI runs entirely in the browser. The only hard requirement is a modern browser and at least one AI provider API key.
+        </p>
+
+        <div class="doc-prose">
+          <p>Because there is no build toolchain, runtime dependencies are minimal. The app uses standard browser APIs — <code>fetch</code>, <code>localStorage</code>, <code>SubtleCrypto</code>, <code>EventSource</code> — that have been available for years.</p>
+        </div>
+
+        <table class="req-table">
+          <thead>
+            <tr>
+              <th>Requirement</th>
+              <th>Details</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Chrome / Edge</td>
+              <td>Version 100 or later</td>
+              <td><span class="badge-green">Supported</span></td>
+            </tr>
+            <tr>
+              <td>Firefox</td>
+              <td>Version 110 or later</td>
+              <td><span class="badge-green">Supported</span></td>
+            </tr>
+            <tr>
+              <td>Safari</td>
+              <td>Version 16 or later (macOS & iOS)</td>
+              <td><span class="badge-green">Supported</span></td>
+            </tr>
+            <tr>
+              <td>AI Provider API Key</td>
+              <td>Anthropic, OpenAI, Google, or Groq</td>
+              <td><span class="badge-green">Required</span></td>
+            </tr>
+            <tr>
+              <td>Node.js / npm</td>
+              <td>Not required for basic use</td>
+              <td><span class="badge-gray">Optional</span></td>
+            </tr>
+            <tr>
+              <td>Python 3.8+</td>
+              <td>Only needed for Server Mode</td>
+              <td><span class="badge-gray">Optional</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-body">
+            <strong>File:// protocol limitations</strong>
+            When opening via <code>file://</code>, some browsers restrict certain APIs. If you encounter issues with clipboard or crypto, use <a href="#server-mode">Server Mode</a> (<code>python3 server.py</code>) which serves the app over <code>http://localhost:8080</code> where all APIs work reliably.
+          </div>
+        </div>
+      </section>
+
+      <div class="doc-sep"></div>
+
+      <!-- ── INSTALLATION ────────────────────────────────────── -->
+      <section class="doc-section" id="installation">
+        <div class="section-eyebrow">Setup</div>
+        <h2 class="section-title">Installation</h2>
+        <p class="section-lead">
+          Choose the method that fits your workflow. Option A is the simplest; Option B unlocks multi-device sync and a shared conversation history.
+        </p>
+
+        <div class="option-grid">
+          <div class="option-card opt-a">
+            <span class="opt-badge">Option A</span>
+            <h4>Direct File Access</h4>
+            <p>Open <code>app/index.html</code> straight from your filesystem. No server, no dependencies. Data persists in browser <code>localStorage</code>.</p>
+          </div>
+          <div class="option-card opt-b">
+            <span class="opt-badge">Option B</span>
+            <h4>Python Dev Server</h4>
+            <p>Run <code>python3 server.py</code> to serve the app at <code>localhost:8080</code>. Enables real-time multi-device sync, conversation sharing, and admin controls.</p>
+          </div>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Option A — Direct File</h3>
+        <div class="doc-prose">
+          <p>Simply open the file. All conversations, settings, and memories are stored in your browser's <code>localStorage</code> and persist between sessions automatically.</p>
+        </div>
+
+        <div class="code-block">
+          <div class="code-block-header">
+            <span class="code-block-lang">Shell</span>
+            <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="tok-comment"># Navigate to the project folder</span>
+cd claude-power-ui
+
+<span class="tok-comment"># Open in default browser</span>
+open app/index.html   <span class="tok-comment"># macOS</span>
+start app/index.html  <span class="tok-comment"># Windows</span></code></pre>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Option B — Python Server</h3>
+        <div class="doc-prose">
+          <p>The included <code>server.py</code> is a lightweight HTTP + SSE server. It requires only the Python standard library — no <code>pip install</code> needed.</p>
+        </div>
+
+        <div class="code-block">
+          <div class="code-block-header">
+            <span class="code-block-lang">Shell</span>
+            <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="tok-comment"># Start the server (Python 3.8+ required)</span>
+python3 server.py
+
+<span class="tok-comment"># The app is now available at:</span>
+<span class="tok-comment"># http://localhost:8080/app/index.html</span>
+
+<span class="tok-comment"># Optional: specify a custom port</span>
+python3 server.py <span class="tok-flag">--port</span> 9000</code></pre>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-icon">💡</div>
+          <div class="callout-body">
+            <strong>Network access</strong>
+            By default the server binds to <code>0.0.0.0</code>, making it accessible on your local network. Other devices (phone, tablet, second laptop) can connect using your machine's local IP, e.g. <code>http://192.168.1.42:8080</code>.
+          </div>
+        </div>
+      </section>
+
+      <div class="doc-sep"></div>
+
+      <!-- ── API KEYS ────────────────────────────────────────── -->
+      <section class="doc-section" id="api-keys">
+        <div class="section-eyebrow">Configuration</div>
+        <h2 class="section-title">API Keys</h2>
+        <p class="section-lead">
+          Claude Power UI supports four AI providers. Your keys are stored locally, encrypted with AES-GCM — they never touch our servers.
+        </p>
+
+        <div class="provider-grid">
+          <div class="provider-card">
+            <div class="prov-name">Anthropic</div>
+            <div class="prov-model">Claude 3.5 Sonnet, Claude 3 Opus, Haiku</div>
+            <a href="https://console.anthropic.com/" target="_blank" rel="noopener" class="prov-link">Get key →</a>
+          </div>
+          <div class="provider-card">
+            <div class="prov-name">OpenAI</div>
+            <div class="prov-model">GPT-4o, GPT-4 Turbo, GPT-3.5</div>
+            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" class="prov-link">Get key →</a>
+          </div>
+          <div class="provider-card">
+            <div class="prov-name">Google AI Studio</div>
+            <div class="prov-model">Gemini 1.5 Pro, Gemini Flash</div>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="prov-link">Get key →</a>
+          </div>
+          <div class="provider-card">
+            <div class="prov-name">Groq</div>
+            <div class="prov-model">Llama 3, Mixtral, Gemma (ultra-fast inference)</div>
+            <a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="prov-link">Get key →</a>
+          </div>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Adding a key</h3>
+        <div class="doc-prose">
+          <ol>
+            <li>Click the <strong>Settings</strong> (⚙) icon in the sidebar, or press <code>Ctrl+,</code>.</li>
+            <li>Select the <strong>API Keys</strong> tab.</li>
+            <li>Choose your provider from the dropdown.</li>
+            <li>Paste the key and click <strong>Save</strong>. The field will blur and display only the last 4 characters.</li>
+          </ol>
+          <p>You can store keys for multiple providers simultaneously and switch between them per-conversation in the model selector.</p>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">How keys are stored</h3>
+        <div class="doc-prose">
+          <p>Keys are encrypted using the <strong>Web Crypto API</strong> (<code>SubtleCrypto.encrypt</code>) with AES-GCM 256-bit encryption before being written to <code>localStorage</code>. A random 96-bit IV is generated for each write. The encryption key itself is derived from a browser-fingerprint seed unique to your device.</p>
+        </div>
+
+        <div class="code-block">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript — Simplified encryption flow</span>
+            <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="tok-comment">// Key derivation (simplified)</span>
+<span class="tok-keyword">const</span> rawKey = <span class="tok-keyword">await</span> crypto.subtle.<span class="tok-fn">importKey</span>(
+  <span class="tok-string">'raw'</span>, deviceSeed, { name: <span class="tok-string">'AES-GCM'</span> }, <span class="tok-keyword">false</span>, [<span class="tok-string">'encrypt'</span>, <span class="tok-string">'decrypt'</span>]
+);
+
+<span class="tok-comment">// Encryption with random IV</span>
+<span class="tok-keyword">const</span> iv = crypto.<span class="tok-fn">getRandomValues</span>(<span class="tok-keyword">new</span> Uint8Array(<span class="tok-number">12</span>));
+<span class="tok-keyword">const</span> ciphertext = <span class="tok-keyword">await</span> crypto.subtle.<span class="tok-fn">encrypt</span>(
+  { name: <span class="tok-string">'AES-GCM'</span>, iv }, rawKey, <span class="tok-fn">encode</span>(apiKey)
+);
+
+<span class="tok-comment">// Stored as base64(iv + ciphertext)</span>
+localStorage.<span class="tok-fn">setItem</span>(<span class="tok-string">'enc_key_anthropic'</span>, <span class="tok-fn">toBase64</span>(iv, ciphertext));</code></pre>
+        </div>
+
+        <div class="callout callout-danger">
+          <div class="callout-icon">🔒</div>
+          <div class="callout-body">
+            <strong>Keys are device-local</strong>
+            Encrypted keys cannot be transferred between browsers or devices. If you use Server Mode, you will need to re-enter your key in each browser instance you connect with. Keys are never transmitted to the sync server.
+          </div>
+        </div>
+      </section>
+
+      <div class="doc-sep"></div>
+
+      <!-- ── SKILLS ──────────────────────────────────────────── -->
+      <section class="doc-section" id="skills">
+        <div class="section-eyebrow">Features</div>
+        <h2 class="section-title">Skills</h2>
+        <p class="section-lead">
+          Skills are reusable instruction sets — like specialized system prompts — that shape how the AI responds for a specific task or domain.
+        </p>
+
+        <div class="doc-prose">
+          <p>Think of a Skill as a pre-configured expert mode. You might have a <strong>Code Review</strong> skill that instructs the model to focus on security and performance, or a <strong>Marketing Copy</strong> skill that emphasizes persuasion and brand voice.</p>
+
+          <p>Skills are stored as plain JSON in <code>localStorage</code> (or synced via the server in Server Mode) and can be created, edited, duplicated, and deleted from the Skills Library panel.</p>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Auto-detection</h3>
+        <div class="doc-prose">
+          <p>Claude Power UI can automatically detect which skill to apply based on the content of your first message. Auto-detection uses a lightweight keyword and pattern matching engine:</p>
+          <ul>
+            <li>Messages containing code fences (`` ``` ``) → suggests <em>Code</em> skills</li>
+            <li>Messages mentioning "translate", "Spanish", "French", etc. → suggests <em>Translation</em> skills</li>
+            <li>Messages with "write a blog", "draft an email" → suggests <em>Writing</em> skills</li>
+          </ul>
+          <p>A toast notification appears with the detected skill. Click <strong>Apply</strong> to accept, or dismiss to continue without it.</p>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Manually applying a skill</h3>
+        <div class="doc-prose">
+          <ol>
+            <li>Open the <strong>Skills</strong> panel (the ⚡ icon in the toolbar above the composer).</li>
+            <li>Browse or search the library by name or tag.</li>
+            <li>Click a skill card to preview its system prompt.</li>
+            <li>Click <strong>Apply to Conversation</strong>. The skill's prompt is injected as the first system message.</li>
+          </ol>
+        </div>
+
+        <div class="code-block">
+          <div class="code-block-header">
+            <span class="code-block-lang">JSON — Skill structure</span>
+            <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code>{
+  <span class="tok-string">"id"</span>: <span class="tok-string">"skill_code_review"</span>,
+  <span class="tok-string">"name"</span>: <span class="tok-string">"Code Review"</span>,
+  <span class="tok-string">"description"</span>: <span class="tok-string">"Senior engineer focused on security and performance"</span>,
+  <span class="tok-string">"tags"</span>: [<span class="tok-string">"code"</span>, <span class="tok-string">"engineering"</span>, <span class="tok-string">"review"</span>],
+  <span class="tok-string">"system_prompt"</span>: <span class="tok-string">"You are a senior software engineer reviewing code for\nsecurity vulnerabilities, performance bottlenecks, and\nmaintainability. Always explain your reasoning..."</span>,
+  <span class="tok-string">"model"</span>: <span class="tok-string">"claude-3-5-sonnet-20241022"</span>,
+  <span class="tok-string">"temperature"</span>: <span class="tok-number">0.3</span>,
+  <span class="tok-string">"workspace_id"</span>: <span class="tok-string">"ws_default"</span>
+}</code></pre>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-icon">💡</div>
+          <div class="callout-body">
+            <strong>Skills are workspace-scoped</strong>
+            Skills created in one workspace are not visible in others unless you explicitly share them. This lets you keep client-specific or project-specific skills neatly isolated.
+          </div>
+        </div>
+      </section>
+
+      <div class="doc-sep"></div>
+
+      <!-- ── MEMORY ──────────────────────────────────────────── -->
+      <section class="doc-section" id="memory">
+        <div class="section-eyebrow">Features</div>
+        <h2 class="section-title">Memory</h2>
+        <p class="section-lead">
+          Memory lets the AI remember facts, preferences, and context across conversations — so you never have to repeat yourself.
+        </p>
+
+        <div class="doc-prose">
+          <p>Memories are short, factual statements stored in a searchable index. When you start a new conversation, Claude Power UI performs a semantic similarity search and injects the most relevant memories as context before your first message.</p>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Adding memories</h3>
+        <div class="doc-prose">
+          <p>There are two ways to add a memory:</p>
+          <ul>
+            <li><strong>Manual entry</strong> — Open the Memory panel (🧠 icon), click <strong>+ Add Memory</strong>, type a fact, and hit Save.</li>
+            <li><strong>Auto-extract</strong> — At the end of a conversation, click <strong>Extract Memories</strong>. The AI reads the conversation and generates a set of concise factual statements for your review. Accept, edit, or discard each one.</li>
+          </ul>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Searching memories</h3>
+        <div class="doc-prose">
+          <p>The Memory panel includes a live search bar. Type any keyword or phrase and the list filters instantly. Results are ranked by recency and relevance. You can also filter by workspace using the dropdown at the top of the panel.</p>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Workspace scope</h3>
+        <div class="doc-prose">
+          <p>Every memory belongs to a workspace. Memories in <em>Workspace A</em> are never injected into conversations in <em>Workspace B</em>. There is also a <strong>Global</strong> memory scope for facts you want available everywhere (e.g., your name, timezone, preferred language).</p>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">ℹ️</div>
+          <div class="callout-body">
+            <strong>Token budget</strong>
+            By default, up to <strong>8 memories</strong> are injected per conversation to keep token usage manageable. You can adjust this limit in Settings → Memory → Max memories per context.
+          </div>
+        </div>
+      </section>
+
+      <div class="doc-sep"></div>
+
+      <!-- ── WORKSPACES ──────────────────────────────────────── -->
+      <section class="doc-section" id="workspaces">
+        <div class="section-eyebrow">Features</div>
+        <h2 class="section-title">Workspaces</h2>
+        <p class="section-lead">
+          Workspaces are isolated environments — each with its own conversations, skills, memories, and system prompt. Perfect for separating work, personal, and client projects.
+        </p>
+
+        <div class="doc-prose">
+          <p>When you first launch Claude Power UI, a <strong>Default</strong> workspace is created automatically. Everything you do lives inside a workspace. Switching workspaces is instant and data never bleeds between them.</p>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Creating a workspace</h3>
+        <div class="doc-prose">
+          <ol>
+            <li>Click the workspace name in the top-left corner of the sidebar.</li>
+            <li>Select <strong>+ New Workspace</strong> from the dropdown.</li>
+            <li>Enter a name and (optionally) a default system prompt, then click <strong>Create</strong>.</li>
+          </ol>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Per-workspace system prompts</h3>
+        <div class="doc-prose">
+          <p>Each workspace can have a <strong>default system prompt</strong> that is prepended to every new conversation started in that workspace. This is separate from (and combined with) any skill you apply. A common pattern:</p>
+          <ul>
+            <li><strong>Workspace prompt</strong>: Sets the tone and ground rules ("You are a helpful assistant for Acme Corp. Be concise. Never mention competitors.").</li>
+            <li><strong>Skill</strong>: Adds domain expertise on top ("You are a SQL expert…").</li>
+          </ul>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Isolation</h3>
+        <div class="doc-prose">
+          <p>The following are fully isolated per workspace:</p>
+          <ul>
+            <li>Conversation history</li>
+            <li>Skills library</li>
+            <li>Memory bank</li>
+            <li>Default model and temperature settings</li>
+            <li>System prompt</li>
+          </ul>
+          <p>API keys are <em>not</em> isolated — they are shared across all workspaces by design, since keys belong to you, not to a project.</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-icon">💡</div>
+          <div class="callout-body">
+            <strong>Keyboard shortcut</strong>
+            Press <code>Ctrl+Shift+W</code> (or <code>Cmd+Shift+W</code> on macOS) to open the workspace switcher instantly.
+          </div>
+        </div>
+      </section>
+
+      <div class="doc-sep"></div>
+
+      <!-- ── SERVER MODE ─────────────────────────────────────── -->
+      <section class="doc-section" id="server-mode">
+        <div class="section-eyebrow">Advanced</div>
+        <h2 class="section-title">Server Mode</h2>
+        <p class="section-lead">
+          Run a lightweight Python server to unlock multi-device sync, shared conversation history, and real-time collaboration via Server-Sent Events.
+        </p>
+
+        <div class="doc-prose">
+          <p>The included <code>server.py</code> uses only the Python standard library (<code>http.server</code>, <code>json</code>, <code>threading</code>). It handles static file serving, a JSON REST API for data persistence, and an SSE stream for push updates to all connected clients.</p>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Starting the server</h3>
+
+        <div class="code-block">
+          <div class="code-block-header">
+            <span class="code-block-lang">Shell</span>
+            <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="tok-comment"># Default: binds to 0.0.0.0:8080</span>
+python3 server.py
+
+<span class="tok-comment"># Custom port</span>
+python3 server.py <span class="tok-flag">--port</span> <span class="tok-number">9090</span>
+
+<span class="tok-comment"># Bind to localhost only (disable LAN access)</span>
+python3 server.py <span class="tok-flag">--host</span> 127.0.0.1
+
+<span class="tok-comment"># With verbose logging</span>
+python3 server.py <span class="tok-flag">--verbose</span></code></pre>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Connecting devices</h3>
+        <div class="doc-prose">
+          <p>Once the server is running, any device on the same network can connect:</p>
+          <ol>
+            <li>Find your machine's local IP address (<code>ifconfig</code> / <code>ipconfig</code>).</li>
+            <li>On another device, navigate to <code>http://&lt;your-ip&gt;:8080/app/index.html</code>.</li>
+            <li>The app automatically detects the server and switches from <code>localStorage</code> to server-backed sync.</li>
+          </ol>
+          <p>All conversations, workspaces, memories, and skills are stored in <code>data/</code> as flat JSON files. No database required.</p>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">How SSE sync works</h3>
+        <div class="doc-prose">
+          <p>Clients subscribe to <code>/api/events</code> using the browser's native <code>EventSource</code> API. When any client makes a change (new message, renamed conversation, etc.), the server broadcasts a typed event to all other subscribers. Changes appear in real time without polling.</p>
+        </div>
+
+        <div class="code-block">
+          <div class="code-block-header">
+            <span class="code-block-lang">Server-Sent Events — Event types</span>
+            <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="tok-comment">// Events broadcast by the server</span>
+<span class="tok-keyword">event</span>: conversation.created   <span class="tok-comment">// New conversation started</span>
+<span class="tok-keyword">event</span>: conversation.updated   <span class="tok-comment">// Message added or edited</span>
+<span class="tok-keyword">event</span>: conversation.deleted   <span class="tok-comment">// Conversation removed</span>
+<span class="tok-keyword">event</span>: memory.updated         <span class="tok-comment">// Memory bank changed</span>
+<span class="tok-keyword">event</span>: skill.updated          <span class="tok-comment">// Skill created or modified</span>
+<span class="tok-keyword">event</span>: workspace.switched     <span class="tok-comment">// Active workspace changed</span>
+<span class="tok-keyword">event</span>: heartbeat               <span class="tok-comment">// Keep-alive every 30s</span></code></pre>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-body">
+            <strong>Security note</strong>
+            Server Mode has no authentication by default when accessed on localhost. If you expose it on a LAN or public network, enable admin authentication in Settings and consider placing it behind a reverse proxy with TLS. See <a href="#admin-dashboard">Admin Dashboard</a> for details.
+          </div>
+        </div>
+      </section>
+
+      <div class="doc-sep"></div>
+
+      <!-- ── ADMIN DASHBOARD ─────────────────────────────────── -->
+      <section class="doc-section" id="admin-dashboard">
+        <div class="section-eyebrow">Advanced</div>
+        <h2 class="section-title">Admin Dashboard</h2>
+        <p class="section-lead">
+          A password-protected control panel for managing users, reviewing usage stats, purging data, and controlling server-mode settings.
+        </p>
+
+        <div class="doc-prose">
+          <p>The Admin Dashboard is accessible at <code>/app/admin.html</code> when the server is running. It provides a bird's-eye view of all activity on the instance.</p>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Accessing the dashboard</h3>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>Start the server</h4>
+              <p>Run <code>python3 server.py</code> and confirm it is listening on port 8080.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>Navigate to admin</h4>
+              <p>Open <code>http://localhost:8080/app/admin.html</code> in your browser.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>Login with default credentials</h4>
+              <p>Username: <code>admin</code> — Password: <code>admin123</code>. <strong>Change this immediately on first login.</strong></p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4>Change your password</h4>
+              <p>Go to <strong>Settings → Admin → Change Password</strong>. The new hash is stored in <code>data/admin.json</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Dashboard features</h3>
+        <div class="doc-prose">
+          <ul>
+            <li><strong>Connected clients</strong> — See all currently connected SSE sessions with IP address and workspace.</li>
+            <li><strong>Usage statistics</strong> — Token counts per workspace, per model, over time.</li>
+            <li><strong>Data management</strong> — Export all data as a ZIP, or purge conversations older than N days.</li>
+            <li><strong>Server settings</strong> — Change port, toggle verbose logging, set rate limits.</li>
+            <li><strong>Announcement broadcast</strong> — Send a system message to all connected clients instantly.</li>
+          </ul>
+        </div>
+
+        <div class="callout callout-danger">
+          <div class="callout-icon">🚨</div>
+          <div class="callout-body">
+            <strong>Change the default password</strong>
+            The default credentials <code>admin / admin123</code> are public knowledge. Anyone on your network who finds the admin URL can log in if you haven't changed them. Do this before sharing your server with others.
+          </div>
+        </div>
+      </section>
+
+      <div class="doc-sep"></div>
+
+      <!-- ── FAQ ────────────────────────────────────────────── -->
+      <section class="doc-section" id="faq">
+        <div class="section-eyebrow">Help</div>
+        <h2 class="section-title">FAQ</h2>
+        <p class="section-lead">
+          Common questions about setup, privacy, and capabilities.
+        </p>
+
+        <div class="faq-list" id="faq-list">
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false" onclick="toggleFaq(this)" id="faq-1-btn" aria-controls="faq-1">
+              Is my data sent to any external server?
+              <span class="faq-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="faq-a" id="faq-1" role="region" aria-labelledby="faq-1-btn">
+              <div class="faq-a-inner">
+                No. Claude Power UI is entirely client-side. Your conversations, memories, skills, and settings are stored in your browser's <code>localStorage</code> (or on your own Python server in Server Mode). The only outbound network traffic is the direct API call to your chosen AI provider — Anthropic, OpenAI, Google, or Groq — using the key you provided. We never see your data.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false" onclick="toggleFaq(this)" id="faq-2-btn" aria-controls="faq-2">
+              Can I use it on my phone or tablet?
+              <span class="faq-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="faq-a" id="faq-2" role="region" aria-labelledby="faq-2-btn">
+              <div class="faq-a-inner">
+                Yes. The UI is fully responsive and works well on mobile browsers. For the best experience on other devices, run Server Mode on your desktop or laptop and connect from your phone via the local IP address (e.g., <code>http://192.168.1.42:8080</code>). This also syncs conversations between devices in real time.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false" onclick="toggleFaq(this)" id="faq-3-btn" aria-controls="faq-3">
+              What happens to my data if I clear browser storage?
+              <span class="faq-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="faq-a" id="faq-3" role="region" aria-labelledby="faq-3-btn">
+              <div class="faq-a-inner">
+                In standalone mode (no server), clearing <code>localStorage</code> will erase all conversations, memories, skills, and settings. Before clearing storage, use the <strong>Export</strong> feature (Settings → Data → Export) to download a JSON backup. In Server Mode, your data lives in the <code>data/</code> folder on your machine and is unaffected by browser storage clears.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false" onclick="toggleFaq(this)" id="faq-4-btn" aria-controls="faq-4">
+              Can I add my own custom AI provider?
+              <span class="faq-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="faq-a" id="faq-4" role="region" aria-labelledby="faq-4-btn">
+              <div class="faq-a-inner">
+                Yes, via the <strong>Custom Provider</strong> option in Settings → API Keys. You can specify any OpenAI-compatible base URL (for example, a local Ollama instance at <code>http://localhost:11434/v1</code>). Set the model name to match what your endpoint expects. This enables use with self-hosted models, Azure OpenAI deployments, and any other OpenAI-compatible API.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false" onclick="toggleFaq(this)" id="faq-5-btn" aria-controls="faq-5">
+              How many conversations / messages can I store?
+              <span class="faq-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="faq-a" id="faq-5" role="region" aria-labelledby="faq-5-btn">
+              <div class="faq-a-inner">
+                In standalone mode, browser <code>localStorage</code> is typically limited to 5–10 MB depending on the browser. For most users this supports hundreds of conversations with thousands of messages. In Server Mode, the only limit is disk space — data is stored as flat JSON files in the <code>data/</code> directory and can be compressed or archived as needed.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false" onclick="toggleFaq(this)" id="faq-6-btn" aria-controls="faq-6">
+              Does it support image uploads or file attachments?
+              <span class="faq-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="faq-a" id="faq-6" role="region" aria-labelledby="faq-6-btn">
+              <div class="faq-a-inner">
+                Image uploads are supported for all vision-capable models (Claude 3, GPT-4o, Gemini 1.5 Pro). Drag-and-drop an image into the composer or click the 📎 attachment icon. Images are base64-encoded and sent directly to the provider API — they are not stored on any server. PDF and text file parsing is on the roadmap for a future release.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ─── Footer ───────────────────────────────────────────────── -->
+  <footer style="border-top:1px solid rgba(255,255,255,0.07);padding:40px 24px;text-align:center;">
+    <div style="max-width:1320px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+      <p style="font-size:13px;color:rgba(255,255,255,0.3);margin:0;">
+        © 2024 Claude Power UI · All rights reserved
+      </p>
+      <div style="display:flex;gap:24px;">
+        <a href="index.html" style="font-size:13px;color:rgba(255,255,255,0.35);text-decoration:none;">Home</a>
+        <a href="getting-started.html" style="font-size:13px;color:rgba(255,255,255,0.35);text-decoration:none;">Docs</a>
+        <a href="../app/index.html" style="font-size:13px;color:rgba(255,255,255,0.35);text-decoration:none;">Launch App</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ─── Scripts ───────────────────────────────────────────────── -->
+  <script>
+    // ── Copy code button ──────────────────────────────────────────
+    function copyCode(btn) {
+      const pre = btn.closest('.code-block').querySelector('pre');
+      const text = pre.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      }).catch(() => {
+        // Fallback for file:// protocol
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    // ── FAQ accordion ─────────────────────────────────────────────
+    function toggleFaq(btn) {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      // Close all
+      document.querySelectorAll('.faq-q').forEach(b => {
+        b.setAttribute('aria-expanded', 'false');
+        const target = document.getElementById(b.getAttribute('aria-controls'));
+        if (target) target.classList.remove('open');
+      });
+      // Open this one if it was closed
+      if (!expanded) {
+        btn.setAttribute('aria-expanded', 'true');
+        const target = document.getElementById(btn.getAttribute('aria-controls'));
+        if (target) target.classList.add('open');
+      }
+    }
+
+    // ── Sidebar active link on scroll ────────────────────────────
+    (function () {
+      const sections = document.querySelectorAll('.doc-section[id]');
+      const links    = document.querySelectorAll('.sidebar-nav a[href^="#"]');
+
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const id = entry.target.id;
+            links.forEach(link => {
+              const active = link.getAttribute('href') === '#' + id;
+              link.classList.toggle('active', active);
+            });
+          }
+        });
+      }, {
+        rootMargin: '-20% 0px -70% 0px',
+        threshold: 0
+      });
+
+      sections.forEach(s => observer.observe(s));
+    })();
+
+    // ── Sticky nav shrink ─────────────────────────────────────────
+    window.addEventListener('scroll', () => {
+      const nav = document.getElementById('main-nav');
+      if (nav) nav.classList.toggle('scrolled', window.scrollY > 20);
+    });
+  </script>
+</body>
+</html>

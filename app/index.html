@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Power UI — BYOK Multi-Model Workspace</title>
+  <meta name="description" content="A superior, local Claude-capable UI: BYOK, multi-provider, 72 skills, semantic memory, cost tracking, conversation branching, and streaming." />
+  <meta name="theme-color" content="#0a0f1e" />
+
+  <!-- Content-Security-Policy (meta only — frame-ancestors requires HTTP header) -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self';
+      script-src 'self' 'unsafe-inline' https://unpkg.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com data:;
+      connect-src 'self' https://api.anthropic.com https://api.openai.com
+        https://generativelanguage.googleapis.com https://api.groq.com
+        https://api.mistral.ai https://unpkg.com;
+      frame-src blob:;
+      img-src 'self' data: blob:;" />
+
+  <!-- M4: Inline SVG favicon — no file needed -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>✦</text></svg>" />
+
+  <!-- Design system -->
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Auth screen styles (used before app DOM is built) -->
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+  <!-- App root — buildHTML() injects all content here -->
+  <div id="app"></div>
+
+  <!-- L1: No-JS fallback -->
+  <noscript>
+    <div style="font-family:sans-serif;text-align:center;padding:80px 20px;background:#030712;color:#94a3b8;min-height:100vh">
+      <div style="font-size:40px;margin-bottom:16px">✦</div>
+      <h1 style="color:#e2e8f0;font-size:24px;margin-bottom:8px">Claude Power UI</h1>
+      <p>JavaScript is required to run this application. Please enable JavaScript in your browser settings.</p>
+    </div>
+  </noscript>
+
+  <!-- ============================================================
+       Script loading order — DO NOT REORDER
+       1. models-data.js   → MODELS_DATA (provider/model registry)
+       2. api-router.js    → ApiRouter (streaming abstraction)
+       3. memory.js        → MemorySystem (workspaces + TF-IDF memory)
+       4. skills-data.js   → SKILLS_DATA (72 skills + templates)
+       5. auth.js          → AuthSystem (login, roles, sessions)
+       6. analytics.js     → Analytics (event tracking + aggregators)
+       7. app.js           → boots app after DOMContentLoaded
+       Performance: defer prevents render-blocking
+       ============================================================ -->
+  <script src="models-data.js" defer></script>
+  <script src="api-router.js" defer></script>
+  <script src="memory.js" defer></script>
+  <script src="skills-data.js" defer></script>
+  <script src="auth.js" defer></script>
+  <script src="analytics.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

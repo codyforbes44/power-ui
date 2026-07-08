@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service — Claude Power UI</title>
+  <meta name="description" content="Claude Power UI Terms of Service. MIT licensed, free to use. Your data is yours.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/public.css">
+  <style>
+    .legal-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 56px;
+      padding: 140px 24px 80px;
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+    .legal-sidebar {
+      position: sticky; top: 84px; align-self: start;
+      max-height: calc(100vh - 100px); overflow-y: auto;
+    }
+    .sidebar-label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--text-dim); margin-bottom:10px; margin-top:18px; }
+    .sidebar-label:first-child { margin-top:0; }
+    .sidebar-link { display:block; padding:5px 11px; border-radius:7px; font-size:.875rem; color:var(--text-muted); transition:all var(--transition); text-decoration:none; border-left:2px solid transparent; margin-bottom:2px; }
+    .sidebar-link:hover { color:var(--text); background:rgba(255,255,255,.04); }
+    .sidebar-link.active { color:var(--primary-light); border-left-color:var(--primary); background:rgba(99,102,241,.07); }
+    .legal-content { min-width:0; }
+    .legal-content h1 { font-size:2.2rem; margin-bottom:6px; }
+    .updated { font-size:.875rem; color:var(--text-dim); margin-bottom:32px; }
+    .tldr {
+      background:rgba(34,197,94,.06); border:1px solid rgba(34,197,94,.2); border-left:3px solid var(--success);
+      border-radius:var(--r); padding:16px 20px; margin-bottom:40px;
+    }
+    .tldr strong { color:#4ade80; display:block; margin-bottom:6px; }
+    .tldr p { color:var(--text-muted); font-size:.9375rem; line-height:1.6; margin:0; }
+    .legal-section { margin-bottom:48px; scroll-margin-top:90px; }
+    .legal-section h2 { font-size:1.4rem; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--border-s); }
+    .legal-section h3 { font-size:1.05rem; margin:20px 0 8px; color:var(--text); }
+    .legal-section p { color:var(--text-muted); font-size:.9375rem; line-height:1.75; margin-bottom:12px; }
+    .legal-section ul { margin-bottom:14px; padding-left:0; }
+    .legal-section li { color:var(--text-muted); font-size:.9375rem; line-height:1.7; margin-bottom:6px; padding-left:18px; position:relative; }
+    .legal-section li::before { content:'–'; position:absolute; left:0; color:var(--text-dim); }
+    code { background:rgba(99,102,241,.12); color:var(--primary-light); padding:1px 6px; border-radius:4px; font-size:.875em; font-family:'Courier New',monospace; }
+    @media(max-width:768px) { .legal-layout{grid-template-columns:1fr;padding-top:100px;} .legal-sidebar{display:none;} }
+  </style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo"><div class="nav-logo-icon">✦</div>Claude Power UI</a>
+    <div class="nav-links">
+      <a href="features.html" class="nav-link">Features</a>
+      <a href="pricing.html" class="nav-link">Pricing</a>
+      <a href="getting-started.html" class="nav-link">Docs</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+    <div class="nav-actions">
+      <a href="../app/index.html" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="../app/index.html" class="btn btn-primary btn-sm">Get Started Free →</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="legal-layout">
+  <!-- Sidebar -->
+  <aside class="legal-sidebar">
+    <div class="sidebar-label">Terms of Service</div>
+    <a href="#acceptance" class="sidebar-link active">Acceptance</a>
+    <a href="#description" class="sidebar-link">Description</a>
+    <a href="#license" class="sidebar-link">License</a>
+    <a href="#responsibilities" class="sidebar-link">Your Responsibilities</a>
+    <a href="#api-keys" class="sidebar-link">API Keys</a>
+    <a href="#warranty" class="sidebar-link">No Warranty</a>
+    <a href="#liability" class="sidebar-link">Liability</a>
+    <a href="#ip" class="sidebar-link">Intellectual Property</a>
+    <a href="#third-party" class="sidebar-link">Third-Party Services</a>
+    <a href="#termination" class="sidebar-link">Termination</a>
+    <a href="#governing" class="sidebar-link">Governing Law</a>
+    <a href="#changes" class="sidebar-link">Changes to Terms</a>
+    <a href="#contact" class="sidebar-link">Contact</a>
+  </aside>
+
+  <!-- Content -->
+  <main class="legal-content">
+    <h1>Terms of Service</h1>
+    <p class="updated">Last updated: July 8, 2026</p>
+
+    <div class="tldr">
+      <strong>TL;DR</strong>
+      <p>Claude Power UI is free and MIT licensed. You own your data. You're responsible for your API usage and complying with your provider's terms. We provide this software as-is, with no warranty. Use it well.</p>
+    </div>
+
+    <div class="legal-section" id="acceptance">
+      <h2>1. Acceptance of Terms</h2>
+      <p>By downloading, installing, or using Claude Power UI ("the Software"), you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the Software.</p>
+      <p>These terms apply to all versions of the Software, including the self-hosted version, any hosted instances, and any associated services.</p>
+    </div>
+
+    <div class="legal-section" id="description">
+      <h2>2. Description of Service</h2>
+      <p>Claude Power UI is an open-source web application that provides a premium interface for interacting with third-party AI model APIs. Key characteristics:</p>
+      <ul>
+        <li><strong>Self-hosted by default</strong> — the Software runs in your browser and stores all data locally</li>
+        <li><strong>Bring Your Own Key (BYOK)</strong> — you connect your own AI provider API keys</li>
+        <li><strong>No intermediary</strong> — API requests travel directly from your browser to your chosen AI provider</li>
+        <li><strong>Local-first</strong> — conversation history, settings, and memories stay on your device unless you opt into server mode</li>
+      </ul>
+    </div>
+
+    <div class="legal-section" id="license">
+      <h2>3. License</h2>
+      <p>Claude Power UI is released under the <strong>MIT License</strong>. This means you are free to:</p>
+      <ul>
+        <li>Use the Software for any purpose, including commercial use</li>
+        <li>Modify the source code</li>
+        <li>Distribute copies of the Software</li>
+        <li>Sublicense the Software</li>
+        <li>Sell copies of the Software</li>
+      </ul>
+      <p>The only requirement is that the original MIT license notice and copyright must be included in all copies or substantial portions of the Software.</p>
+      <p>Full license text is available in the <code>LICENSE</code> file in the repository.</p>
+    </div>
+
+    <div class="legal-section" id="responsibilities">
+      <h2>4. Your Responsibilities</h2>
+      <p>By using the Software, you agree to:</p>
+      <ul>
+        <li><strong>Comply with AI provider terms</strong> — You are responsible for complying with the Terms of Service of every AI provider whose API you use (Anthropic, OpenAI, Google, Groq, Mistral, etc.)</li>
+        <li><strong>Lawful use only</strong> — Not use the Software or AI APIs for any illegal, harmful, or prohibited purposes</li>
+        <li><strong>Responsible AI use</strong> — Use AI outputs responsibly, verifying important information before acting on it</li>
+        <li><strong>Account security</strong> — Keep your login credentials secure and not share admin access with untrusted parties</li>
+        <li><strong>API cost responsibility</strong> — Accept that you are solely responsible for all API costs incurred through the use of your API keys</li>
+      </ul>
+    </div>
+
+    <div class="legal-section" id="api-keys">
+      <h2>5. API Keys</h2>
+      <p>You are solely responsible for the security and use of your API keys. The Software provides encryption tooling (AES-256-GCM vault) to protect your keys at rest, but security ultimately depends on your device and account security practices.</p>
+      <ul>
+        <li>Do not share your device or browser profile with untrusted users while API keys are configured</li>
+        <li>Rotate your API keys immediately if you suspect they have been compromised</li>
+        <li>Monitor your provider dashboards for unexpected usage</li>
+        <li>We are not responsible for any API costs, charges, or account actions resulting from compromise of your API keys</li>
+      </ul>
+      <p>API keys are encrypted using AES-256-GCM with a key derived from your login password. However, no security measure is absolute. Use your own judgment about what level of risk is acceptable for your use case.</p>
+    </div>
+
+    <div class="legal-section" id="warranty">
+      <h2>6. No Warranty</h2>
+      <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.</p>
+      <p>In plain language: We do our best to make the Software reliable and secure, but we make no promises about:</p>
+      <ul>
+        <li>Uptime or availability (for self-hosted instances)</li>
+        <li>Accuracy or quality of AI model responses (which come from third-party providers)</li>
+        <li>Compatibility with all browsers or operating systems</li>
+        <li>Freedom from bugs or security vulnerabilities</li>
+        <li>Continued availability or maintenance of the Software</li>
+      </ul>
+    </div>
+
+    <div class="legal-section" id="liability">
+      <h2>7. Limitation of Liability</h2>
+      <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS OF CLAUDE POWER UI BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OF OR OTHER DEALINGS IN THE SOFTWARE.</p>
+      <p>This includes but is not limited to:</p>
+      <ul>
+        <li>API costs incurred through use of your keys</li>
+        <li>Loss of data stored in localStorage</li>
+        <li>Actions taken based on AI model outputs</li>
+        <li>Security incidents on your own devices</li>
+        <li>Consequential, indirect, or incidental damages of any kind</li>
+      </ul>
+    </div>
+
+    <div class="legal-section" id="ip">
+      <h2>8. Intellectual Property</h2>
+      <p>The Software source code is MIT licensed (see Section 3). You retain all rights to:</p>
+      <ul>
+        <li>Your conversation history and AI outputs stored in the application</li>
+        <li>Any custom skills, prompts, or configurations you create</li>
+        <li>Any data you import into or export from the application</li>
+      </ul>
+      <p>We do not claim any rights to content you create using the Software. AI-generated outputs may be subject to the terms and policies of the AI provider that generated them — review each provider's policies regarding ownership of generated content.</p>
+    </div>
+
+    <div class="legal-section" id="third-party">
+      <h2>9. Third-Party Services</h2>
+      <p>Claude Power UI connects to third-party AI APIs (Anthropic, OpenAI, Google, Groq, Mistral, and others) at your direction. When using these services:</p>
+      <ul>
+        <li>You are subject to each provider's own Terms of Service and Privacy Policy</li>
+        <li>Your conversations and content are sent to the provider you select — review their data handling policies</li>
+        <li>We are not responsible for the availability, accuracy, or behavior of third-party AI services</li>
+        <li>Provider APIs may change, resulting in degraded or broken functionality</li>
+      </ul>
+      <p>Links to provider policies: <a href="https://www.anthropic.com/legal/aup" target="_blank">Anthropic</a> · <a href="https://openai.com/policies/terms-of-use" target="_blank">OpenAI</a> · <a href="https://policies.google.com/terms" target="_blank">Google</a> · <a href="https://groq.com/terms-of-service/" target="_blank">Groq</a></p>
+    </div>
+
+    <div class="legal-section" id="termination">
+      <h2>10. Termination</h2>
+      <p>You may stop using the Software at any time. To remove all data:</p>
+      <ul>
+        <li><strong>Browser data</strong> — Clear localStorage in your browser developer tools, or clear site data for the URL</li>
+        <li><strong>Server data</strong> — Delete the <code>data/</code> directory if you ran <code>server.py</code></li>
+        <li><strong>API keys</strong> — Revoke your API keys in each provider's dashboard</li>
+      </ul>
+      <p>Since the Software is MIT licensed and self-hosted, there is no account to delete or subscription to cancel for the free, self-hosted version.</p>
+    </div>
+
+    <div class="legal-section" id="governing">
+      <h2>11. Governing Law</h2>
+      <p>These Terms shall be governed by and construed in accordance with applicable law, without regard to conflict of law provisions. As an open-source project, we operate globally and make no specific jurisdictional claims. Users are responsible for compliance with local laws applicable to their use of the Software.</p>
+    </div>
+
+    <div class="legal-section" id="changes">
+      <h2>12. Changes to These Terms</h2>
+      <p>We may update these Terms of Service from time to time. Changes are published as commits to the GitHub repository with updated "Last updated" dates. Continued use of the Software after changes constitutes acceptance of the revised terms.</p>
+      <p>For significant changes, we will create a GitHub Release with a clear changelog entry.</p>
+    </div>
+
+    <div class="legal-section" id="contact">
+      <h2>13. Contact</h2>
+      <p>Questions about these Terms should be submitted as a GitHub Issue in the repository. We do not have a dedicated legal email address.</p>
+      <div style="margin-top:20px;padding:20px;background:var(--grad-card);border:1px solid var(--border-s);border-radius:var(--r);">
+        <p style="margin:0;"><strong>GitHub Issues:</strong> <a href="#">github.com/claudepowerui/issues</a><br>
+        <strong>Privacy Policy:</strong> <a href="privacy.html">Read here</a><br>
+        <strong>License:</strong> MIT — see <code>LICENSE</code> in the repository</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand"><a href="index.html" class="nav-logo"><div class="nav-logo-icon">✦</div>Claude Power UI</a><p>A premium, privacy-first AI workspace.</p><div class="footer-socials"><a href="#" class="footer-social-link">⌘</a><a href="#" class="footer-social-link">𝕏</a><a href="#" class="footer-social-link">◈</a></div></div>
+      <div class="footer-col"><h4>Product</h4><ul><li><a href="features.html">Features</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="getting-started.html">Docs</a></li></ul></div>
+      <div class="footer-col"><h4>Company</h4><ul><li><a href="about.html">About</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="terms.html">Terms</a></li></ul></div>
+      <div class="footer-col"><h4>Community</h4><ul><li><a href="#">Discord</a></li><li><a href="#">GitHub</a></li><li><a href="#">Twitter</a></li></ul></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 Claude Power UI. MIT License.</p><p>Not affiliated with Anthropic PBC.</p></div>
+  </div>
+</footer>
+
+<script>
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => { nav.style.background = window.scrollY > 40 ? 'rgba(3,7,18,.92)' : 'rgba(3,7,18,.70)'; });
+
+  // Sidebar active on scroll
+  const sections = document.querySelectorAll('.legal-section');
+  const links = document.querySelectorAll('.sidebar-link');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id));
+      }
+    });
+  }, { rootMargin: '-80px 0px -60% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

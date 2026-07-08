@@ -1,0 +1,27 @@
+# Netlify deploy — exclude server-only and private files
+# These are used locally only and should never be published.
+
+# Local Python server (not needed on Netlify)
+app/server.py
+app/cli.py
+
+# User data — NEVER publish (contains hashed passwords, session data)
+data/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Skills reference files (markdown docs, not needed by browser)
+skills/
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# Editor metadata
+.idea/
+.vscode/
+*.swp
+*.swo
