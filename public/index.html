@@ -8,6 +8,8 @@
   <meta property="og:title" content="Claude Power UI — The AI Workspace You Deserve">
   <meta property="og:description" content="Premium multi-model AI workspace. BYOK, 72 skills, memory, workspaces. No data leaves your device.">
   <meta property="og:type" content="website">
+  <!-- base href ensures relative links work when Netlify serves this file at / via a 200 rewrite -->
+  <base href="/public/">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
@@ -61,8 +63,8 @@
       <a href="about.html" class="nav-link">About</a>
     </div>
     <div class="nav-actions">
-      <a href="../app/index.html" class="btn btn-ghost btn-sm">Sign In</a>
-      <a href="../app/index.html" class="btn btn-primary btn-sm">Get Started Free →</a>
+      <a href="/app/" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="/app/" class="btn btn-primary btn-sm">Get Started Free →</a>
     </div>
     <button class="nav-hamburger" id="hamburger" aria-label="Open menu">
       <span></span><span></span><span></span>
@@ -88,7 +90,7 @@
           Bring your own keys, keep full control. 72 expert skills. Persistent memory. Built for power users.
         </p>
         <div class="hero-actions">
-          <a href="../app/index.html" class="btn btn-primary btn-lg">
+          <a href="/app/" class="btn btn-primary btn-lg">
             Start for Free →
           </a>
           <a href="getting-started.html" class="btn btn-ghost btn-lg">
@@ -406,7 +408,7 @@
           <li><span class="icon no">○</span> Cloud hosting</li>
           <li><span class="icon no">○</span> Multi-device sync</li>
         </ul>
-        <a href="../app/index.html" class="btn btn-ghost" style="width:100%;justify-content:center;">Get Started Free</a>
+        <a href="/app/" class="btn btn-ghost" style="width:100%;justify-content:center;">Get Started Free</a>
       </div>
       <!-- Pro -->
       <div class="pricing-card featured" style="position:relative;">
@@ -513,7 +515,7 @@
       <h2 class="h2">Start using a smarter AI workspace today.</h2>
       <p>Free forever. No credit card. No account required for the self-hosted version.</p>
       <div class="btn-group">
-        <a href="../app/index.html" class="btn btn-primary btn-lg">Open the App →</a>
+        <a href="/app/" class="btn btn-primary btn-lg">Open the App →</a>
         <a href="getting-started.html" class="btn btn-ghost btn-lg">Read the Docs</a>
       </div>
     </div>
