@@ -1,0 +1,21 @@
+# User data — hashed passwords, sessions, API key vault — NEVER commit
+data/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Netlify local state
+.netlify/
