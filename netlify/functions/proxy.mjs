@@ -125,6 +125,5 @@ export default async function handler(req) {
   });
 }
 
-export const config = {
-  path: '/api/proxy',
-};
+// Canonical URL: /.netlify/functions/proxy
+// (config.path only applies when Netlify's build system processes the function)

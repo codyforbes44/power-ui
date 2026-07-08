@@ -54,8 +54,13 @@ const ApiRouter = (() => {
   // ──────────────────────────────────────────────────────────
   // Proxy helper — wraps any fetch through /api/proxy
   // ──────────────────────────────────────────────────────────
+  // Netlify Functions v2 are served at /.netlify/functions/{name} by default.
+  // The config.path export only applies when Netlify's build system processes
+  // the function (CLI / Git deploy). For zip deploys, use the canonical path.
+  const PROXY_URL = '/.netlify/functions/proxy';
+
   async function proxyFetch({ provider, path, apiKey, payload, queryParams, signal }) {
-    const response = await fetch('/api/proxy', {
+    const response = await fetch(PROXY_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ provider, path, apiKey, payload, queryParams }),

@@ -12,9 +12,6 @@
   publish = "."
   ignore  = "exit 0"
 
-# ── Functions ────────────────────────────────────────────────────
-[functions]
-  node_bundler = "esbuild"
 
 # ── Security Headers ────────────────────────────────────────────
 
@@ -63,8 +60,13 @@
   to     = "/app/index.html"
   status = 200
 
-# /api/ping, /api/state, /api/sync — local-server-only endpoints
-# Return a clean JSON 404 so ServerSync.probe() fails fast and gracefully
+# /api/proxy → Netlify Function (alias so /api/proxy also works)
+[[redirects]]
+  from  = "/api/proxy"
+  to    = "/.netlify/functions/proxy"
+  status = 200
+  force  = true
+
 [[redirects]]
   from   = "/api/ping"
   to     = "/api/not-available.json"
