@@ -98,79 +98,7 @@ function autoResize(el) {
   el.style.height = Math.min(el.scrollHeight, 220) + 'px';
 }
 
-// ============================================================
-// ApiKeyVault — AES-GCM encrypted API key storage
-// Keys are encrypted with a per-user key derived from their password.
-// The decryption key lives only in sessionStorage (cleared on tab close).
-// ============================================================
-const ApiKeyVault = (() => {
-  const VAULT_LS  = 'cpu_apikeys_v2';  // ciphertext in localStorage
-  const VAULT_SS  = 'cpu_vault_key';   // raw key bytes (base64) in sessionStorage
 
-  async function _getKey() {
-    const b64 = sessionStorage.getItem(VAULT_SS);
-    if (!b64) return null;
-    try {
-      const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-      return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
-    } catch { return null; }
-  }
-
-  /** Encrypt apiKeys object and write to localStorage. */
-  async function save(apiKeys) {
-    const key = await _getKey();
-    if (!key) {
-      // Vault key unavailable (e.g. session cleared) — skip silently
-      console.warn('ApiKeyVault: no vault key available, API keys not encrypted');
-      return;
-    }
-    const iv        = crypto.getRandomValues(new Uint8Array(12));
-    const plaintext = new TextEncoder().encode(JSON.stringify(apiKeys));
-    const cipher    = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
-    try {
-      localStorage.setItem(VAULT_LS, JSON.stringify({
-        v:    2,
-        iv:   Array.from(iv),
-        data: Array.from(new Uint8Array(cipher)),
-      }));
-    } catch (e) {
-      console.warn('ApiKeyVault: save failed', e.message);
-    }
-  }
-
-  /** Decrypt and return apiKeys object, or {} if unavailable/locked. */
-  async function load() {
-    const stored = localStorage.getItem(VAULT_LS);
-    if (!stored) return {};
-    const key = await _getKey();
-    if (!key) return null; // null = vault exists but locked (needs unlock)
-    try {
-      const { iv, data } = JSON.parse(stored);
-      const plain = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv: new Uint8Array(iv) },
-        key,
-        new Uint8Array(data)
-      );
-      return JSON.parse(new TextDecoder().decode(plain));
-    } catch { return {}; }
-  }
-
-  /**
-   * Migrate plaintext API keys from legacy state blob into the vault.
-   * Called once on first boot after upgrade.
-   */
-  async function migrateFromPlaintext(plainKeys) {
-    if (!plainKeys || !Object.values(plainKeys).some(v => v)) return;
-    if (localStorage.getItem(VAULT_LS)) return; // already migrated
-    await save(plainKeys);
-    console.log('ApiKeyVault: migrated plaintext keys to AES-GCM vault ✓');
-  }
-
-  /** Returns true if a vault blob exists (regardless of lock state). */
-  function hasVault() { return !!localStorage.getItem(VAULT_LS); }
-
-  return { save, load, migrateFromPlaintext, hasVault };
-})();
 
 // ============================================================
 // ServerSync — detect local server, persist to disk, SSE sync
@@ -1365,61 +1293,7 @@ function selectModel(modelId) {
   toast(`Model: ${model?.name || modelId}`, 'info', 1500);
 }
 
-// ============================================================
-// Settings modal
-// ============================================================
-function openSettings() {
-  const modal = document.getElementById('settings-modal');
-  if (!modal) return;
-  modal.style.display = 'flex';
-  Object.keys(MODELS_DATA.providers).forEach(pid => {
-    const el = document.getElementById(`key-${pid}`);
-    if (el) el.value = STATE.apiKeys[pid] || '';
-  });
-  const sp = document.getElementById('setting-default-system');
-  if (sp) sp.value = STATE.settings.defaultSystemPrompt;
-  const mt = document.getElementById('setting-max-tokens');
-  if (mt) mt.value = STATE.settings.maxTokens;
-  const ss = document.getElementById('setting-auto-suggest');
-  if (ss) ss.checked = STATE.settings.skillAutoSuggest;
-  switchProviderTab(STATE.ui.activeProviderTab || 'anthropic');
-}
 
-function closeSettings() {
-  const modal = document.getElementById('settings-modal');
-  if (modal) modal.style.display = 'none';
-}
-
-function saveSettings() {
-  Object.keys(MODELS_DATA.providers).forEach(pid => {
-    const el = document.getElementById(`key-${pid}`);
-    if (el) STATE.apiKeys[pid] = el.value.trim();
-  });
-  const sp = document.getElementById('setting-default-system');
-  if (sp) STATE.settings.defaultSystemPrompt = sp.value;
-  const mt = document.getElementById('setting-max-tokens');
-  if (mt) STATE.settings.maxTokens = parseInt(mt.value) || 4096;
-  const ss = document.getElementById('setting-auto-suggest');
-  if (ss) STATE.settings.skillAutoSuggest = ss.checked;
-  saveState();
-  // Encrypt and persist API keys separately from main state
-  ApiKeyVault.save(STATE.apiKeys).catch(e => console.warn('Vault save failed:', e));
-  closeSettings();
-  renderHeader();
-  toast('Settings saved', 'success');
-}
-
-function switchProviderTab(pid) {
-  STATE.ui.activeProviderTab = pid;
-  document.querySelectorAll('.provider-tab').forEach(t =>
-    t.classList.toggle('active', t.dataset.provider === pid)
-  );
-  document.querySelectorAll('.provider-panel').forEach(p =>
-    p.classList.toggle('active', p.dataset.provider === pid)
-  );
-}
-
-function handleModalOverlayClick(e) { if (e.target === e.currentTarget) closeSettings(); }
 
 // ============================================================
 // Export
@@ -1599,8 +1473,8 @@ async function sendMessageDirect(session, userText, messageContent = null) {
   const apiKey   = STATE.apiKeys[provider];
 
   if (!apiKey) {
-    toast(`No API key for ${provider}. Open ⚙ Settings.`, 'error', 6000);
-    openSettings();
+    toast(`No API key for ${provider}. Please configure it in Settings.`, 'error', 6000);
+    setTimeout(() => { window.location.href = 'admin.html'; }, 1500);
     return;
   }
 
@@ -1812,7 +1686,7 @@ function attachEventListeners() {
     }
   });
 
-  document.getElementById('settings-btn')?.addEventListener('click', openSettings);
+  document.getElementById('settings-btn')?.addEventListener('click', () => window.location.href = 'admin.html');
   document.getElementById('export-btn')?.addEventListener('click', exportSession);
   document.getElementById('memory-btn')?.addEventListener('click', openMemoryPanel);
 
@@ -1827,7 +1701,6 @@ function attachEventListeners() {
       document.getElementById('skills-toggle')?.click();
     }
     if (e.key === 'Escape') {
-      closeSettings();
       closeMemoryPanel();
       STATE.ui.modelDropdownOpen = false;
       const dd = document.getElementById('model-dropdown');
@@ -1986,81 +1859,7 @@ function buildHTML() {
         </div>
       </aside>
 
-      <!-- ── Settings modal ─────────────────────────── -->
-      <div class="modal-overlay" id="settings-modal" style="display:none" onclick="handleModalOverlayClick(event)">
-        <div class="modal" style="max-width:540px">
-          <div class="modal-header">
-            <span style="font-size:18px">⚙</span>
-            <span class="modal-title">Settings</span>
-            <button class="modal-close" onclick="closeSettings()">✕</button>
-          </div>
-          <div class="modal-body">
 
-            <!-- Provider API keys -->
-            <div class="form-group">
-              <label class="form-label">API Keys — select provider</label>
-            </div>
-            <div class="provider-tabs">
-              ${providers.map(p => `
-                <button class="provider-tab" data-provider="${p.id}" onclick="switchProviderTab('${p.id}')">
-                  <span class="provider-tab-icon" style="color:${p.color}">${p.icon}</span>
-                  ${p.name}
-                </button>
-              `).join('')}
-            </div>
-
-            ${providers.map(p => `
-              <div class="provider-panel" data-provider="${p.id}">
-                <div class="form-group">
-                  <label class="form-label">${p.name} API Key</label>
-                  <input type="password" class="form-input" id="key-${p.id}" placeholder="${esc(p.keyPlaceholder)}" />
-                  <div class="form-description">
-                    Get key at <a href="${p.docsUrl}" target="_blank" rel="noopener" style="color:var(--indigo-400)">${p.docsUrl}</a>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <div class="form-description" style="font-size:10px">
-                    Models: ${MODELS_DATA.getModelsByProvider(p.id).map(m => m.shortName).join(' · ')}
-                  </div>
-                </div>
-              </div>
-            `).join('')}
-
-            <div style="margin:8px 0 4px;padding:10px 12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;display:flex;gap:10px;align-items:flex-start">
-              <span style="font-size:14px;flex-shrink:0">🔑</span>
-              <div style="font-size:11px;color:#94a3b8;line-height:1.5">
-                <strong style="color:#f59e0b">Local storage only</strong> — API keys are stored in your browser's localStorage on this device. They are never sent to any server other than the AI provider directly. Do not share device access with untrusted users.
-              </div>
-            </div>
-
-            <hr class="form-divider">
-
-
-            <div class="form-group">
-              <label class="form-label">Max Response Tokens</label>
-              <input type="number" class="form-input" id="setting-max-tokens" min="256" max="32000" step="256" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Default System Prompt</label>
-              <textarea class="form-input" id="setting-default-system" rows="4"
-                style="font-family:var(--font-mono);font-size:11px;resize:vertical;min-height:80px"></textarea>
-            </div>
-
-            <div class="form-group" style="flex-direction:row;align-items:center;gap:10px">
-              <input type="checkbox" id="setting-auto-suggest" style="accent-color:var(--indigo-500);width:14px;height:14px" />
-              <label for="setting-auto-suggest" class="form-label" style="margin:0;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400">
-                Auto-suggest skills as you type
-              </label>
-            </div>
-
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
-            <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
-          </div>
-        </div>
-      </div>
 
       <!-- Toast container -->
       <div id="toast-container"></div>
@@ -2250,7 +2049,8 @@ async function boot() {
   });
 
   const syncMode = serverUp ? 'server+SSE' : 'localStorage';
-  console.log(`✦ Claude Power UI v2 ready — ${SKILLS_DATA.totalCount} skills · ${Object.keys(MODELS_DATA.providers).length} providers · ${STATE.sessions.length} sessions · sync:${syncMode}`);
+  const apiMode  = (typeof ApiRouter !== 'undefined' && ApiRouter.isProxied) ? 'proxy' : 'direct';
+  console.log(`✦ Claude Power UI v2 ready — ${SKILLS_DATA.totalCount} skills · ${Object.keys(MODELS_DATA.providers).length} providers · ${STATE.sessions.length} sessions · sync:${syncMode} · api:${apiMode}`);
 }
 
 /** Inject a small sync status dot into the header (◉ = server, ◦ = local). */
@@ -2369,7 +2169,7 @@ function renderUserBadge() {
       ${isAdmin ? `<button class="user-menu-item" onclick="window.open('admin.html','_blank')">
         <span>◈</span> Admin Dashboard
       </button>` : ''}
-      <button class="user-menu-item" onclick="openSettings()">
+      <button class="user-menu-item" onclick="window.location.href='admin.html'">
         <span>⚙</span> Settings
       </button>
       <div class="user-menu-divider"></div>

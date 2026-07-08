@@ -67,41 +67,88 @@ const AdminApp = (() => {
     costs:       'Cost Breakdown',
     skills:      'Top Skills',
     users:       'User Management',
+    settings:    'General Settings',
     connections: 'API Keys & MCP Resources',
     health:      'System Health',
   };
 
-  function switchPanel(panelId, navEl) {
+  async function switchPanel(panelId, navEl) {
     document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.admin-nav-item').forEach(n => n.classList.remove('active'));
     const panel = document.getElementById(`panel-${panelId}`);
     if (panel) panel.classList.add('active');
     if (navEl) navEl.classList.add('active');
     document.getElementById('admin-topbar-title').textContent = PANEL_TITLES[panelId] || panelId;
-    renderPanel(panelId);
+    await renderPanel(panelId);
   }
 
   // ──────────────────────────────────────────────────────────
   // Main render router
   // ──────────────────────────────────────────────────────────
-  function renderPanel(panelId) {
+  async function renderPanel(panelId) {
     switch(panelId) {
       case 'overview':    renderOverview();     break;
       case 'usage':       renderUsage();        break;
       case 'costs':       renderCosts();        break;
       case 'skills':      renderSkills();       break;
       case 'users':       renderUsers();        break;
-      case 'connections': renderConnections();  break;
-      case 'health':      renderHealth();       break;
+      case 'settings':    renderSettings();     break;
+      case 'connections': await renderConnections();  break;
+      case 'health':      await renderHealth();       break;
     }
   }
 
-  function refresh() {
+  async function refresh() {
     const activePanel = document.querySelector('.admin-panel.active');
     if (!activePanel) return;
     const panelId = activePanel.id.replace('panel-','');
-    renderPanel(panelId);
+    await renderPanel(panelId);
     toast('Dashboard refreshed', 'success', 1500);
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Settings Panel
+  // ──────────────────────────────────────────────────────────
+  function renderSettings() {
+    let settings = { maxTokens: 4096, defaultSystemPrompt: '', skillAutoSuggest: true };
+    try {
+      const raw = localStorage.getItem('claude_power_ui_v2') || '{}';
+      const state = JSON.parse(raw);
+      if (state.settings) {
+        Object.assign(settings, state.settings);
+      }
+    } catch {}
+
+    const maxTokensEl = document.getElementById('admin-max-tokens');
+    const systemPromptEl = document.getElementById('admin-default-system');
+    const autoSuggestEl = document.getElementById('admin-auto-suggest');
+
+    if (maxTokensEl) maxTokensEl.value = settings.maxTokens;
+    if (systemPromptEl) systemPromptEl.value = settings.defaultSystemPrompt;
+    if (autoSuggestEl) autoSuggestEl.checked = settings.skillAutoSuggest;
+  }
+
+  function saveSettings() {
+    const maxTokensEl = document.getElementById('admin-max-tokens');
+    const systemPromptEl = document.getElementById('admin-default-system');
+    const autoSuggestEl = document.getElementById('admin-auto-suggest');
+
+    const maxTokens = maxTokensEl ? (parseInt(maxTokensEl.value) || 4096) : 4096;
+    const defaultSystemPrompt = systemPromptEl ? systemPromptEl.value : '';
+    const skillAutoSuggest = autoSuggestEl ? autoSuggestEl.checked : true;
+
+    try {
+      const raw = localStorage.getItem('claude_power_ui_v2') || '{}';
+      const state = JSON.parse(raw);
+      if (!state.settings) state.settings = {};
+      state.settings.maxTokens = maxTokens;
+      state.settings.defaultSystemPrompt = defaultSystemPrompt;
+      state.settings.skillAutoSuggest = skillAutoSuggest;
+      localStorage.setItem('claude_power_ui_v2', JSON.stringify(state));
+      toast('Settings saved successfully.', 'success');
+    } catch (e) {
+      toast('Failed to save settings: ' + e.message, 'error');
+    }
   }
 
   // ──────────────────────────────────────────────────────────
@@ -610,7 +657,7 @@ const AdminApp = (() => {
   // ──────────────────────────────────────────────────────────
   // Health panel
   // ──────────────────────────────────────────────────────────
-  function renderHealth() {
+  async function renderHealth() {
     const st       = Analytics.getStorageInfo();
     const summary  = Analytics.getSummary();
     const grid     = document.getElementById('health-grid');
@@ -697,8 +744,7 @@ python3 cli.py export --format json</pre>
     if (apiKeyList) {
       let apiKeys = {};
       try {
-        const raw = localStorage.getItem('claude_power_ui_v2');
-        apiKeys = JSON.parse(raw || '{}').apiKeys || {};
+        apiKeys = await ApiKeyVault.load() || {};
       } catch {}
 
       const providers = [
@@ -735,6 +781,7 @@ python3 cli.py export --format json</pre>
       appState:    JSON.parse(localStorage.getItem('claude_power_ui_v2') || '{}'),
       workspaces:  JSON.parse(localStorage.getItem('cpu_workspaces') || '[]'),
       memories:    JSON.parse(localStorage.getItem('cpu_memories')   || '[]'),
+      apiKeysVault: JSON.parse(localStorage.getItem('cpu_apikeys_v2') || 'null'),
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -763,6 +810,7 @@ python3 cli.py export --format json</pre>
         if (backup.appState)  localStorage.setItem('claude_power_ui_v2', JSON.stringify(backup.appState));
         if (backup.workspaces)localStorage.setItem('cpu_workspaces', JSON.stringify(backup.workspaces));
         if (backup.memories)  localStorage.setItem('cpu_memories',   JSON.stringify(backup.memories));
+        if (backup.apiKeysVault) localStorage.setItem('cpu_apikeys_v2', JSON.stringify(backup.apiKeysVault));
         toast('Backup imported successfully. Reload the app.', 'success', 6000);
       } catch { toast('Failed to parse backup file.', 'error'); }
     };
@@ -781,7 +829,7 @@ python3 cli.py export --format json</pre>
     if (!confirm('⚠ This will delete ALL app data including sessions, memory, and analytics. Type YES to continue.')) return;
     const confirm2 = prompt('Type YES to confirm full reset:');
     if (confirm2 !== 'YES') { toast('Reset cancelled.', 'info'); return; }
-    ['claude_power_ui_v2','claude_power_ui_v1','cpu_workspaces','cpu_memories','cpu_analytics'].forEach(k => localStorage.removeItem(k));
+    ['claude_power_ui_v2','claude_power_ui_v1','cpu_workspaces','cpu_memories','cpu_analytics','cpu_apikeys_v2'].forEach(k => localStorage.removeItem(k));
     toast('All data reset. Returning to app…', 'success');
     setTimeout(() => { window.location.href = 'index.html'; }, 2000);
   }
@@ -804,8 +852,8 @@ python3 cli.py export --format json</pre>
     // Init auth (creates admin user if first run)
     await AuthSystem.init();
 
-    // Auth guard — admin only
-    if (!AuthSystem.requireAdmin('index.html')) return;
+    // Auth guard — all authenticated users allowed
+    if (!AuthSystem.requireAuth('index.html')) return;
 
     // Show dashboard
     document.getElementById('admin-loading').style.display = 'none';
@@ -821,8 +869,35 @@ python3 cli.py export --format json</pre>
     const meta = document.getElementById('admin-topbar-meta');
     if (meta) meta.textContent = `Last refreshed: ${new Date().toLocaleTimeString()}`;
 
+    // Role-based visibility adjustment
+    const isAdmin = AuthSystem.isAdmin();
+    
+    // Toggle sidebar visibility based on admin role
+    const adminEls = [
+      document.getElementById('nav-section-analytics'),
+      document.getElementById('nav-section-management'),
+      document.getElementById('nav-item-overview'),
+      document.getElementById('nav-item-usage'),
+      document.getElementById('nav-item-costs'),
+      document.getElementById('nav-item-skills'),
+      document.getElementById('nav-item-users'),
+      document.getElementById('nav-item-health')
+    ];
+    adminEls.forEach(el => {
+      if (el) el.style.display = isAdmin ? 'block' : 'none';
+    });
+
+    if (!isAdmin) {
+      const sub = document.querySelector('.admin-brand-sub');
+      if (sub) sub.textContent = 'Settings Dashboard';
+    }
+
     // Render default panel
-    renderOverview();
+    if (isAdmin) {
+      await switchPanel('overview', document.getElementById('nav-item-overview'));
+    } else {
+      await switchPanel('settings', document.getElementById('nav-item-settings'));
+    }
   }
 
   // ============================================================
@@ -838,8 +913,8 @@ python3 cli.py export --format json</pre>
   function mcpUid() { return Math.random().toString(36).slice(2,9) + Date.now().toString(36); }
 
   // ── Render whole connections panel ─────────────────────────
-  function renderConnections() {
-    renderApiKeysGrid();
+  async function renderConnections() {
+    await renderApiKeysGrid();
     renderMcpServerList();
     const servers = loadMcpServers();
     const badge = document.getElementById('mcp-server-count');
@@ -848,20 +923,20 @@ python3 cli.py export --format json</pre>
 
   // ── API Keys grid ──────────────────────────────────────────
   const PROVIDER_DEFS = [
-    { id: 'anthropic', name: 'Anthropic', icon: '✦', color: '#c47c5a', placeholder: 'sk-ant-api03-…', baseUrl: 'https://api.anthropic.com',  docsUrl: 'https://console.anthropic.com/settings/keys',  testPath: '/v1/models', testHeaders: (k) => ({ 'x-api-key': k, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-calls': 'true' }) },
+    { id: 'anthropic', name: 'Anthropic', icon: '✦', color: '#c47c5a', placeholder: 'sk-ant-api03-…', baseUrl: 'https://api.anthropic.com',  docsUrl: 'https://console.anthropic.com/settings/keys',  testPath: '/v1/models', testHeaders: (k) => ({ 'x-api-key': k, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }) },
     { id: 'openai',    name: 'OpenAI',    icon: '◎', color: '#10a37f', placeholder: 'sk-proj-…',     baseUrl: 'https://api.openai.com',         docsUrl: 'https://platform.openai.com/api-keys',        testPath: '/v1/models', testHeaders: (k) => ({ 'Authorization': `Bearer ${k}` }) },
     { id: 'google',    name: 'Google',    icon: '⬡', color: '#4285f4', placeholder: 'AIza…',          baseUrl: 'https://generativelanguage.googleapis.com', docsUrl: 'https://aistudio.google.com/app/apikey',     testPath: `/v1beta/models?key=KEY`, testHeaders: () => ({}) },
     { id: 'groq',      name: 'Groq',      icon: '⚡', color: '#f55036', placeholder: 'gsk_…',           baseUrl: 'https://api.groq.com',           docsUrl: 'https://console.groq.com/keys',               testPath: '/openai/v1/models', testHeaders: (k) => ({ 'Authorization': `Bearer ${k}` }) },
   ];
 
-  function renderApiKeysGrid() {
+  async function renderApiKeysGrid() {
     const grid = document.getElementById('api-keys-grid');
     if (!grid) return;
     grid.innerHTML = '';
 
-    // Read current stored keys from app state
+    // Read current stored keys from ApiKeyVault
     let storedKeys = {};
-    try { storedKeys = JSON.parse(localStorage.getItem('claude_power_ui_v2') || '{}').apiKeys || {}; } catch {}
+    try { storedKeys = await ApiKeyVault.load() || {}; } catch {}
 
     PROVIDER_DEFS.forEach(p => {
       const hasKey = !!(storedKeys[p.id] && storedKeys[p.id].trim());
@@ -909,17 +984,16 @@ python3 cli.py export --format json</pre>
     input.type = input.type === 'password' ? 'text' : 'password';
   }
 
-  function saveApiKey(providerId) {
+  async function saveApiKey(providerId) {
     const input = document.getElementById(`key-input-${providerId}`);
     if (!input) return;
     const keyVal = input.value.trim();
 
     try {
-      const raw = localStorage.getItem('claude_power_ui_v2') || '{}';
-      const state = JSON.parse(raw);
-      if (!state.apiKeys) state.apiKeys = {};
-      state.apiKeys[providerId] = keyVal;
-      localStorage.setItem('claude_power_ui_v2', JSON.stringify(state));
+      let storedKeys = {};
+      try { storedKeys = await ApiKeyVault.load() || {}; } catch {}
+      storedKeys[providerId] = keyVal;
+      await ApiKeyVault.save(storedKeys);
 
       // Update pill
       const pill = document.getElementById(`pill-${providerId}`);
@@ -1220,6 +1294,9 @@ python3 cli.py export --format json</pre>
     handleImport,
     clearAnalytics,
     resetAllData,
+    // Settings panel
+    saveSettings,
+    renderSettings,
     // Connections panel
     renderApiKeysGrid,
     toggleKeyReveal,
@@ -1240,12 +1317,36 @@ python3 cli.py export --format json</pre>
 
 document.addEventListener('DOMContentLoaded', () => AdminApp.boot?.() || (async () => {
   await AuthSystem.init();
-  if (!AuthSystem.requireAdmin('index.html')) return;
+  if (!AuthSystem.requireAuth('index.html')) return;
   document.getElementById('admin-loading').style.display = 'none';
   document.getElementById('admin-app').style.display     = 'flex';
   const user = AuthSystem.getCurrentUser();
   if (user) document.getElementById('admin-current-user').textContent = user.displayName || user.username;
   const meta = document.getElementById('admin-topbar-meta');
   if (meta) meta.textContent = `Last refreshed: ${new Date().toLocaleTimeString()}`;
-  AdminApp.switchPanel('overview', document.querySelector('.admin-nav-item[data-panel="overview"]'));
+
+  const isAdmin = AuthSystem.isAdmin();
+  
+  // Toggle sidebar visibility based on admin role
+  const adminEls = [
+    document.getElementById('nav-section-analytics'),
+    document.getElementById('nav-section-management'),
+    document.getElementById('nav-item-overview'),
+    document.getElementById('nav-item-usage'),
+    document.getElementById('nav-item-costs'),
+    document.getElementById('nav-item-skills'),
+    document.getElementById('nav-item-users'),
+    document.getElementById('nav-item-health')
+  ];
+  adminEls.forEach(el => {
+    if (el) el.style.display = isAdmin ? 'block' : 'none';
+  });
+
+  if (!isAdmin) {
+    const sub = document.querySelector('.admin-brand-sub');
+    if (sub) sub.textContent = 'Settings Dashboard';
+  }
+
+  const defaultPanel = isAdmin ? 'overview' : 'settings';
+  AdminApp.switchPanel(defaultPanel, document.querySelector(`.admin-nav-item[data-panel="${defaultPanel}"]`));
 })());

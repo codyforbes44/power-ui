@@ -48,29 +48,37 @@
       </div>
 
       <nav class="admin-nav">
-        <div class="admin-nav-section-label">Analytics</div>
-        <button class="admin-nav-item active" data-panel="overview" onclick="AdminApp.switchPanel('overview', this)">
+        <!-- Analytics (Admin Only) -->
+        <div class="admin-nav-section-label" id="nav-section-analytics">Analytics</div>
+        <button class="admin-nav-item active" id="nav-item-overview" data-panel="overview" onclick="AdminApp.switchPanel('overview', this)">
           <span class="admin-nav-icon">◈</span> Overview
         </button>
-        <button class="admin-nav-item" data-panel="usage" onclick="AdminApp.switchPanel('usage', this)">
+        <button class="admin-nav-item" id="nav-item-usage" data-panel="usage" onclick="AdminApp.switchPanel('usage', this)">
           <span class="admin-nav-icon">📈</span> Usage &amp; Charts
         </button>
-        <button class="admin-nav-item" data-panel="costs" onclick="AdminApp.switchPanel('costs', this)">
+        <button class="admin-nav-item" id="nav-item-costs" data-panel="costs" onclick="AdminApp.switchPanel('costs', this)">
           <span class="admin-nav-icon">💲</span> Cost Breakdown
         </button>
-        <button class="admin-nav-item" data-panel="skills" onclick="AdminApp.switchPanel('skills', this)">
+        <button class="admin-nav-item" id="nav-item-skills" data-panel="skills" onclick="AdminApp.switchPanel('skills', this)">
           <span class="admin-nav-icon">⊞</span> Top Skills
         </button>
 
-        <div class="admin-nav-section-label" style="margin-top:8px">Management</div>
-        <button class="admin-nav-item" data-panel="users" onclick="AdminApp.switchPanel('users', this)">
+        <!-- Management (Admin Only) -->
+        <div class="admin-nav-section-label" id="nav-section-management" style="margin-top:8px">Management</div>
+        <button class="admin-nav-item" id="nav-item-users" data-panel="users" onclick="AdminApp.switchPanel('users', this)">
           <span class="admin-nav-icon">👥</span> Users
         </button>
-        <button class="admin-nav-item" data-panel="connections" onclick="AdminApp.switchPanel('connections', this)">
-          <span class="admin-nav-icon">🔌</span> API Keys &amp; MCP
-        </button>
-        <button class="admin-nav-item" data-panel="health" onclick="AdminApp.switchPanel('health', this)">
+        <button class="admin-nav-item" id="nav-item-health" data-panel="health" onclick="AdminApp.switchPanel('health', this)">
           <span class="admin-nav-icon">🩺</span> System Health
+        </button>
+
+        <!-- Settings (All Users) -->
+        <div class="admin-nav-section-label" id="nav-section-settings" style="margin-top:8px">Settings</div>
+        <button class="admin-nav-item" id="nav-item-settings" data-panel="settings" onclick="AdminApp.switchPanel('settings', this)">
+          <span class="admin-nav-icon">⚙</span> General Settings
+        </button>
+        <button class="admin-nav-item" id="nav-item-connections" data-panel="connections" onclick="AdminApp.switchPanel('connections', this)">
+          <span class="admin-nav-icon">🔌</span> API Keys &amp; MCP
         </button>
       </nav>
 
@@ -323,6 +331,37 @@
             <div class="danger-zone-actions">
               <button class="btn-sm danger" onclick="AdminApp.clearAnalytics()">Clear Analytics Data</button>
               <button class="btn-sm danger" onclick="AdminApp.resetAllData()">Reset All App Data</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Settings Panel ─────────────────────────── -->
+        <section id="panel-settings" class="admin-panel">
+          <div class="panel-title">General Settings</div>
+          <div class="panel-subtitle">Configure application settings and default behavior</div>
+
+          <div class="admin-table-wrap" style="margin-bottom:20px; padding:20px">
+            <div class="form-group" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px">
+              <label class="mcp-label" style="font-size:11px">Max Response Tokens</label>
+              <input type="number" class="mcp-input" id="admin-max-tokens" min="256" max="32000" step="256" style="max-width:200px" />
+              <div style="font-size:11px; color:var(--text-muted)">The maximum number of tokens to generate in model responses.</div>
+            </div>
+
+            <div class="form-group" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px">
+              <label class="mcp-label" style="font-size:11px">Default System Prompt</label>
+              <textarea class="mcp-input" id="admin-default-system" rows="4" style="font-family:var(--font-mono); font-size:11px; resize:vertical; min-height:80px; width:100%"></textarea>
+              <div style="font-size:11px; color:var(--text-muted)">This system prompt will be prepended to all new chat sessions.</div>
+            </div>
+
+            <div class="form-group" style="display:flex; align-items:center; gap:10px; margin-bottom:24px">
+              <input type="checkbox" id="admin-auto-suggest" style="accent-color:var(--indigo-500); width:16px; height:16px; cursor:pointer" />
+              <label for="admin-auto-suggest" class="mcp-label" style="margin:0; cursor:pointer; text-transform:none; letter-spacing:0; font-weight:500; font-size:12px">
+                Auto-suggest skills as you type
+              </label>
+            </div>
+
+            <div style="display:flex; gap:10px">
+              <button class="btn-sm primary" onclick="AdminApp.saveSettings()">Save Settings</button>
             </div>
           </div>
         </section>

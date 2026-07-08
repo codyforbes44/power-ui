@@ -19,3 +19,5 @@ __pycache__/
 
 # Netlify local state
 .netlify/
+.netlify-token
+.netlify-site

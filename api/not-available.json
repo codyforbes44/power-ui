@@ -1,0 +1,1 @@
+{"error":"This endpoint is only available when running the local server (python3 app/server.py). The app works in localStorage mode on Netlify.","localOnly":true}

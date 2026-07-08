@@ -199,7 +199,7 @@ ${transcript}`;
             'Content-Type': 'application/json',
             'x-api-key': apiKey,
             'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-calls': 'true',
+            'anthropic-dangerous-direct-browser-access': 'true',
           },
           body: JSON.stringify({
             model: 'claude-haiku-3-5',

@@ -3,11 +3,18 @@
 # No build step — pure static HTML/CSS/JS.
 # Both /public/ (marketing site) and /app/ (AI workspace) are served.
 # The Python server.py is for local use only and is not deployed.
+#
+# /api/proxy is handled by netlify/functions/proxy.mjs (AI proxy).
+# All other /api/* calls (ping, state, sync) only work locally.
 # ────────────────────────────────────────────────────────────────
 
 [build]
   publish = "."
-  ignore  = "exit 0"          # never skip (no build cache to check)
+  ignore  = "exit 0"
+
+# ── Functions ────────────────────────────────────────────────────
+[functions]
+  node_bundler = "esbuild"
 
 # ── Security Headers ────────────────────────────────────────────
 
@@ -23,25 +30,8 @@
   for = "/*.html"
   [headers.values]
     Cache-Control = "no-store, no-cache, must-revalidate"
-    Content-Security-Policy = """
-      frame-ancestors 'none';
-      default-src 'self';
-      script-src 'self' 'unsafe-inline' https://unpkg.com;
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      font-src 'self' https://fonts.gstatic.com data:;
-      connect-src 'self'
-        https://api.anthropic.com
-        https://api.openai.com
-        https://generativelanguage.googleapis.com
-        https://api.groq.com
-        https://api.mistral.ai
-        https://unpkg.com;
-      frame-src blob:;
-      img-src 'self' data: blob:;
-    """
+    Content-Security-Policy = "frame-ancestors 'none'; default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.groq.com https://api.mistral.ai https://unpkg.com; frame-src blob:; img-src 'self' data: blob:;"
 
-# CSS/JS — long cache (content-addressed via Netlify asset fingerprinting)
 [[headers]]
   for = "/*.css"
   [headers.values]
@@ -66,16 +56,35 @@
   to     = "/app/index.html"
   status = 200
 
-# /app/ SPA fallback — any unknown /app/* path → app shell
+# /app/ SPA fallback
+# Note: Netlify serves actual files first, so /app/styles.css etc. are unaffected
 [[redirects]]
   from   = "/app/*"
   to     = "/app/index.html"
   status = 200
 
-# /public/ — pass-through (static files served directly, no rewrite needed)
-# /api/* — not served on Netlify (local server only); return 404 gracefully
+# /api/ping, /api/state, /api/sync — local-server-only endpoints
+# Return a clean JSON 404 so ServerSync.probe() fails fast and gracefully
 [[redirects]]
-  from   = "/api/*"
-  to     = "/public/404.html"
+  from   = "/api/ping"
+  to     = "/api/not-available.json"
+  status = 404
+  force  = false
+
+[[redirects]]
+  from   = "/api/state"
+  to     = "/api/not-available.json"
+  status = 404
+  force  = false
+
+[[redirects]]
+  from   = "/api/sync"
+  to     = "/api/not-available.json"
+  status = 404
+  force  = false
+
+[[redirects]]
+  from   = "/api/mcp/*"
+  to     = "/api/not-available.json"
   status = 404
   force  = false

@@ -1,17 +1,32 @@
 /* ============================================================
    CLAUDE POWER UI v2 — Unified API Router
-   Normalizes streaming across: Anthropic, OpenAI, Groq, Gemini
    ============================================================
 
    Each provider function is an async generator that yields:
      { delta: string, usage: { inputTokens, outputTokens, cacheReadTokens }, done: boolean }
 
    Public API:
-     streamFromProvider(providerId, modelId, apiKey, messages, systemPrompt, options)
+     ApiRouter.stream(providerId, modelId, apiKey, messages, systemPrompt, options)
      → AsyncGenerator<{ delta, usage, done }>
+
+   Proxy mode:
+     When running on a production host (non-localhost, non-file://),
+     all requests are routed through the Netlify Function at /api/proxy
+     to avoid browser CORS restrictions on AI provider APIs.
    ============================================================ */
 
 const ApiRouter = (() => {
+
+  // ── Detect whether we need the server-side proxy ─────────────
+  // On localhost (server.py) and file:// direct access: make API
+  // calls directly (file:// is blocked anyway, but probe handles that).
+  // On Netlify / any other host: route through /api/proxy.
+  const _isLocalhost = (
+    location.hostname === 'localhost' ||
+    location.hostname === '127.0.0.1' ||
+    location.hostname === '[::1]'
+  );
+  const USE_PROXY = !_isLocalhost && location.protocol !== 'file:';
 
   // ──────────────────────────────────────────────────────────
   // Shared SSE line reader
@@ -37,28 +52,52 @@ const ApiRouter = (() => {
   }
 
   // ──────────────────────────────────────────────────────────
+  // Proxy helper — wraps any fetch through /api/proxy
+  // ──────────────────────────────────────────────────────────
+  async function proxyFetch({ provider, path, apiKey, payload, queryParams, signal }) {
+    const response = await fetch('/api/proxy', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ provider, path, apiKey, payload, queryParams }),
+      signal,
+    });
+    return response;
+  }
+
+  // ──────────────────────────────────────────────────────────
   // Anthropic Messages API
   // ──────────────────────────────────────────────────────────
   async function* streamAnthropic(modelId, apiKey, messages, systemPrompt, options) {
-    const body = {
-      model: modelId,
+    const payload = {
+      model:      modelId,
       max_tokens: options.maxTokens || 4096,
-      system: systemPrompt || undefined,
+      system:     systemPrompt || undefined,
       messages,
-      stream: true,
+      stream:     true,
     };
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-calls': 'true',
-      },
-      body: JSON.stringify(body),
-      signal: options.signal,
-    });
+    let response;
+    if (USE_PROXY) {
+      response = await proxyFetch({
+        provider: 'anthropic',
+        path:     '/v1/messages',
+        apiKey,
+        payload,
+        signal:   options.signal,
+      });
+    } else {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method:  'POST',
+        headers: {
+          'Content-Type':    'application/json',
+          'x-api-key':       apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body:   JSON.stringify(payload),
+        signal: options.signal,
+      });
+    }
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
@@ -76,8 +115,8 @@ const ApiRouter = (() => {
         const ev = JSON.parse(data);
 
         if (ev.type === 'message_start' && ev.message?.usage) {
-          usage.inputTokens     = ev.message.usage.input_tokens     || 0;
-          usage.cacheReadTokens = ev.message.usage.cache_read_input_tokens || 0;
+          usage.inputTokens     = ev.message.usage.input_tokens             || 0;
+          usage.cacheReadTokens = ev.message.usage.cache_read_input_tokens  || 0;
         }
 
         if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
@@ -96,33 +135,48 @@ const ApiRouter = (() => {
   }
 
   // ──────────────────────────────────────────────────────────
-  // OpenAI Chat Completions API (also used for Groq)
+  // OpenAI Chat Completions API (also used for Groq + Mistral)
   // ──────────────────────────────────────────────────────────
-  async function* streamOpenAI(modelId, apiKey, messages, systemPrompt, options, baseUrl) {
+  const OPENAI_COMPAT_BASES = {
+    openai:  'https://api.openai.com',
+    groq:    'https://api.groq.com/openai',
+    mistral: 'https://api.mistral.ai',
+  };
+
+  async function* streamOpenAI(modelId, apiKey, messages, systemPrompt, options, providerId) {
     const apiMessages = [];
-    if (systemPrompt) {
-      apiMessages.push({ role: 'system', content: systemPrompt });
-    }
+    if (systemPrompt) apiMessages.push({ role: 'system', content: systemPrompt });
     apiMessages.push(...messages);
 
-    const body = {
-      model: modelId,
-      messages: apiMessages,
-      stream: true,
+    const payload = {
+      model:          modelId,
+      messages:       apiMessages,
+      stream:         true,
       stream_options: { include_usage: true },
-      max_tokens: options.maxTokens || 4096,
+      max_tokens:     options.maxTokens || 4096,
     };
 
-    const url = `${baseUrl}/v1/chat/completions`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(body),
-      signal: options.signal,
-    });
+    let response;
+    if (USE_PROXY) {
+      response = await proxyFetch({
+        provider: providerId,
+        path:     '/v1/chat/completions',
+        apiKey,
+        payload,
+        signal:   options.signal,
+      });
+    } else {
+      const baseUrl = OPENAI_COMPAT_BASES[providerId] || 'https://api.openai.com';
+      response = await fetch(`${baseUrl}/v1/chat/completions`, {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body:   JSON.stringify(payload),
+        signal: options.signal,
+      });
+    }
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
@@ -142,9 +196,7 @@ const ApiRouter = (() => {
       try {
         const ev = JSON.parse(data);
         const delta = ev.choices?.[0]?.delta?.content;
-        if (delta) {
-          yield { delta, usage: null, done: false };
-        }
+        if (delta) yield { delta, usage: null, done: false };
         if (ev.usage) {
           usage.inputTokens  = ev.usage.prompt_tokens     || 0;
           usage.outputTokens = ev.usage.completion_tokens || 0;
@@ -160,36 +212,40 @@ const ApiRouter = (() => {
   // Google Gemini API
   // ──────────────────────────────────────────────────────────
   async function* streamGemini(modelId, apiKey, messages, systemPrompt, options) {
-    // Convert messages to Gemini format
     const contents = messages.map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
+      role:  m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     }));
 
-    const body = {
+    const payload = {
       contents,
-      generationConfig: {
-        maxOutputTokens: options.maxTokens || 4096,
-      },
+      generationConfig: { maxOutputTokens: options.maxTokens || 4096 },
     };
+    if (systemPrompt) payload.systemInstruction = { parts: [{ text: systemPrompt }] };
 
-    if (systemPrompt) {
-      body.systemInstruction = { parts: [{ text: systemPrompt }] };
+    let response;
+    if (USE_PROXY) {
+      response = await proxyFetch({
+        provider:    'google',
+        path:        `/v1beta/models/${modelId}:streamGenerateContent`,
+        apiKey:      '',           // Google uses query param; proxy sets it via queryParams
+        payload,
+        queryParams: { key: apiKey, alt: 'sse' },
+        signal:      options.signal,
+      });
+    } else {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${apiKey}&alt=sse`;
+      response = await fetch(url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+        signal:  options.signal,
+      });
     }
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${apiKey}&alt=sse`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: options.signal,
-    });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      const msg = err?.error?.message || `Gemini API error ${response.status}`;
-      throw new Error(msg);
+      throw new Error(err?.error?.message || `Gemini API error ${response.status}`);
     }
 
     let usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
@@ -201,9 +257,7 @@ const ApiRouter = (() => {
       try {
         const ev = JSON.parse(data);
         const text = ev.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) {
-          yield { delta: text, usage: null, done: false };
-        }
+        if (text) yield { delta: text, usage: null, done: false };
         if (ev.usageMetadata) {
           usage.inputTokens  = ev.usageMetadata.promptTokenCount     || 0;
           usage.outputTokens = ev.usageMetadata.candidatesTokenCount || 0;
@@ -222,7 +276,7 @@ const ApiRouter = (() => {
   /**
    * Stream a completion from any supported provider.
    *
-   * @param {string} providerId - 'anthropic' | 'openai' | 'google' | 'groq'
+   * @param {string} providerId - 'anthropic' | 'openai' | 'google' | 'groq' | 'mistral'
    * @param {string} modelId    - model identifier
    * @param {string} apiKey     - API key for the provider
    * @param {Array}  messages   - [{role, content}]
@@ -236,10 +290,9 @@ const ApiRouter = (() => {
         yield* streamAnthropic(modelId, apiKey, messages, systemPrompt, options);
         break;
       case 'openai':
-        yield* streamOpenAI(modelId, apiKey, messages, systemPrompt, options, 'https://api.openai.com');
-        break;
       case 'groq':
-        yield* streamOpenAI(modelId, apiKey, messages, systemPrompt, options, 'https://api.groq.com/openai');
+      case 'mistral':
+        yield* streamOpenAI(modelId, apiKey, messages, systemPrompt, options, providerId);
         break;
       case 'google':
         yield* streamGemini(modelId, apiKey, messages, systemPrompt, options);
@@ -257,5 +310,5 @@ const ApiRouter = (() => {
     return MODELS_DATA.getModel(modelId)?.provider || null;
   }
 
-  return { stream, resolveProvider };
+  return { stream, resolveProvider, isProxied: USE_PROXY };
 })();

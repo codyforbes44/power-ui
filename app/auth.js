@@ -495,3 +495,78 @@ const AuthSystem = (() => {
   };
 
 })();
+
+// ============================================================
+// ApiKeyVault — AES-GCM encrypted API key storage
+// Keys are encrypted with a per-user key derived from their password.
+// The decryption key lives only in sessionStorage (cleared on tab close).
+// ============================================================
+const ApiKeyVault = (() => {
+  const VAULT_LS  = 'cpu_apikeys_v2';  // ciphertext in localStorage
+  const VAULT_SS  = 'cpu_vault_key';   // raw key bytes (base64) in sessionStorage
+
+  async function _getKey() {
+    const b64 = sessionStorage.getItem(VAULT_SS);
+    if (!b64) return null;
+    try {
+      const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+    } catch { return null; }
+  }
+
+  /** Encrypt apiKeys object and write to localStorage. */
+  async function save(apiKeys) {
+    const key = await _getKey();
+    if (!key) {
+      // Vault key unavailable (e.g. session cleared) — skip silently
+      console.warn('ApiKeyVault: no vault key available, API keys not encrypted');
+      return;
+    }
+    const iv        = crypto.getRandomValues(new Uint8Array(12));
+    const plaintext = new TextEncoder().encode(JSON.stringify(apiKeys));
+    const cipher    = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
+    try {
+      localStorage.setItem(VAULT_LS, JSON.stringify({
+        v:    2,
+        iv:   Array.from(iv),
+        data: Array.from(new Uint8Array(cipher)),
+      }));
+    } catch (e) {
+      console.warn('ApiKeyVault: save failed', e.message);
+    }
+  }
+
+  /** Decrypt and return apiKeys object, or {} if unavailable/locked. */
+  async function load() {
+    const stored = localStorage.getItem(VAULT_LS);
+    if (!stored) return {};
+    const key = await _getKey();
+    if (!key) return null; // null = vault exists but locked (needs unlock)
+    try {
+      const { iv, data } = JSON.parse(stored);
+      const plain = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: new Uint8Array(iv) },
+        key,
+        new Uint8Array(data)
+      );
+      return JSON.parse(new TextDecoder().decode(plain));
+    } catch { return {}; }
+  }
+
+  /**
+   * Migrate plaintext API keys from legacy state blob into the vault.
+   * Called once on first boot after upgrade.
+   */
+  async function migrateFromPlaintext(plainKeys) {
+    if (!plainKeys || !Object.values(plainKeys).some(v => v)) return;
+    if (localStorage.getItem(VAULT_LS)) return; // already migrated
+    await save(plainKeys);
+    console.log('ApiKeyVault: migrated plaintext keys to AES-GCM vault ✓');
+  }
+
+  /** Returns true if a vault blob exists (regardless of lock state). */
+  function hasVault() { return !!localStorage.getItem(VAULT_LS); }
+
+  return { save, load, migrateFromPlaintext, hasVault };
+})();
+
