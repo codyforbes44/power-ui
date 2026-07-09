@@ -45,6 +45,9 @@
   <!-- Main admin layout (hidden until auth passes) -->
   <div id="admin-app" class="admin-layout" style="display:none">
 
+    <!-- Backdrop for the mobile off-canvas sidebar drawer (<1024px) -->
+    <div class="drawer-backdrop" id="admin-drawer-backdrop" onclick="AdminApp.closeSidebar()"></div>
+
     <!-- ── Sidebar ───────────────────────────────────────── -->
     <aside class="admin-sidebar">
       <div class="admin-sidebar-brand">
@@ -102,9 +105,12 @@
 
       <!-- Topbar -->
       <header class="admin-topbar">
-        <div>
-          <div class="admin-topbar-title" id="admin-topbar-title">Overview</div>
-          <div class="admin-topbar-meta" id="admin-topbar-meta">Loading…</div>
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+          <button class="mobile-sidebar-btn" onclick="AdminApp.toggleSidebar()" aria-label="Open navigation">☰</button>
+          <div style="min-width:0">
+            <div class="admin-topbar-title" id="admin-topbar-title">Overview</div>
+            <div class="admin-topbar-meta" id="admin-topbar-meta">Loading…</div>
+          </div>
         </div>
         <div class="admin-topbar-right">
           <div class="admin-topbar-badge" id="admin-user-badge">
@@ -206,36 +212,40 @@
             <div class="admin-table-header">
               <div class="admin-table-title">By Model</div>
             </div>
-            <table class="admin-table" id="table-model-costs">
-              <thead>
-                <tr>
-                  <th>Model</th>
-                  <th>Provider</th>
-                  <th>Messages</th>
-                  <th>Total Cost</th>
-                  <th>Avg / Msg</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-model-costs"></tbody>
-            </table>
+            <div class="admin-table-scroll">
+              <table class="admin-table" id="table-model-costs">
+                <thead>
+                  <tr>
+                    <th>Model</th>
+                    <th>Provider</th>
+                    <th>Messages</th>
+                    <th>Total Cost</th>
+                    <th>Avg / Msg</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-model-costs"></tbody>
+              </table>
+            </div>
           </div>
 
           <div class="admin-table-wrap">
             <div class="admin-table-header">
               <div class="admin-table-title">By User</div>
             </div>
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Messages</th>
-                  <th>Total Cost</th>
-                  <th>Total Tokens</th>
-                  <th>Avg Cost / Msg</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-user-costs"></tbody>
-            </table>
+            <div class="admin-table-scroll">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Messages</th>
+                    <th>Total Cost</th>
+                    <th>Total Tokens</th>
+                    <th>Avg Cost / Msg</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-user-costs"></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -288,20 +298,22 @@
               </button>
             </div>
 
-            <table class="admin-table" id="users-table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Messages</th>
-                  <th>Total Spend</th>
-                  <th>Last Login</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-users"></tbody>
-            </table>
+            <div class="admin-table-scroll">
+              <table class="admin-table" id="users-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Messages</th>
+                    <th>Total Spend</th>
+                    <th>Last Login</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-users"></tbody>
+              </table>
+            </div>
           </div>
         </section>
 

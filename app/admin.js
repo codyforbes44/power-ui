@@ -59,6 +59,29 @@ const AdminApp = (() => {
   function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   // ──────────────────────────────────────────────────────────
+  // Mobile off-canvas sidebar drawer (<1024px — see admin.css)
+  // ──────────────────────────────────────────────────────────
+  let sidebarOpen = false;
+
+  function isMobileViewport() {
+    return window.matchMedia('(max-width: 1024px)').matches;
+  }
+
+  function toggleSidebar() {
+    sidebarOpen = !sidebarOpen;
+    document.querySelector('.admin-sidebar')?.classList.toggle('open', sidebarOpen);
+    document.getElementById('admin-drawer-backdrop')?.classList.toggle('visible', sidebarOpen);
+    document.body.style.overflow = sidebarOpen ? 'hidden' : '';
+  }
+
+  function closeSidebar() {
+    if (!sidebarOpen) return;
+    toggleSidebar();
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
+
+  // ──────────────────────────────────────────────────────────
   // Panel navigation
   // ──────────────────────────────────────────────────────────
   const PANEL_TITLES = {
@@ -79,6 +102,7 @@ const AdminApp = (() => {
     if (panel) panel.classList.add('active');
     if (navEl) navEl.classList.add('active');
     document.getElementById('admin-topbar-title').textContent = PANEL_TITLES[panelId] || panelId;
+    if (isMobileViewport()) closeSidebar(); // picking a page should put the drawer away
     await renderPanel(panelId);
   }
 
@@ -962,6 +986,22 @@ python3 cli.py export --format json</pre>
     } else {
       await switchPanel('settings', document.getElementById('nav-item-settings'));
     }
+
+    // Canvas charts (drawDailyChart/drawDonut/drawBarChart/renderCostTrendChart)
+    // size themselves once, from the canvas's parent width, when their panel
+    // is rendered — they never redraw on their own if the viewport changes
+    // afterward (e.g. a device rotation). refresh() re-renders whichever
+    // panel is currently active (same lookup it already does internally),
+    // which is enough to pick up the new width; also keep the mobile drawer
+    // state consistent if a resize crosses the 1024px breakpoint.
+    let _resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(_resizeTimer);
+      _resizeTimer = setTimeout(() => {
+        if (!isMobileViewport()) closeSidebar();
+        refresh();
+      }, 200);
+    });
   }
 
   // ============================================================
@@ -1522,6 +1562,8 @@ python3 cli.py export --format json</pre>
     boot,
     switchPanel,
     refresh,
+    toggleSidebar,
+    closeSidebar,
     createUser,
     toggleUserActive,
     promptResetPassword,

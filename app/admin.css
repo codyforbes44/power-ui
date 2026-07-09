@@ -63,6 +63,38 @@ body {
   min-height: 100vh;
 }
 
+/* ── Drawer backdrop (mobile off-canvas sidebar) ─────────────── */
+.drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 150;
+  opacity: 0;
+  transition: opacity var(--t-base);
+}
+.drawer-backdrop.visible { display: block; opacity: 1; }
+
+/* Reopens the sidebar drawer — see AdminApp's toggleSidebar(). Hidden
+   on desktop, where the sidebar is always in normal flow. */
+.mobile-sidebar-btn {
+  display: none;
+  width: 36px; height: 36px;
+  align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--t-fast), background var(--t-fast);
+}
+.mobile-sidebar-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+@media (max-width: 1024px) {
+  .mobile-sidebar-btn { display: flex; }
+}
+
 /* ── Sidebar ───────────────────────────────────────────────── */
 .admin-sidebar {
   width: 220px;
@@ -397,6 +429,13 @@ canvas.admin-chart {
 table.admin-table {
   width: 100%;
   border-collapse: collapse;
+}
+
+/* Lets wide tables (user list, cost breakdowns) scroll horizontally on
+   narrow viewports instead of overflowing the page or clipping. */
+.admin-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-table th {
@@ -1306,4 +1345,33 @@ table.admin-table {
 }
 .api-key-card-defaults {
   border-left-color: #f59e0b;
+}
+
+/* ============================================================
+   Mobile responsive
+   Below 1024px, .admin-sidebar leaves normal flex flow and becomes
+   a fixed, full-height, slide-in drawer over the shared backdrop
+   (.drawer-backdrop, defined near the top of this file) — see
+   AdminApp's toggleSidebar()/closeSidebar() in admin.js. Below that,
+   grids that assumed desktop width collapse to a single column and
+   wide tables scroll horizontally (.admin-table-scroll, above)
+   instead of overflowing the page.
+   ============================================================ */
+@media (max-width: 1024px) {
+  .admin-sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    height: 100vh;
+    width: min(220px, 85vw);
+    min-width: 0;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 300ms ease;
+    box-shadow: 12px 0 40px rgba(0,0,0,0.45);
+  }
+  .admin-sidebar.open { transform: translateX(0); }
+
+  .charts-grid { grid-template-columns: 1fr; }
+  .create-user-form { grid-template-columns: 1fr; align-items: stretch; }
+  .api-keys-grid { grid-template-columns: 1fr; }
 }
