@@ -222,7 +222,7 @@ body {
 }
 
 .admin-refresh-btn {
-  width: 32px; height: 32px;
+  width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--border);
@@ -522,7 +522,7 @@ table.admin-table {
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: var(--font-ui);
-  font-size: 12px;
+  font-size: 16px;
   outline: none;
   transition: border-color var(--t-fast);
 }
@@ -837,7 +837,7 @@ table.admin-table {
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 16px;
   outline: none;
   transition: border-color var(--t-fast);
   min-width: 0;
@@ -851,7 +851,7 @@ table.admin-table {
 }
 
 .api-key-reveal-btn {
-  width: 30px; height: 30px;
+  width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--border);
@@ -984,7 +984,7 @@ table.admin-table {
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: var(--font-ui);
-  font-size: 12px;
+  font-size: 16px;
   outline: none;
   transition: border-color var(--t-fast);
 }

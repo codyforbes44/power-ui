@@ -587,7 +587,7 @@ function renderSkillSuggestions() {
         ${esc(s.domainIcon||'')} ${esc(s.name)}
       </button>
     `).join('')}
-    <button class="skill-suggest-dismiss" onclick="dismissSkillSuggestions()" title="Dismiss">✕</button>
+    <button class="skill-suggest-dismiss" onclick="dismissSkillSuggestions()" title="Dismiss" aria-label="Dismiss suggestions">✕</button>
   `;
 }
 
@@ -655,7 +655,7 @@ function renderMemoryPanel() {
     <div class="memory-panel">
       <div class="memory-panel-header">
         <div class="memory-panel-title">🧠 Memory — ${esc(ws?.name || 'Default')}</div>
-        <button class="memory-panel-close" onclick="closeMemoryPanel()">✕</button>
+        <button class="memory-panel-close" onclick="closeMemoryPanel()" aria-label="Close memory panel">✕</button>
       </div>
 
       <div class="memory-add-form">
@@ -708,7 +708,7 @@ function renderMemoryListHTML(mems, filter = '') {
         <span>${new Date(m.createdAt).toLocaleDateString()}</span>
         ${m.useCount ? `<span>used ${m.useCount}×</span>` : ''}
       </div>
-      <button class="memory-entry-del" onclick="handleMemoryDelete('${esc(m.id)}')">✕</button>
+      <button class="memory-entry-del" onclick="handleMemoryDelete('${esc(m.id)}')" aria-label="Delete memory">✕</button>
     </div>
   `).join('');
 }
@@ -781,7 +781,7 @@ function renderWorkspaceBar() {
       <select class="workspace-select" onchange="handleWorkspaceChange(this.value)">
         ${all.map(w => `<option value="${esc(w.id)}" ${w.id === active?.id ? 'selected' : ''}>${esc(w.name)}</option>`).join('')}
       </select>
-      <button class="workspace-new-btn" onclick="handleNewWorkspace()" title="New workspace">+</button>
+      <button class="workspace-new-btn" onclick="handleNewWorkspace()" title="New workspace" aria-label="New workspace">+</button>
     </div>
   `;
 }
@@ -831,7 +831,7 @@ function renderSessionList() {
         </div>
         ${isBranch ? `<div class="session-branch-hint">↳ from ${esc(session.branchedFrom.parentTitle?.slice(0,30)||'')}</div>` : ''}
       </div>
-      <button class="session-delete" title="Delete conversation">✕</button>
+      <button class="session-delete" title="Delete conversation" aria-label="Delete conversation">✕</button>
     `;
 
     div.addEventListener('click', e => {
@@ -1022,7 +1022,7 @@ function renderMessages() {
 
         return `
           <div class="tool-call-block ${isRunning ? 'tool-call-running' : tc.result ? 'tool-call-done' : ''}">
-            <div class="tool-call-header" onclick="this.parentElement.classList.toggle('tool-call-expanded')">
+            <div class="tool-call-header" onclick="this.parentElement.classList.toggle('tool-call-expanded')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('tool-call-expanded')}">
               <span class="tool-call-icon">${icon}</span>
               <span class="tool-call-name">${esc(tc.name.replace(/_/g,' '))}</span>
               <span class="tool-call-status">${isRunning ? '<span class="tool-call-spinner"></span> Running…' : tc.result ? '✓ Done' : '⏳ Queued'}</span>
@@ -1274,7 +1274,7 @@ function renderSkillsPanel() {
     const isCollapsed = STATE.ui.domainStates[domain.id];
     return `
       <div class="skill-domain${isCollapsed ? ' collapsed' : ''}">
-        <div class="skill-domain-header" onclick="toggleDomain('${domain.id}')">
+        <div class="skill-domain-header" onclick="toggleDomain('${domain.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDomain('${domain.id}')}">
           <span>${domain.icon}</span>
           <span class="skill-domain-name">${esc(domain.name)}</span>
           <span class="skill-domain-count">${domain.skills.length}</span>
@@ -1480,7 +1480,7 @@ function renderAttachmentBar() {
       <span class="attachment-icon">${a.type.startsWith('image/') ? '🖼' : a.type === 'application/pdf' ? '📄' : '📝'}</span>
       <span class="attachment-name">${esc(a.name.length > 24 ? a.name.slice(0,22) + '…' : a.name)}</span>
       <span class="attachment-size">${a.size < 1024 ? a.size + 'B' : a.size < 1048576 ? (a.size/1024).toFixed(0) + 'KB' : (a.size/1048576).toFixed(1) + 'MB'}</span>
-      <button class="attachment-del" onclick="removeAttachment('${a.id}')">✕</button>
+      <button class="attachment-del" onclick="removeAttachment('${a.id}')" aria-label="Remove attachment">✕</button>
     </div>
   `).join('');
 }
@@ -1585,8 +1585,8 @@ root.render(React.createElement(typeof App !== 'undefined' ? App : () => React.c
         <span class="artifact-modal-title">⬜ Artifact Preview</span>
         <span class="artifact-modal-type">${artifact.type.toUpperCase()}</span>
         <div style="display:flex;gap:6px;margin-left:auto">
-          <button class="artifact-modal-btn" onclick="document.getElementById('artifact-frame').contentWindow.location.reload()">↺</button>
-          <button class="artifact-modal-close" onclick="document.getElementById('artifact-overlay').remove()">✕</button>
+          <button class="artifact-modal-btn" onclick="document.getElementById('artifact-frame').contentWindow.location.reload()" aria-label="Reload artifact">↺</button>
+          <button class="artifact-modal-close" onclick="document.getElementById('artifact-overlay').remove()" aria-label="Close artifact preview">✕</button>
         </div>
       </div>
       <iframe id="artifact-frame" class="artifact-frame" sandbox="allow-scripts" srcdoc="${srcdoc.replace(/"/g,'&quot;')}"></iframe>
@@ -2280,7 +2280,7 @@ function buildHTML() {
             <div class="brand-logo">✦</div>
             <span class="brand-name sidebar-text">Claude Power</span>
           </div>
-          <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar">◀</button>
+          <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar" aria-label="Toggle sidebar">◀</button>
         </div>
 
         <!-- Workspace selector -->
@@ -2337,8 +2337,8 @@ function buildHTML() {
               <span style="font-size:9px;color:var(--text-muted)">▾</span>
               <div class="model-dropdown" id="model-dropdown" style="display:none"></div>
             </div>
-            <button class="icon-btn" id="export-btn" title="Export conversation (Markdown)">⇧</button>
-            <button class="icon-btn" id="skills-toggle" title="Toggle AI Tools panel (⌘/)"><span style="font-size:13px">⋞</span> <span style="font-size:11px">Tools</span></button>
+            <button class="icon-btn" id="export-btn" title="Export conversation (Markdown)" aria-label="Export conversation">⇧</button>
+            <button class="icon-btn" id="skills-toggle" title="Toggle AI Tools panel (⌘/)" aria-label="Toggle AI Tools panel"><span style="font-size:13px">⋞</span> <span style="font-size:11px">Tools</span></button>
           </div>
         </header>
 
@@ -2387,7 +2387,7 @@ function buildHTML() {
               <div class="image-popover" id="image-popover" style="display:none">
                 <div class="image-popover-header">
                   <span>🎨 Generate Image</span>
-                  <button class="image-popover-close" onclick="toggleImagePopover()">✕</button>
+                  <button class="image-popover-close" onclick="toggleImagePopover()" aria-label="Close image generator">✕</button>
                 </div>
                 <textarea class="image-popover-prompt" id="imagine-prompt"
                   placeholder="Describe the image…" rows="3"></textarea>

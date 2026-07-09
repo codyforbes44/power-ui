@@ -1355,7 +1355,7 @@ python3 cli.py export --format json</pre>
       const toolCount = (srv.tools || []).length;
 
       card.innerHTML = `
-        <div class="mcp-server-header" onclick="AdminApp.toggleMcpCard('${srv.id}')">
+        <div class="mcp-server-header" onclick="AdminApp.toggleMcpCard('${srv.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AdminApp.toggleMcpCard('${srv.id}')}">
           <div class="mcp-server-icon">${getMcpIcon(srv.name)}</div>
           <div class="mcp-server-info">
             <div class="mcp-server-name">${esc(srv.name)}</div>
@@ -1378,7 +1378,7 @@ python3 cli.py export --format json</pre>
           </div>
           <div class="mcp-server-actions">
             <button class="btn-sm secondary" onclick="AdminApp.pingMcpServer('${srv.id}')">◉ Ping</button>
-            ${toolCount > 0 ? `<span class="mcp-tools-chip" onclick="AdminApp.showMcpTools('${srv.id}')">⚙ ${toolCount} tool${toolCount===1?'':'s'}</span>` : ''}
+            ${toolCount > 0 ? `<span class="mcp-tools-chip" onclick="AdminApp.showMcpTools('${srv.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AdminApp.showMcpTools('${srv.id}')}">⚙ ${toolCount} tool${toolCount===1?'':'s'}</span>` : ''}
             <button class="btn-sm danger" style="margin-left:auto" onclick="AdminApp.removeMcpServer('${srv.id}')">Remove</button>
           </div>
         </div>

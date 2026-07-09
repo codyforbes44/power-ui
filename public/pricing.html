@@ -85,7 +85,7 @@
     <!-- Toggle -->
     <div class="toggle-row">
       <span class="toggle-opt active" id="lbl-monthly">Monthly</span>
-      <div class="toggle-pill" id="billingToggle" onclick="toggleBilling()">
+      <div class="toggle-pill" id="billingToggle" onclick="toggleBilling()" role="switch" aria-checked="false" aria-label="Toggle annual billing" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleBilling()}">
         <div class="toggle-knob"></div>
       </div>
       <span class="toggle-opt" id="lbl-annual">Annual <span class="discount-tag" style="margin-left:6px;">Save 20%</span></span>
@@ -341,6 +341,7 @@
     const lblA = document.getElementById('lbl-annual');
 
     pill.classList.toggle('active', isAnnual);
+    pill.setAttribute('aria-checked', String(isAnnual));
     lblM.classList.toggle('active', !isAnnual);
     lblA.classList.toggle('active', isAnnual);
 
