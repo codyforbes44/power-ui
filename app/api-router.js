@@ -2,94 +2,88 @@
    CLAUDE POWER UI v2 — Unified API Router
    ============================================================
 
-   Each provider function is an async generator that yields:
-     { delta: string, usage: { inputTokens, outputTokens, cacheReadTokens }, done: boolean }
+   Each provider generator yields one of:
+     { delta: string,   usage: null,   done: false }  — streaming text
+     { toolCall: {...}, usage: null,   done: false }  — tool invocation
+     { delta: '',       usage: object, done: true  }  — end of turn
+
+   toolCall shape:
+     { id: string, name: string, input: object, provider: 'anthropic'|'openai'|'google' }
 
    Public API:
      ApiRouter.stream(providerId, modelId, apiKey, messages, systemPrompt, options)
-     → AsyncGenerator<{ delta, usage, done }>
-
-   Proxy mode:
-     When running on a production host (non-localhost, non-file://),
-     all requests are routed through the Netlify Function at /api/proxy
-     to avoid browser CORS restrictions on AI provider APIs.
+     → AsyncGenerator
+     ApiRouter.webSearch(query, signal)   → Promise<string>   (summary text)
+     ApiRouter.isProxied                  → boolean
    ============================================================ */
 
 const ApiRouter = (() => {
 
-  // ── Detect whether we need the server-side proxy ─────────────
-  // On localhost (server.py) and file:// direct access: make API
-  // calls directly (file:// is blocked anyway, but probe handles that).
-  // On Netlify / any other host: route through /api/proxy.
+  // ── Proxy detection ───────────────────────────────────────
   const _isLocalhost = (
     location.hostname === 'localhost' ||
     location.hostname === '127.0.0.1' ||
     location.hostname === '[::1]'
   );
   const USE_PROXY = !_isLocalhost && location.protocol !== 'file:';
+  const PROXY_URL = '/.netlify/functions/proxy';
 
-  // ──────────────────────────────────────────────────────────
-  // Shared SSE line reader
-  // Buffers partial lines across read() calls.
-  // ──────────────────────────────────────────────────────────
+  // ── Shared SSE line reader ─────────────────────────────────
   async function* readSSELines(response) {
-    const reader = response.body.getReader();
+    const reader  = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop(); // keep partial last line
-      for (const line of lines) {
-        yield line;
-      }
+      buffer = lines.pop();
+      for (const line of lines) yield line;
     }
-    // Flush any remaining buffer
     if (buffer.trim()) yield buffer;
   }
 
-  // ──────────────────────────────────────────────────────────
-  // Proxy helper — wraps any fetch through /api/proxy
-  // ──────────────────────────────────────────────────────────
-  // Netlify Functions v2 are served at /.netlify/functions/{name} by default.
-  // The config.path export only applies when Netlify's build system processes
-  // the function (CLI / Git deploy). For zip deploys, use the canonical path.
-  const PROXY_URL = '/.netlify/functions/proxy';
-
+  // ── Proxy helper ──────────────────────────────────────────
   async function proxyFetch({ provider, path, apiKey, payload, queryParams, signal }) {
-    const response = await fetch(PROXY_URL, {
+    return fetch(PROXY_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ provider, path, apiKey, payload, queryParams }),
       signal,
     });
-    return response;
   }
 
-  // ──────────────────────────────────────────────────────────
-  // Anthropic Messages API
-  // ──────────────────────────────────────────────────────────
+  // ── Tool schema converters ────────────────────────────────
+  // Internal tool schema: { name, description, schema (JSON Schema object) }
+
+  function toAnthropicTool(t) {
+    return { name: t.name, description: t.description, input_schema: t.schema };
+  }
+
+  function toOpenAITool(t) {
+    return { type: 'function', function: { name: t.name, description: t.description, parameters: t.schema } };
+  }
+
+  function toGeminiTool(t) {
+    // Gemini uses functionDeclarations
+    return { name: t.name, description: t.description, parameters: t.schema };
+  }
+
+  // ── Anthropic Messages API ─────────────────────────────────
   async function* streamAnthropic(modelId, apiKey, messages, systemPrompt, options) {
     const payload = {
       model:      modelId,
       max_tokens: options.maxTokens || 4096,
-      system:     systemPrompt || undefined,
       messages,
       stream:     true,
     };
+    if (systemPrompt)        payload.system = systemPrompt;
+    if (options.tools?.length) payload.tools = options.tools.map(toAnthropicTool);
 
     let response;
     if (USE_PROXY) {
-      response = await proxyFetch({
-        provider: 'anthropic',
-        path:     '/v1/messages',
-        apiKey,
-        payload,
-        signal:   options.signal,
-      });
+      response = await proxyFetch({ provider: 'anthropic', path: '/v1/messages', apiKey, payload, signal: options.signal });
     } else {
       response = await fetch('https://api.anthropic.com/v1/messages', {
         method:  'POST',
@@ -109,7 +103,9 @@ const ApiRouter = (() => {
       throw new Error(err?.error?.message || `Anthropic API error ${response.status}`);
     }
 
-    let usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
+    let usage     = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
+    // Track the current tool_use block being built
+    let toolBlock = null; // { id, name, jsonBuf }
 
     for await (const line of readSSELines(response)) {
       if (!line.startsWith('data: ')) continue;
@@ -120,12 +116,31 @@ const ApiRouter = (() => {
         const ev = JSON.parse(data);
 
         if (ev.type === 'message_start' && ev.message?.usage) {
-          usage.inputTokens     = ev.message.usage.input_tokens             || 0;
-          usage.cacheReadTokens = ev.message.usage.cache_read_input_tokens  || 0;
+          usage.inputTokens     = ev.message.usage.input_tokens            || 0;
+          usage.cacheReadTokens = ev.message.usage.cache_read_input_tokens || 0;
         }
 
-        if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
-          yield { delta: ev.delta.text, usage: null, done: false };
+        // ── Tool use: start of block ──
+        if (ev.type === 'content_block_start' && ev.content_block?.type === 'tool_use') {
+          toolBlock = { id: ev.content_block.id, name: ev.content_block.name, jsonBuf: '' };
+        }
+
+        // ── Tool use: accumulate JSON ──
+        if (ev.type === 'content_block_delta') {
+          if (ev.delta?.type === 'text_delta') {
+            yield { delta: ev.delta.text, usage: null, done: false };
+          }
+          if (ev.delta?.type === 'input_json_delta' && toolBlock) {
+            toolBlock.jsonBuf += ev.delta.partial_json || '';
+          }
+        }
+
+        // ── Tool use: block finished — emit toolCall ──
+        if (ev.type === 'content_block_stop' && toolBlock) {
+          let input = {};
+          try { input = JSON.parse(toolBlock.jsonBuf || '{}'); } catch {}
+          yield { toolCall: { id: toolBlock.id, name: toolBlock.name, input, provider: 'anthropic' }, usage: null, done: false };
+          toolBlock = null;
         }
 
         if (ev.type === 'message_delta' && ev.usage) {
@@ -139,9 +154,7 @@ const ApiRouter = (() => {
     }
   }
 
-  // ──────────────────────────────────────────────────────────
-  // OpenAI Chat Completions API (also used for Groq + Mistral)
-  // ──────────────────────────────────────────────────────────
+  // ── OpenAI Chat Completions API ────────────────────────────
   const OPENAI_COMPAT_BASES = {
     openai:  'https://api.openai.com',
     groq:    'https://api.groq.com/openai',
@@ -160,26 +173,21 @@ const ApiRouter = (() => {
       stream_options: { include_usage: true },
       max_tokens:     options.maxTokens || 4096,
     };
+    if (options.tools?.length) {
+      payload.tools       = options.tools.map(toOpenAITool);
+      payload.tool_choice = 'auto';
+    }
 
     let response;
     if (USE_PROXY) {
-      response = await proxyFetch({
-        provider: providerId,
-        path:     '/v1/chat/completions',
-        apiKey,
-        payload,
-        signal:   options.signal,
-      });
+      response = await proxyFetch({ provider: providerId, path: '/v1/chat/completions', apiKey, payload, signal: options.signal });
     } else {
       const baseUrl = OPENAI_COMPAT_BASES[providerId] || 'https://api.openai.com';
       response = await fetch(`${baseUrl}/v1/chat/completions`, {
         method:  'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body:   JSON.stringify(payload),
-        signal: options.signal,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body:    JSON.stringify(payload),
+        signal:  options.signal,
       });
     }
 
@@ -189,6 +197,8 @@ const ApiRouter = (() => {
     }
 
     let usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
+    // Accumulate tool_calls across streaming deltas: Map<index, {id,name,argsBuf}>
+    const toolCallMap = new Map();
 
     for await (const line of readSSELines(response)) {
       if (!line.startsWith('data: ')) continue;
@@ -200,51 +210,101 @@ const ApiRouter = (() => {
 
       try {
         const ev = JSON.parse(data);
-        const delta = ev.choices?.[0]?.delta?.content;
-        if (delta) yield { delta, usage: null, done: false };
+
+        // ── Text delta ──
+        const textDelta = ev.choices?.[0]?.delta?.content;
+        if (textDelta) yield { delta: textDelta, usage: null, done: false };
+
+        // ── Tool call deltas (streaming) ──
+        const tcDeltas = ev.choices?.[0]?.delta?.tool_calls;
+        if (tcDeltas) {
+          for (const tc of tcDeltas) {
+            if (!toolCallMap.has(tc.index)) {
+              toolCallMap.set(tc.index, { id: tc.id || '', name: tc.function?.name || '', argsBuf: '' });
+            }
+            const entry = toolCallMap.get(tc.index);
+            if (tc.id)              entry.id = tc.id;
+            if (tc.function?.name)  entry.name += tc.function.name;
+            if (tc.function?.arguments) entry.argsBuf += tc.function.arguments;
+          }
+        }
+
         if (ev.usage) {
           usage.inputTokens  = ev.usage.prompt_tokens     || 0;
           usage.outputTokens = ev.usage.completion_tokens || 0;
         }
-        if (ev.choices?.[0]?.finish_reason === 'stop') {
+
+        const finishReason = ev.choices?.[0]?.finish_reason;
+
+        // ── Emit tool calls when stream signals tool_calls finish ──
+        if (finishReason === 'tool_calls') {
+          for (const [, tc] of toolCallMap) {
+            let input = {};
+            try { input = JSON.parse(tc.argsBuf || '{}'); } catch {}
+            yield { toolCall: { id: tc.id, name: tc.name, input, provider: 'openai' }, usage: null, done: false };
+          }
+          toolCallMap.clear();
+          yield { delta: '', usage, done: true };
+        } else if (finishReason === 'stop') {
           yield { delta: '', usage, done: true };
         }
       } catch { /* ignore */ }
     }
   }
 
-  // ──────────────────────────────────────────────────────────
-  // Google Gemini API
-  // ──────────────────────────────────────────────────────────
+  // ── Google Gemini API ──────────────────────────────────────
   async function* streamGemini(modelId, apiKey, messages, systemPrompt, options) {
-    const contents = messages.map(m => ({
-      role:  m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
+    // Convert messages, handle tool_result role and assistant tool_calls
+    // (buildApiMessages() in app.js emits OpenAI-shaped { tool_calls: [...] }
+    // for every non-Anthropic provider, including Gemini — translate here).
+    const contents = messages.map(m => {
+      if (m.role === 'tool') {
+        // Tool result from our loop
+        return {
+          role: 'user',
+          parts: [{ functionResponse: { name: m.name, response: { content: m.content } } }],
+        };
+      }
+      if (m.role === 'assistant' && m.tool_calls?.length) {
+        const parts = [];
+        if (m.content) parts.push({ text: m.content });
+        for (const tc of m.tool_calls) {
+          let args = {};
+          try { args = JSON.parse(tc.function?.arguments || '{}'); } catch {}
+          parts.push({ functionCall: { name: tc.function?.name, args } });
+        }
+        return { role: 'model', parts };
+      }
+      return {
+        role:  m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      };
+    });
 
     const payload = {
       contents,
       generationConfig: { maxOutputTokens: options.maxTokens || 4096 },
     };
     if (systemPrompt) payload.systemInstruction = { parts: [{ text: systemPrompt }] };
+    if (options.tools?.length) {
+      payload.tools = [{ functionDeclarations: options.tools.map(toGeminiTool) }];
+    }
 
     let response;
     if (USE_PROXY) {
       response = await proxyFetch({
-        provider:    'google',
-        path:        `/v1beta/models/${modelId}:streamGenerateContent`,
-        apiKey:      '',           // Google uses query param; proxy sets it via queryParams
+        provider: 'google',
+        path: `/v1beta/models/${modelId}:streamGenerateContent`,
+        apiKey: '',
         payload,
         queryParams: { key: apiKey, alt: 'sse' },
-        signal:      options.signal,
+        signal: options.signal,
       });
     } else {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${apiKey}&alt=sse`;
       response = await fetch(url, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
-        signal:  options.signal,
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload), signal: options.signal,
       });
     }
 
@@ -258,11 +318,25 @@ const ApiRouter = (() => {
     for await (const line of readSSELines(response)) {
       if (!line.startsWith('data: ')) continue;
       const data = line.slice(6).trim();
-
       try {
         const ev = JSON.parse(data);
-        const text = ev.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) yield { delta: text, usage: null, done: false };
+        const parts = ev.candidates?.[0]?.content?.parts || [];
+        for (const part of parts) {
+          if (part.text) {
+            yield { delta: part.text, usage: null, done: false };
+          }
+          if (part.functionCall) {
+            yield {
+              toolCall: {
+                id:       `gemini-${Date.now()}`,
+                name:     part.functionCall.name,
+                input:    part.functionCall.args || {},
+                provider: 'google',
+              },
+              usage: null, done: false,
+            };
+          }
+        }
         if (ev.usageMetadata) {
           usage.inputTokens  = ev.usageMetadata.promptTokenCount     || 0;
           usage.outputTokens = ev.usageMetadata.candidatesTokenCount || 0;
@@ -274,20 +348,46 @@ const ApiRouter = (() => {
     }
   }
 
-  // ──────────────────────────────────────────────────────────
-  // Public interface
-  // ──────────────────────────────────────────────────────────
+  // ── Web Search (DuckDuckGo via proxy) ─────────────────────
+  async function webSearch(query, signal) {
+    try {
+      const response = await proxyFetch({
+        provider: 'ddg',
+        path: '/',
+        apiKey: '',
+        payload: { query },
+        signal,
+      });
+      if (!response.ok) return `Search failed (${response.status}).`;
+      const data = await response.json();
 
+      const results = [];
+      if (data.AbstractText) results.push(`**Summary:** ${data.AbstractText}`);
+      if (data.Answer)       results.push(`**Answer:** ${data.Answer}`);
+      if (data.RelatedTopics?.length) {
+        const topics = data.RelatedTopics
+          .filter(t => t.Text)
+          .slice(0, 5)
+          .map(t => `• ${t.Text}`);
+        if (topics.length) results.push('**Related:**\n' + topics.join('\n'));
+      }
+      return results.length
+        ? results.join('\n\n')
+        : `No instant results for "${query}". Try rephrasing.`;
+    } catch (e) {
+      return `Search error: ${e.message}`;
+    }
+  }
+
+  // ── Public stream() ───────────────────────────────────────
   /**
-   * Stream a completion from any supported provider.
-   *
-   * @param {string} providerId - 'anthropic' | 'openai' | 'google' | 'groq' | 'mistral'
-   * @param {string} modelId    - model identifier
-   * @param {string} apiKey     - API key for the provider
-   * @param {Array}  messages   - [{role, content}]
+   * @param {string} providerId
+   * @param {string} modelId
+   * @param {string} apiKey
+   * @param {Array}  messages   [{role, content}] — may include {role:'tool', name, content, tool_use_id}
    * @param {string} systemPrompt
-   * @param {Object} options    - { maxTokens, signal }
-   * @yields {{ delta: string, usage: object|null, done: boolean }}
+   * @param {Object} options    { maxTokens, signal, tools: [{name, description, schema}] }
+   * @yields {{ delta?, toolCall?, usage?, done }}
    */
   async function* stream(providerId, modelId, apiKey, messages, systemPrompt, options = {}) {
     switch (providerId) {
@@ -307,13 +407,10 @@ const ApiRouter = (() => {
     }
   }
 
-  /**
-   * Resolve the provider for a given model ID.
-   */
   function resolveProvider(modelId) {
     if (typeof MODELS_DATA === 'undefined') return null;
     return MODELS_DATA.getModel(modelId)?.provider || null;
   }
 
-  return { stream, resolveProvider, isProxied: USE_PROXY };
+  return { stream, webSearch, resolveProvider, isProxied: USE_PROXY };
 })();

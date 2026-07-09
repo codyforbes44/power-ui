@@ -181,6 +181,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 'status':     'ok',
                 'version':    '2.0',
                 'serverMode': True,
+                'sync':       True,
                 'clients':    len(_sse_clients),
                 'mcpProcs':   len(_mcp_procs),
             })

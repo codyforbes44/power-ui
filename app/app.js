@@ -111,7 +111,14 @@ const ServerSync = (() => {
   async function probe() {
     try {
       const r = await fetch('/api/ping', { signal: AbortSignal.timeout(800) });
-      _available = r.ok;
+      if (r.ok) {
+        const body = await r.json().catch(() => ({}));
+        // Only mark available if server explicitly reports sync capability.
+        // Netlify static deploy returns { sync: false } — no EventSource needed.
+        _available = body.sync === true;
+      } else {
+        _available = false;
+      }
     } catch { _available = false; }
     _updateIndicator();
     return _available;
@@ -339,16 +346,16 @@ function deleteSession(id) {
   renderAll();
 }
 
-function addMessage(sessionId, role, content) {
+function addMessage(sessionId, role, content, extraFields = {}) {
   const session = STATE.sessions.find(s => s.id === sessionId);
   if (!session) return null;
-  const msg = { id: generateId(), role, content, timestamp: Date.now(), usage: null, cost: null };
+  const msg = { id: generateId(), role, content, timestamp: Date.now(), usage: null, cost: null, ...extraFields };
   session.messages.push(msg);
   session.updatedAt = Date.now();
   if (role === 'user' && session.title === 'New Conversation' && content.trim()) {
     session.title = content.trim().slice(0, 52) + (content.length > 52 ? '…' : '');
   }
-  return msg;
+  return msg.id;
 }
 
 // ============================================================
@@ -920,8 +927,114 @@ function renderMessages() {
     div.dataset.msgId = msg.id;
 
     const avatar = msg.role === 'assistant' ? '✦' : '⬡';
+
+    // ── Image generation bubble ────────────────────────────
+    if (msg.imageGenerating) {
+      div.className += ' image-generating';
+      div.innerHTML = `
+        <div class="message-avatar">${avatar}</div>
+        <div class="message-content">
+          <div class="image-gen-loading">
+            <div class="image-gen-spinner"></div>
+            <div class="image-gen-loading-text">
+              <span class="image-gen-label">🎨 Generating image…</span>
+              <span class="image-gen-prompt">${esc(msg.imagePrompt || '')}</span>
+            </div>
+          </div>
+        </div>
+      `;
+      inner.appendChild(div);
+      return;
+    }
+
+    if (msg.content && msg.content.startsWith('__IMAGE__:')) {
+      let imgData;
+      try { imgData = JSON.parse(msg.content.slice(10)); } catch { imgData = null; }
+      if (imgData) {
+        const dlLink = imgData.src
+          ? `<a class="image-gen-download" href="${imgData.src}" download="generated-${imgData.seed || Date.now()}.png" title="Download image">⬇ Download</a>`
+          : '';
+        div.innerHTML = `
+          <div class="message-avatar">${avatar}</div>
+          <div class="message-content">
+            <div class="image-gen-result">
+              <img src="${imgData.src}" alt="${esc(imgData.prompt)}" class="image-gen-img"
+                loading="lazy" onclick="this.classList.toggle('image-gen-img-expanded')" />
+              <div class="image-gen-footer">
+                <span class="image-gen-provider">${esc(imgData.provider || '')} • ${esc(imgData.model || '')}</span>
+                <span class="image-gen-dims">${imgData.width}×${imgData.height}</span>
+                ${imgData.seed > 0 ? `<span class="image-gen-seed">seed: ${imgData.seed}</span>` : ''}
+                <span class="image-gen-timing">${imgData.timingS}s</span>
+                ${dlLink}
+              </div>
+              <div class="image-gen-caption">${esc(imgData.prompt)}</div>
+            </div>
+          </div>
+        `;
+        inner.appendChild(div);
+        return;
+      }
+    }
+    // ── End image bubble ────────────────────────────────
+
     const rendered = renderMarkdown(msg.content);
     const isLastAssistant = msg.role === 'assistant' && idx === session.messages.length - 1;
+
+    // ── Skip 'tool' role messages from visible rendering (they're shown inside tool call blocks) ──
+    if (msg.role === 'tool') {
+      inner.appendChild(div); // mount empty — hidden via CSS
+      div.style.display = 'none';
+      return;
+    }
+
+    // ── Build tool call blocks HTML ──
+    let toolCallsHtml = '';
+    if (msg.toolCalls?.length) {
+      toolCallsHtml = msg.toolCalls.map(tc => {
+        const toolIcons = { generate_image: '🎨', web_search: '🔍', memory_recall: '🧠', memory_save: '💾', calculate: '🧮' };
+        const icon = toolIcons[tc.name] || '🔧';
+        const argsStr = JSON.stringify(tc.input, null, 2);
+        const isRunning = tc.running;
+
+        let resultHtml = '';
+        if (tc.result) {
+          if (tc.result.startsWith('__TOOL_IMAGE__:')) {
+            let imgData;
+            try { imgData = JSON.parse(tc.result.slice(15)); } catch {}
+            if (imgData) {
+              resultHtml = `
+                <div class="tool-result-image">
+                  <img src="${imgData.src}" alt="${esc(imgData.prompt)}" class="image-gen-img"
+                    loading="lazy" onclick="this.classList.toggle('image-gen-img-expanded')" />
+                  <div class="image-gen-footer">
+                    <span class="image-gen-provider">${esc(imgData.provider||'')} • ${esc(imgData.model||'')}</span>
+                    <span class="image-gen-dims">${imgData.width}×${imgData.height}</span>
+                    ${imgData.seed > 0 ? `<span class="image-gen-seed">seed: ${imgData.seed}</span>` : ''}
+                    <span class="image-gen-timing">${imgData.timingS}s</span>
+                    <a class="image-gen-download" href="${imgData.src}" download="generated-${Date.now()}.png">⬇ Download</a>
+                  </div>
+                </div>`;
+            }
+          } else {
+            resultHtml = `<div class="tool-result-text">${renderMarkdown(tc.result)}</div>`;
+          }
+        }
+
+        return `
+          <div class="tool-call-block ${isRunning ? 'tool-call-running' : tc.result ? 'tool-call-done' : ''}">
+            <div class="tool-call-header" onclick="this.parentElement.classList.toggle('tool-call-expanded')">
+              <span class="tool-call-icon">${icon}</span>
+              <span class="tool-call-name">${esc(tc.name.replace(/_/g,' '))}</span>
+              <span class="tool-call-status">${isRunning ? '<span class="tool-call-spinner"></span> Running…' : tc.result ? '✓ Done' : '⏳ Queued'}</span>
+              <span class="tool-call-chevron">›</span>
+            </div>
+            <div class="tool-call-body">
+              <div class="tool-call-args"><pre><code>${esc(argsStr)}</code></pre></div>
+              ${resultHtml ? `<div class="tool-call-result">${resultHtml}</div>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
 
     const costHtml = msg.cost ? `
       <div class="cost-chip">
@@ -936,7 +1049,8 @@ function renderMessages() {
     div.innerHTML = `
       <div class="message-avatar">${avatar}</div>
       <div class="message-content">
-        <div class="message-bubble">${rendered}</div>
+        ${toolCallsHtml ? `<div class="tool-calls-container">${toolCallsHtml}</div>` : ''}
+        ${rendered ? `<div class="message-bubble">${rendered}</div>` : (toolCallsHtml ? '' : '<div class="message-bubble"></div>')}
         <div class="message-meta">
           <span class="message-time">${formatTime(msg.timestamp)}</span>
           <div class="message-actions">
@@ -950,6 +1064,7 @@ function renderMessages() {
         ${isLastAssistant ? '<button class="regen-btn">↺ Try again</button>' : ''}
       </div>
     `;
+
 
     div.querySelector('.copy-msg-btn')?.addEventListener('click', () => {
       copyToClipboard(div.querySelector('.message-bubble')?.innerText || '');
@@ -972,14 +1087,15 @@ function renderMessages() {
 
 /* ---- Template Gallery (welcome screen) ---- */
 const TG_CATEGORIES = [
-  { id: 'all',         label: 'All',         icon: '✪' },
-  { id: 'workflow',    label: 'Workflows',   icon: '📋' },
-  { id: 'engineering', label: 'Engineering', icon: '🛠️' },
-  { id: 'writing',     label: 'Writing',     icon: '✍️' },
-  { id: 'analysis',    label: 'Analysis',    icon: '📊' },
-  { id: 'agents',      label: 'Agents',      icon: '⚡' },
-  { id: 'memory',      label: 'Memory',      icon: '🧠' },
-  { id: 'meta',        label: 'Meta',        icon: '✨' },
+  { id: 'all',         label: 'All',          icon: '✪'  },
+  { id: 'workflow',    label: 'Workflows',    icon: '📋' },
+  { id: 'engineering', label: 'Engineering',  icon: '🛠️' },
+  { id: 'writing',     label: 'Writing',      icon: '✍️' },
+  { id: 'analysis',    label: 'Analysis',     icon: '📊' },
+  { id: 'image',       label: 'Image Gen',    icon: '🎨' },
+  { id: 'agents',      label: 'Agents',       icon: '⚡' },
+  { id: 'memory',      label: 'Memory',       icon: '🧠' },
+  { id: 'meta',        label: 'Meta',         icon: '✨' },
 ];
 
 // Expanded template list — friendly names + plain-English prompts
@@ -1002,6 +1118,15 @@ const GALLERY_TEMPLATES = [
   // Analysis
   { id: 'data-analysis', name: 'Analyse data or results', icon: '📊', category: 'analysis',    desc: 'Interpret numbers, trends, or findings', prompt: 'Analyse the following data or results and tell me what stands out:\n\n[PASTE DATA OR DESCRIBE FINDINGS]' },
   { id: 'compare',       name: 'Compare options',         icon: '⚖️', category: 'analysis',    desc: 'Get a structured pros/cons breakdown', prompt: 'Compare these options and give me a structured breakdown with pros and cons:\n\nOption A: [DESCRIBE]\nOption B: [DESCRIBE]\n\nMy priorities: [WHAT MATTERS MOST TO YOU]' },
+  // ── Image Generation (ComfyUI + Flux) ─────────────────────────────────
+  { id: 'img-portrait',  name: 'AI Portrait',             icon: '🖼️', category: 'image',       desc: 'Photorealistic person portrait with Flux Pro',   prompt: '/imagine Ultra-photorealistic portrait of [DESCRIBE PERSON: age, gender, features, expression], professional studio lighting, shallow depth of field, 85mm lens, 4K detail --size 1024x1440' },
+  { id: 'img-landscape', name: 'Landscape / Scene',       icon: '🏔️', category: 'image',       desc: 'Wide cinematic landscape or environment',         prompt: '/imagine Epic cinematic landscape of [DESCRIBE SCENE: mountains, forest, desert, etc.], golden hour light, dramatic sky, volumetric fog, photorealistic, 8K --size 1792x1024' },
+  { id: 'img-concept',   name: 'Concept Art',             icon: '🎭', category: 'image',       desc: 'Digital concept art / illustration style',        prompt: '/imagine [DESCRIBE SUBJECT] as detailed concept art, digital painting, trending on ArtStation, by [STYLE: Greg Rutkowski / Artgerm / WLOP], cinematic lighting, 4K resolution' },
+  { id: 'img-product',   name: 'Product Shot',            icon: '📦', category: 'image',       desc: 'Studio-quality product photography',              prompt: '/imagine Professional product photography of [DESCRIBE PRODUCT], white studio background, soft diffused lighting, shot on Sony A7R IV, sharp focus, commercial quality' },
+  { id: 'img-logo',      name: 'Logo / Icon',             icon: '✦',  category: 'image',       desc: 'Minimal vector-style logo or icon',               prompt: '/imagine Minimal flat vector logo for [BRAND/CONCEPT], clean lines, single color on white background, professional branding, SVG style, simple and memorable' },
+  { id: 'img-anime',     name: 'Anime / Illustration',    icon: '🌸', category: 'image',       desc: 'Japanese anime or manga illustration style',      prompt: '/imagine [DESCRIBE CHARACTER/SCENE] in detailed anime art style, vibrant colors, expressive eyes, detailed background, Studio Ghibli / Makoto Shinkai inspiration, 4K' },
+  { id: 'img-ui',        name: 'UI / App Mockup',         icon: '📱', category: 'image',       desc: 'Generate a UI screen or app design mockup',       prompt: '/imagine High-fidelity UI mockup of [DESCRIBE APP/SCREEN: e.g. dark mode dashboard, mobile wallet app], clean modern design, Figma-quality, glassmorphism, sharp UI details' },
+  { id: 'img-comfy',     name: 'ComfyUI Custom Workflow', icon: '⚙️', category: 'image',       desc: 'Describe any image — routes to local ComfyUI',    prompt: '/imagine [DESCRIBE YOUR IMAGE IN DETAIL — style, subject, lighting, mood, camera settings, aspect ratio]\n\nTip: Switch model to ComfyUI in the model selector for local generation.' },
   // Agents & automation
   { id: 'automate',      name: 'Automate a task',         icon: '⚡', category: 'agents',      desc: 'Script, workflow, or multi-step automation', prompt: 'Help me automate: [DESCRIBE THE REPETITIVE TASK]\n\nPreferred tools/language: [e.g. Python, shell, n8n, Zapier]' },
   // Memory
@@ -1252,47 +1377,70 @@ function renderModelDropdown() {
   const groups = Object.values(MODELS_DATA.providers).map(p => ({
     provider: p,
     models:   MODELS_DATA.getModelsByProvider(p.id),
-    hasKey:   !!STATE.apiKeys[p.id],
-  }));
+    hasKey:   p.id === 'image-gen'
+                ? true   // image-gen shows all; per-model key check happens at generation time
+                : !!STATE.apiKeys[p.id],
+  })).filter(g => g.models.length > 0);
 
-  dropdown.innerHTML = groups.map(({ provider, models, hasKey }, gi) => `
+  dropdown.innerHTML = groups.map(({ provider, models, hasKey }, gi) => {
+    const isImgGroup = provider.id === 'image-gen';
+    return `
     ${gi > 0 ? '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.05);margin:2px 0">' : ''}
     <div class="model-dropdown-provider-section">
       <div class="model-dropdown-provider-label" style="color:${provider.color}">
-        ${provider.icon} ${provider.name}${!hasKey ? ' — no key' : ''}
+        ${provider.icon} ${provider.name}${!hasKey && !isImgGroup ? ' — no key' : ''}
+        ${isImgGroup ? '<span style="font-size:10px;color:#94a3b8;margin-left:4px">per-image billing</span>' : ''}
       </div>
       ${models.map(m => {
         const isActive   = m.id === currentModel;
-        const isDisabled = !hasKey;
+        const isDisabled = !hasKey && !isImgGroup;
+        const priceStr   = isImgGroup
+          ? `<span class="model-dropdown-item-badge" style="color:#ec4899;background:rgba(236,72,153,0.12)">${m.badge || 'IMG'}</span>`
+          : `<span class="model-dropdown-item-price">$${m.inputPer1M}/$${m.outputPer1M}</span>`;
+        const tooltip    = m.desc ? `title="${esc(m.desc)}"` : '';
         return `
-          <div class="model-dropdown-item${isActive?' active':''}${isDisabled?' disabled':''}"
+          <div class="model-dropdown-item${isActive?' active':''}${isDisabled?' disabled':''}${isImgGroup?' img-model-item':''}"
                style="${isDisabled ? 'pointer-events:none' : ''}"
+               ${tooltip}
                onclick="${isDisabled ? 'return false' : `selectModel('${m.id}')`}">
             <span class="model-dropdown-item-name">${esc(m.shortName||m.name)}</span>
-            <span class="model-dropdown-item-price">$${m.inputPer1M}/$${m.outputPer1M}</span>
+            ${priceStr}
             ${isActive ? '<span style="color:var(--indigo-400);font-size:12px">✓</span>' : ''}
           </div>
         `;
       }).join('')}
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function selectModel(modelId) {
   const prevModel = getActiveSession()?.model || STATE.settings.model;
   Analytics.track('model_switched', { from: prevModel, to: modelId });
-  const session = getActiveSession();
+  const session  = getActiveSession();
+  const modelDef = MODELS_DATA.getModel(modelId);
+
   if (session) session.model = modelId;
-  STATE.settings.model     = modelId;
+  STATE.settings.model = modelId;
+
+  // If this is an image-gen model, flag the session
+  if (session && modelDef?.provider === 'image-gen') {
+    session.imageMode     = true;
+    session.imageProvider = modelDef.imageProvider;
+    session.imageModel    = modelDef.imageModel;
+  } else if (session) {
+    session.imageMode = false;
+  }
+
   STATE.ui.modelDropdownOpen = false;
   saveState();
   renderHeader();
   const dd = document.getElementById('model-dropdown');
   if (dd) dd.style.display = 'none';
-  const model = MODELS_DATA.getModel(modelId);
-  toast(`Model: ${model?.name || modelId}`, 'info', 1500);
+  const label = modelDef?.provider === 'image-gen'
+    ? `🎨 ${modelDef.name} — image mode`
+    : `Model: ${modelDef?.name || modelId}`;
+  toast(label, 'info', 2000);
 }
-
 
 
 // ============================================================
@@ -1447,9 +1595,6 @@ root.render(React.createElement(typeof App !== 'undefined' ? App : () => React.c
   document.body.appendChild(overlay);
 }
 
-// ============================================================
-// Send message
-// ============================================================
 function handleSend() {
   let session = getActiveSession();
   if (!session) { session = createSession(); saveState(); renderSessionList(); }
@@ -1457,6 +1602,18 @@ function handleSend() {
   if (!input?.value.trim() && !STATE.attachments?.length) return;
 
   const userText = input.value.trim();
+
+  // ── /imagine command — image generation shortcut ──────────────
+  if (userText.startsWith('/imagine ') || userText.startsWith('/img ')) {
+    const prompt = userText.replace(/^\/(?:imagine|img)\s+/, '');
+    if (prompt) {
+      input.value = '';
+      autoResize(input);
+      handleImageGeneration(session, prompt);
+      return;
+    }
+  }
+
   const messageContent = buildMessageContent(userText || '[Attachment]');
   addMessage(session.id, 'user', typeof messageContent === 'string' ? messageContent : userText);
   input.value = '';
@@ -1466,7 +1623,175 @@ function handleSend() {
   sendMessageDirect(session, userText, messageContent);
 }
 
+// ============================================================
+// Built-in Tool Definitions (sent to every model that supports tools)
+// ============================================================
+const BUILT_IN_TOOLS = [
+  {
+    name: 'generate_image',
+    description: 'Generate an image from a detailed text description. Use whenever the user asks you to create, draw, visualize, illustrate, or render something as an image.',
+    schema: {
+      type: 'object',
+      properties: {
+        prompt:   { type: 'string', description: 'Detailed visual description of the image to generate' },
+        size:     { type: 'string', enum: ['1024x1024', '1792x1024', '1024x1792'], description: 'Image dimensions (default 1024x1024)' },
+        provider: { type: 'string', enum: ['bfl', 'fal', 'replicate', 'comfyui'], description: 'Image provider (default: user setting)' },
+      },
+      required: ['prompt'],
+    },
+  },
+  {
+    name: 'web_search',
+    description: 'Search the web for current information, news, facts, or anything that may have changed since your training. Always use this for recent events or when uncertain about facts.',
+    schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The search query' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'memory_recall',
+    description: 'Search your persistent memory for facts the user has shared in previous conversations. Always check memory when the user references past interactions or preferences.',
+    schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'What to search for' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'memory_save',
+    description: 'Save an important fact, preference, or piece of information to persistent memory for future sessions.',
+    schema: {
+      type: 'object',
+      properties: {
+        key:   { type: 'string', description: 'Short descriptive label (e.g. "preferred language", "project name")' },
+        value: { type: 'string', description: 'The information to remember' },
+        tags:  { type: 'array', items: { type: 'string' }, description: 'Optional topic tags' },
+      },
+      required: ['key', 'value'],
+    },
+  },
+  {
+    name: 'calculate',
+    description: 'Evaluate a mathematical expression for arithmetic, percentages, unit conversions, or any numeric computation.',
+    schema: {
+      type: 'object',
+      properties: {
+        expression: { type: 'string', description: 'Math expression, e.g. "sqrt(144)", "15% of 340", "(2^10) - 1"' },
+      },
+      required: ['expression'],
+    },
+  },
+];
+
+// ============================================================
+// Tool Executor — runs a named tool and returns string result
+// ============================================================
+async function executeTool(toolName, input, session) {
+  switch (toolName) {
+
+    case 'generate_image': {
+      const imgSettings = STATE.settings.imageGen || {};
+      const provider = input.provider || imgSettings.provider || 'bfl';
+      const apiKey   = STATE.apiKeys[provider] || imgSettings.apiKey || '';
+      const [w, h]   = (input.size || '1024x1024').split('x').map(Number);
+      // Model defaults are provider-specific — ImageRouter.DEFAULTS.model is a BFL id
+      // and must not be reused verbatim for fal/replicate.
+      const model = provider === ImageRouter.DEFAULTS.provider
+        ? ImageRouter.DEFAULTS.model
+        : ImageRouter.MODELS[provider]?.[0]?.id;
+
+      if (provider !== 'comfyui' && !apiKey) {
+        return `⚠️ No API key configured for image provider "${provider}". Add it in Settings → Image Generation.`;
+      }
+      try {
+        const result  = await ImageRouter.generate(input.prompt, {
+          provider, model, width: w || 1024, height: h || 1024,
+          apiKey, comfyUrl: imgSettings.comfyUrl || 'http://127.0.0.1:8188',
+        });
+        // Store image as a special content string; renderToolResult() will display it
+        const imgSrc = result.dataUrl || result.url;
+        return `__TOOL_IMAGE__:${JSON.stringify({
+          src: imgSrc, prompt: input.prompt,
+          provider: result.provider, model: result.model,
+          width: result.width, height: result.height, seed: result.seed,
+          timingS: (result.timingMs / 1000).toFixed(1),
+        })}`;
+      } catch (e) {
+        return `Image generation failed: ${e.message}`;
+      }
+    }
+
+    case 'web_search': {
+      const result = await ApiRouter.webSearch(input.query, STATE.currentAbortController?.signal);
+      return result;
+    }
+
+    case 'memory_recall': {
+      const ws = MemorySystem.workspaces.getActive();
+      if (!ws) return 'No active workspace — memory unavailable.';
+      const memories = MemorySystem.memories.search(ws.id, input.query, 6);
+      if (!memories.length) return `No memories found matching "${input.query}".`;
+      return memories.map(m => `• **${m.key}**: ${m.value}`).join('\n');
+    }
+
+    case 'memory_save': {
+      const ws = MemorySystem.workspaces.getActive();
+      if (!ws) return 'No active workspace — memory unavailable.';
+      MemorySystem.memories.add(ws.id, {
+        key: input.key, value: input.value,
+        tags: input.tags || [], source: 'tool',
+      });
+      return `✅ Saved to memory: "${input.key}"`;
+    }
+
+    case 'calculate': {
+      try {
+        // Strip anything that isn't safe math
+        const safe = (input.expression || '')
+          .replace(/sqrt/g, 'Math.sqrt')
+          .replace(/pow/g,  'Math.pow')
+          .replace(/abs/g,  'Math.abs')
+          .replace(/floor/g,'Math.floor')
+          .replace(/ceil/g, 'Math.ceil')
+          .replace(/round/g,'Math.round')
+          .replace(/log/g,  'Math.log')
+          .replace(/sin/g,  'Math.sin')
+          .replace(/cos/g,  'Math.cos')
+          .replace(/tan/g,  'Math.tan')
+          .replace(/pi/gi,  'Math.PI')
+          .replace(/e(?![a-zA-Z])/g, 'Math.E')
+          .replace(/[^0-9+\-*/().,%\s^Math.A-Z_]/g, '');
+        // eslint-disable-next-line no-new-func
+        const result = Function('"use strict"; return (' + safe + ')')();
+        return `${input.expression} = ${result}`;
+      } catch (e) {
+        return `Calculation error: ${e.message}`;
+      }
+    }
+
+    default:
+      return `Unknown tool: ${toolName}`;
+  }
+}
+
+// ============================================================
+// Agentic send — streams with tool-calling loop
+// ============================================================
 async function sendMessageDirect(session, userText, messageContent = null) {
+  // ── Image-mode intercept ──────────────────────────────────
+  if (session.imageMode) {
+    const prompt = userText.replace(/^\/imagine\s*/i, '').trim();
+    return handleImageGeneration(session, prompt, {
+      provider: session.imageProvider,
+      model:    session.imageModel,
+    });
+  }
+
   const model    = session.model || STATE.settings.model;
   const modelDef = MODELS_DATA?.getModel(model);
   const provider = modelDef?.provider || 'anthropic';
@@ -1478,17 +1803,16 @@ async function sendMessageDirect(session, userText, messageContent = null) {
     return;
   }
 
-  // Build system prompt: workspace prefix + memory context + session prompt
+  // Build system prompt
   let systemPrompt = '';
   const ws = MemorySystem.workspaces.getActive();
   if (ws?.systemPromptPrefix) systemPrompt += ws.systemPromptPrefix + '\n\n';
   const memCtx = ws ? MemorySystem.memories.buildContext(ws.id, userText) : '';
   if (memCtx) systemPrompt += memCtx + '\n';
-
   const spEl = document.getElementById('system-prompt');
   systemPrompt += spEl?.value || session.systemPrompt || STATE.settings.defaultSystemPrompt;
 
-  // Apply injected skill prefix
+  // Inject skill prefix if queued
   let finalText = userText;
   if (STATE.ui.injectedSkill) {
     finalText = `Read and follow the **${STATE.ui.injectedSkill}** skill.\n\n${userText}`;
@@ -1498,19 +1822,49 @@ async function sendMessageDirect(session, userText, messageContent = null) {
     renderInjectedSkillTag();
   }
 
-  // Build API message array — support content arrays for vision
-  const apiMessages = session.messages.map(m => {
-    const isLastUser = m.role === 'user' && m === session.messages[session.messages.length - 1];
-    if (isLastUser && messageContent && Array.isArray(messageContent)) {
-      // Vision content: map _type markers to Anthropic format
-      const content = messageContent.map(p => {
-        if (p._type === 'image') return { type: 'image', source: { type: 'base64', media_type: p.mediaType, data: p.dataUrl.split(',')[1] } };
-        return { type: 'text', text: p._type === 'text' ? p.text : p };
+  // Convert session messages → API format (supports vision content arrays)
+  function buildApiMessages(msgs) {
+    return msgs
+      .filter(m => !m.imageGenerating) // skip placeholder image messages
+      .map((m, i) => {
+        const isLastUser = m.role === 'user' && i === msgs.length - 1;
+        if (isLastUser && messageContent && Array.isArray(messageContent)) {
+          const content = messageContent.map(p => {
+            if (p._type === 'image') return { type: 'image', source: { type: 'base64', media_type: p.mediaType, data: p.dataUrl.split(',')[1] } };
+            return { type: 'text', text: p._type === 'text' ? p.text : p };
+          });
+          return { role: m.role, content };
+        }
+        // Tool result messages
+        if (m.role === 'tool') {
+          if (provider === 'anthropic') {
+            return { role: 'user', content: [{ type: 'tool_result', tool_use_id: m.tool_use_id, content: m.content }] };
+          }
+          return { role: 'tool', tool_call_id: m.tool_use_id, content: m.content, name: m.name };
+        }
+        // Assistant messages that contain tool_use blocks
+        if (m.role === 'assistant' && m.toolCalls?.length) {
+          if (provider === 'anthropic') {
+            const parts = [];
+            if (m.content) parts.push({ type: 'text', text: m.content });
+            for (const tc of m.toolCalls) {
+              parts.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input });
+            }
+            return { role: 'assistant', content: parts };
+          }
+          // OpenAI format
+          return {
+            role: 'assistant',
+            content: m.content || null,
+            tool_calls: m.toolCalls.map(tc => ({
+              id: tc.id, type: 'function',
+              function: { name: tc.name, arguments: JSON.stringify(tc.input) },
+            })),
+          };
+        }
+        return { role: m.role, content: m.content };
       });
-      return { role: m.role, content };
-    }
-    return { role: m.role, content: m.content };
-  });
+  }
 
   STATE.streaming = true;
   STATE.currentAbortController = new AbortController();
@@ -1518,41 +1872,103 @@ async function sendMessageDirect(session, userText, messageContent = null) {
   renderMessages();
   showTypingIndicator();
 
-  const assistantMsg = addMessage(session.id, 'assistant', '');
-  hideTypingIndicator();
+  // Determine which tools to send (only for models that support function calling)
+  const supportsTools = modelDef?.toolCalling !== false; // default true unless explicitly disabled
+  const tools = supportsTools ? BUILT_IN_TOOLS : [];
 
-  let accumulated = '';
-  let finalUsage  = null;
+  let totalInputTokens  = 0;
+  let totalOutputTokens = 0;
+  let totalCacheRead    = 0;
+  const MAX_TOOL_ROUNDS = 8; // prevent infinite loops
 
   try {
-    for await (const chunk of ApiRouter.stream(
-      provider, model, apiKey, apiMessages, systemPrompt,
-      { maxTokens: STATE.settings.maxTokens, signal: STATE.currentAbortController.signal }
-    )) {
-      if (chunk.delta) {
-        accumulated += chunk.delta;
-        const msgObj = session.messages.find(m => m.id === assistantMsg.id);
-        if (msgObj) msgObj.content = accumulated;
-        updateLastAssistantBubble(accumulated);
-      }
-      if (chunk.done && chunk.usage) finalUsage = chunk.usage;
-    }
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      const apiMessages = buildApiMessages(session.messages);
 
-    const msgObj = session.messages.find(m => m.id === assistantMsg.id);
-    if (msgObj) {
-      msgObj.content = accumulated;
-      if (finalUsage && modelDef) {
-        const costResult = MODELS_DATA.calculateCost(
-          model,
-          finalUsage.inputTokens  || 0,
-          finalUsage.outputTokens || 0,
-          finalUsage.cacheReadTokens || 0
-        );
-        msgObj.usage = finalUsage;
-        msgObj.cost  = costResult.totalCost;
-        addCostToSession(session.id, costResult);
+      // Add empty assistant placeholder for this round
+      const assistantMsgId = addMessage(session.id, 'assistant', '', {
+        toolCalls: [], toolResults: [],
+      });
+      hideTypingIndicator();
+
+      let accumulated  = '';
+      let roundUsage   = null;
+      const pendingToolCalls = []; // [{id, name, input}]
+
+      for await (const chunk of ApiRouter.stream(
+        provider, model, apiKey, apiMessages, systemPrompt,
+        { maxTokens: STATE.settings.maxTokens, signal: STATE.currentAbortController.signal, tools }
+      )) {
+        // ── Text delta ──
+        if (chunk.delta) {
+          accumulated += chunk.delta;
+          const msgObj = session.messages.find(m => m.id === assistantMsgId);
+          if (msgObj) msgObj.content = accumulated;
+          updateLastAssistantBubble(accumulated);
+        }
+
+        // ── Tool call arrived ──
+        if (chunk.toolCall) {
+          pendingToolCalls.push(chunk.toolCall);
+          // Show tool-calling indicator in the bubble
+          const msgObj = session.messages.find(m => m.id === assistantMsgId);
+          if (msgObj) {
+            msgObj.toolCalls = [...(msgObj.toolCalls || []), chunk.toolCall];
+            renderMessages();
+          }
+        }
+
+        if (chunk.done && chunk.usage) roundUsage = chunk.usage;
       }
-    }
+
+      // Accumulate token usage across rounds
+      if (roundUsage) {
+        totalInputTokens  += roundUsage.inputTokens  || 0;
+        totalOutputTokens += roundUsage.outputTokens || 0;
+        totalCacheRead    += roundUsage.cacheReadTokens || 0;
+      }
+
+      // Finalise assistant message content
+      const assistantMsgObj = session.messages.find(m => m.id === assistantMsgId);
+      if (assistantMsgObj) assistantMsgObj.content = accumulated;
+
+      // ── No tool calls → final response, break ──
+      if (!pendingToolCalls.length) break;
+
+      // ── Execute each tool and append results ──
+      for (const tc of pendingToolCalls) {
+        // Show "running" indicator
+        if (assistantMsgObj) {
+          const tcEntry = assistantMsgObj.toolCalls.find(t => t.id === tc.id);
+          if (tcEntry) { tcEntry.running = true; renderMessages(); }
+        }
+
+        let resultText;
+        try {
+          resultText = await executeTool(tc.name, tc.input, session);
+        } catch (e) {
+          resultText = `Tool error: ${e.message}`;
+        }
+
+        // Mark tool as done in the assistant bubble
+        if (assistantMsgObj) {
+          const tcEntry = assistantMsgObj.toolCalls.find(t => t.id === tc.id);
+          if (tcEntry) { tcEntry.running = false; tcEntry.result = resultText; }
+        }
+
+        // Append tool result as a special message (filtered into correct API format)
+        addMessage(session.id, 'tool', resultText, {
+          tool_use_id: tc.id,
+          name: tc.name,
+        });
+
+        renderMessages();
+        scrollToBottom();
+      }
+
+      showTypingIndicator();
+    } // end round loop
+
   } catch (err) {
     hideTypingIndicator();
     if (err.name !== 'AbortError') {
@@ -1562,6 +1978,15 @@ async function sendMessageDirect(session, userText, messageContent = null) {
       toast('Stopped', 'info');
     }
   } finally {
+    // Apply accumulated cost to last assistant message
+    const lastAssistant = [...session.messages].reverse().find(m => m.role === 'assistant' && !m.toolCalls?.length);
+    if (lastAssistant && modelDef && (totalInputTokens || totalOutputTokens)) {
+      const costResult = MODELS_DATA.calculateCost(model, totalInputTokens, totalOutputTokens, totalCacheRead);
+      lastAssistant.usage = { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, cacheReadTokens: totalCacheRead };
+      lastAssistant.cost  = costResult.totalCost;
+      addCostToSession(session.id, costResult);
+    }
+
     STATE.streaming = false;
     STATE.currentAbortController = null;
     updateStreamingUI(false);
@@ -1570,6 +1995,81 @@ async function sendMessageDirect(session, userText, messageContent = null) {
     renderSessionList();
     updateCostDisplays();
     scrollToBottom();
+  }
+}
+
+async function handleImageGeneration(session, prompt, opts = {}) {
+  if (!session) { session = getActiveSession() || createSession(); saveState(); }
+
+  const imgSettings = STATE.settings.imageGen || {};
+  const provider = opts.provider || imgSettings.provider || 'bfl';
+  const model    = opts.model    || imgSettings.model    || null;
+  const width    = opts.width    || imgSettings.width    || 1024;
+  const height   = opts.height   || imgSettings.height   || 1024;
+  const steps    = opts.steps    || imgSettings.steps    || 28;
+  const apiKey   = opts.apiKey   || STATE.apiKeys[provider] || imgSettings.apiKey || '';
+  const comfyUrl = imgSettings.comfyUrl || 'http://127.0.0.1:8188';
+
+  if (provider !== 'comfyui' && !apiKey) {
+    showToast(`🎨 No API key for “${provider}” — add it in Settings → Image Generation`, 'warning');
+    return;
+  }
+
+  // Add user message showing the prompt
+  addMessage(session.id, 'user', `/imagine ${prompt}`);
+  renderMessages();
+  scrollToBottom();
+
+  // Add placeholder assistant message while generating
+  const placeholderId = addMessage(session.id, 'assistant', '', { imageGenerating: true, imagePrompt: prompt, imageProvider: provider });
+  renderMessages();
+  scrollToBottom();
+
+  const startMs = Date.now();
+  try {
+    const result = await ImageRouter.generate(prompt, {
+      provider,
+      model: model || undefined,
+      width, height, steps,
+      apiKey,
+      comfyUrl,
+    });
+
+    const timingS = ((Date.now() - startMs) / 1000).toFixed(1);
+    // Build a data-url img tag (prefer dataUrl for offline use, fallback to url)
+    const imgSrc = result.dataUrl || result.url;
+    const downloadName = `claude-power-ui-${Date.now()}.png`;
+    const content = `__IMAGE__:${JSON.stringify({
+      src: imgSrc,
+      prompt,
+      provider: result.provider,
+      model: result.model,
+      width: result.width,
+      height: result.height,
+      seed: result.seed,
+      timingS,
+    })}`;
+    // Update the placeholder message with real content
+    const sess = STATE.sessions.find(s => s.id === session.id);
+    const msg = sess?.messages.find(m => m.id === placeholderId);
+    if (msg) {
+      msg.content = content;
+      msg.imageGenerating = false;
+    }
+    saveState();
+    renderMessages();
+    scrollToBottom();
+  } catch (err) {
+    const sess = STATE.sessions.find(s => s.id === session.id);
+    const msg = sess?.messages.find(m => m.id === placeholderId);
+    if (msg) {
+      msg.content = `⚠️ Image generation failed: ${err.message}`;
+      msg.imageGenerating = false;
+    }
+    saveState();
+    renderMessages();
+    scrollToBottom();
+    showToast(`🎨 Generation failed: ${err.message}`, 'error');
   }
 }
 
@@ -1822,9 +2322,40 @@ function buildHTML() {
                 <button class="composer-system-btn" id="system-prompt-toggle" title="Add custom instructions">📋 Instructions</button>
                 <label class="composer-attach-btn" title="Attach file (image, text, PDF, code)" for="file-input">📎 Attach</label>
                 <input type="file" id="file-input" style="display:none" multiple accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css,.pdf" />
+                <button class="composer-imagine-btn" id="imagine-btn" title="Generate an image (or type /imagine ...)"
+                  onclick="toggleImagePopover()">🎨 Imagine</button>
                 <div class="composer-spacer"></div>
                 <button class="send-btn" id="send-btn">↑ Send</button>
                 <button class="stop-btn" id="stop-btn" style="display:none">⏹ Stop</button>
+              </div>
+              <!-- Image generation popover -->
+              <div class="image-popover" id="image-popover" style="display:none">
+                <div class="image-popover-header">
+                  <span>🎨 Generate Image</span>
+                  <button class="image-popover-close" onclick="toggleImagePopover()">✕</button>
+                </div>
+                <textarea class="image-popover-prompt" id="imagine-prompt"
+                  placeholder="Describe the image…" rows="3"></textarea>
+                <div class="image-popover-row">
+                  <select class="image-popover-select" id="imagine-provider" onchange="updateImagineModels()">
+                    <option value="bfl">Black Forest Labs</option>
+                    <option value="fal">fal.ai</option>
+                    <option value="replicate">Replicate</option>
+                    <option value="comfyui">ComfyUI (local)</option>
+                  </select>
+                  <select class="image-popover-select" id="imagine-model">
+                    <option value="flux-pro-1.1">Flux Pro 1.1</option>
+                  </select>
+                </div>
+                <div class="image-popover-row">
+                  <select class="image-popover-select" id="imagine-size">
+                    <option value="1024x1024">1024 × 1024</option>
+                    <option value="1440x1024">1440 × 1024 (wide)</option>
+                    <option value="1024x1440">1024 × 1440 (tall)</option>
+                    <option value="768x768">768 × 768 (fast)</option>
+                  </select>
+                </div>
+                <button class="image-popover-generate" onclick="generateFromPopover()">🎨 Generate</button>
               </div>
             </div>
           </div>
@@ -2201,4 +2732,48 @@ function doLogout() {
   window.location.reload();
 }
 
+// ============================================================
+// Image popover helpers
+// ============================================================
+function toggleImagePopover() {
+  const pop = document.getElementById('image-popover');
+  if (!pop) return;
+  const isVisible = pop.style.display !== 'none';
+  pop.style.display = isVisible ? 'none' : 'block';
+  if (!isVisible) {
+    // Pre-fill provider from settings, sync model list
+    const savedProvider = STATE.settings.imageGen?.provider || 'bfl';
+    const providerSel = document.getElementById('imagine-provider');
+    if (providerSel) providerSel.value = savedProvider;
+    updateImagineModels();
+    document.getElementById('imagine-prompt')?.focus();
+  }
+}
+
+function updateImagineModels() {
+  const providerSel = document.getElementById('imagine-provider');
+  const modelSel    = document.getElementById('imagine-model');
+  if (!providerSel || !modelSel || typeof ImageRouter === 'undefined') return;
+  const models = ImageRouter.MODELS[providerSel.value] || [];
+  modelSel.innerHTML = models.map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('');
+}
+
+function generateFromPopover() {
+  const prompt   = document.getElementById('imagine-prompt')?.value.trim();
+  const provider = document.getElementById('imagine-provider')?.value;
+  const model    = document.getElementById('imagine-model')?.value;
+  const sizeVal  = document.getElementById('imagine-size')?.value || '1024x1024';
+  const [width, height] = sizeVal.split('x').map(Number);
+
+  if (!prompt) {
+    showToast('\ud83c\udfa8 Please enter an image description', 'warning');
+    return;
+  }
+
+  toggleImagePopover(); // close popover
+  const session = getActiveSession() || createSession();
+  handleImageGeneration(session, prompt, { provider, model, width, height });
+}
+
 document.addEventListener('DOMContentLoaded', boot);
+

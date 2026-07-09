@@ -1253,3 +1253,57 @@ table.admin-table {
 .mcp-empty-title { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
 .mcp-empty-sub   { font-size: 11px; }
 
+
+/* ── API Keys page: section headings ── */
+.api-key-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 20px 0 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 4px;
+}
+.api-key-section-heading:first-child {
+  padding-top: 4px;
+}
+.api-key-section-sub {
+  font-size: 10px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #4b5563;
+}
+
+/* Provider description line */
+.api-key-provider-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Image defaults grid */
+.img-defaults-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  padding: 2px 0;
+}
+.img-default-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* URL-type card variant — slightly different accent */
+.api-key-card-url {
+  border-left-color: #84cc16;
+}
+.api-key-card-defaults {
+  border-left-color: #f59e0b;
+}

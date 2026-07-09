@@ -748,15 +748,24 @@ python3 cli.py export --format json</pre>
       } catch {}
 
       const providers = [
-        { id: 'anthropic', label: 'Anthropic', icon: '✦' },
-        { id: 'openai',    label: 'OpenAI',    icon: '◈' },
-        { id: 'google',    label: 'Google',    icon: '◉' },
-        { id: 'groq',      label: 'Groq',      icon: '⚡' },
+        { id: 'anthropic', label: 'Anthropic',             icon: '✦',  group: 'llm' },
+        { id: 'openai',    label: 'OpenAI',                icon: '◎',  group: 'llm' },
+        { id: 'google',    label: 'Google Gemini',         icon: '⬡',  group: 'llm' },
+        { id: 'groq',      label: 'Groq',                  icon: '⚡',  group: 'llm' },
+        { id: 'mistral',   label: 'Mistral',               icon: 'ⱡ',  group: 'llm' },
+        { id: 'bfl',       label: 'Black Forest Labs',     icon: '🧪', group: 'img' },
+        { id: 'fal',       label: 'fal.ai',                icon: '⚡',  group: 'img' },
+        { id: 'replicate', label: 'Replicate',             icon: '🔄', group: 'img' },
       ];
 
+      let lastGroup = null;
       apiKeyList.innerHTML = providers.map(p => {
         const present = !!(apiKeys[p.id]);
-        return `
+        const sep = p.group !== lastGroup
+          ? `<div style="font-size:10px;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px;">${p.group === 'llm' ? '🧠 LLM Chat' : '🎨 Image Gen'}</div>`
+          : '';
+        lastGroup = p.group;
+        return `${sep}
           <div class="api-key-status">
             <span style="font-size:14px">${p.icon}</span>
             <span style="color:#94a3b8;font-weight:500">${p.label}</span>
@@ -833,6 +842,61 @@ python3 cli.py export --format json</pre>
     toast('All data reset. Returning to app…', 'success');
     setTimeout(() => { window.location.href = 'index.html'; }, 2000);
   }
+
+  // ── LLM Chat providers ────────────────────────────────────
+  const PROVIDER_DEFS = [
+    { id: 'anthropic', name: 'Anthropic',   icon: '❆',  color: '#c47c5a', placeholder: 'sk-ant-api03-…', baseUrl: 'https://api.anthropic.com',                  docsUrl: 'https://console.anthropic.com/settings/keys', testPath: '/v1/models',          testHeaders: (k) => ({ 'x-api-key': k, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }) },
+    { id: 'openai',    name: 'OpenAI',      icon: '◎',  color: '#10a37f', placeholder: 'sk-proj-…',     baseUrl: 'https://api.openai.com',                     docsUrl: 'https://platform.openai.com/api-keys',       testPath: '/v1/models',          testHeaders: (k) => ({ 'Authorization': `Bearer ${k}` }) },
+    { id: 'google',    name: 'Google',      icon: '⬡',  color: '#4285f4', placeholder: 'AIza…',          baseUrl: 'https://generativelanguage.googleapis.com',  docsUrl: 'https://aistudio.google.com/app/apikey',     testPath: '/v1beta/models?key=KEY', testHeaders: () => ({}) },
+    { id: 'groq',      name: 'Groq',        icon: '⚡',  color: '#f55036', placeholder: 'gsk_…',           baseUrl: 'https://api.groq.com',                       docsUrl: 'https://console.groq.com/keys',              testPath: '/openai/v1/models',   testHeaders: (k) => ({ 'Authorization': `Bearer ${k}` }) },
+    { id: 'mistral',   name: 'Mistral',     icon: 'ⱡ',  color: '#ff7000', placeholder: '…',                baseUrl: 'https://api.mistral.ai',                     docsUrl: 'https://console.mistral.ai/api-keys',        testPath: '/v1/models',          testHeaders: (k) => ({ 'Authorization': `Bearer ${k}` }) },
+  ];
+
+  // ── Image Generation providers ────────────────────────────
+  const IMAGE_PROVIDER_DEFS = [
+    {
+      id: 'bfl',
+      name: 'Black Forest Labs (Flux)',
+      icon: '🧪',
+      color: '#ec4899',
+      placeholder: 'your-bfl-api-key…',
+      baseUrl: 'https://api.bfl.ml',
+      docsUrl: 'https://docs.bfl.ml',
+      desc: 'Powers Flux Pro 1.1, Flux Dev, and Flux Schnell models.',
+    },
+    {
+      id: 'fal',
+      name: 'fal.ai',
+      icon: '⚡',
+      color: '#a855f7',
+      placeholder: 'your-fal-key-id:your-key-secret…',
+      baseUrl: 'https://fal.run',
+      docsUrl: 'https://fal.ai/dashboard/keys',
+      desc: 'Flux Pro and Flux Dev via fal.ai infrastructure.',
+    },
+    {
+      id: 'replicate',
+      name: 'Replicate',
+      icon: '🔄',
+      color: '#0ea5e9',
+      placeholder: 'r8_…',
+      baseUrl: 'https://api.replicate.com',
+      docsUrl: 'https://replicate.com/account/api-tokens',
+      desc: 'Flux 1.1 Pro via Replicate. Pay-per-run, no subscription needed.',
+    },
+  ];
+
+  // ── ComfyUI local URL (not a key — a URL setting) ────────
+  const COMFYUI_SETTING = {
+    id: 'comfyui',
+    name: 'ComfyUI (Local)',
+    icon: '⚙️',
+    color: '#84cc16',
+    desc: 'URL of your local ComfyUI instance. No API key needed — runs entirely on your machine.',
+    settingKey: 'imageGen.comfyUrl',
+    placeholder: 'http://127.0.0.1:8188',
+    inputType: 'url',
+  };
 
   // ──────────────────────────────────────────────────────────
   // Helper: empty state
@@ -921,37 +985,36 @@ python3 cli.py export --format json</pre>
     if (badge) badge.textContent = servers.length === 0 ? '0 connected' : `${servers.length} registered`;
   }
 
-  // ── API Keys grid ──────────────────────────────────────────
-  const PROVIDER_DEFS = [
-    { id: 'anthropic', name: 'Anthropic', icon: '✦', color: '#c47c5a', placeholder: 'sk-ant-api03-…', baseUrl: 'https://api.anthropic.com',  docsUrl: 'https://console.anthropic.com/settings/keys',  testPath: '/v1/models', testHeaders: (k) => ({ 'x-api-key': k, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }) },
-    { id: 'openai',    name: 'OpenAI',    icon: '◎', color: '#10a37f', placeholder: 'sk-proj-…',     baseUrl: 'https://api.openai.com',         docsUrl: 'https://platform.openai.com/api-keys',        testPath: '/v1/models', testHeaders: (k) => ({ 'Authorization': `Bearer ${k}` }) },
-    { id: 'google',    name: 'Google',    icon: '⬡', color: '#4285f4', placeholder: 'AIza…',          baseUrl: 'https://generativelanguage.googleapis.com', docsUrl: 'https://aistudio.google.com/app/apikey',     testPath: `/v1beta/models?key=KEY`, testHeaders: () => ({}) },
-    { id: 'groq',      name: 'Groq',      icon: '⚡', color: '#f55036', placeholder: 'gsk_…',           baseUrl: 'https://api.groq.com',           docsUrl: 'https://console.groq.com/keys',               testPath: '/openai/v1/models', testHeaders: (k) => ({ 'Authorization': `Bearer ${k}` }) },
-  ];
 
+
+  // ── API Keys grid ───────────────────────────────────────────
   async function renderApiKeysGrid() {
     const grid = document.getElementById('api-keys-grid');
     if (!grid) return;
     grid.innerHTML = '';
 
-    // Read current stored keys from ApiKeyVault
     let storedKeys = {};
     try { storedKeys = await ApiKeyVault.load() || {}; } catch {}
 
-    PROVIDER_DEFS.forEach(p => {
-      const hasKey = !!(storedKeys[p.id] && storedKeys[p.id].trim());
-      const cardId = `api-card-${p.id}`;
+    function sectionHeading(label, sub = '') {
+      const h = document.createElement('div');
+      h.className = 'api-key-section-heading';
+      h.innerHTML = `<span>${label}</span>${sub ? `<span class="api-key-section-sub">${sub}</span>` : ''}`;
+      grid.appendChild(h);
+    }
 
+    function renderKeyCard(p, hasKey) {
       const card = document.createElement('div');
       card.className = 'api-key-card';
-      card.id = cardId;
+      card.id = `api-card-${p.id}`;
       card.style.setProperty('--provider-color', p.color);
       card.innerHTML = `
         <div class="api-key-card-header">
           <div class="api-key-provider-icon" style="color:${esc(p.color)}">${esc(p.icon)}</div>
           <div>
             <div class="api-key-provider-name">${esc(p.name)}</div>
-            <div class="api-key-provider-url">${esc(p.baseUrl)}</div>
+            <div class="api-key-provider-url">${esc(p.baseUrl || '')}</div>
+            ${p.desc ? `<div class="api-key-provider-desc">${esc(p.desc)}</div>` : ''}
           </div>
           <div class="api-key-status-pill ${hasKey ? 'present' : 'missing'}" id="pill-${p.id}">
             <div class="api-key-status-dot"></div>
@@ -962,20 +1025,115 @@ python3 cli.py export --format json</pre>
           <input class="api-key-input" id="key-input-${p.id}" type="password"
             value="${hasKey ? storedKeys[p.id] : ''}"
             placeholder="${esc(p.placeholder)}" autocomplete="off" />
-          <button class="api-key-reveal-btn" title="Show/hide" onclick="AdminApp.toggleKeyReveal('${p.id}')">👁</button>
+          <button class="api-key-reveal-btn" title="Show/hide" onclick="AdminApp.toggleKeyReveal('${p.id}')">&#128065;</button>
         </div>
         <div class="api-key-actions">
           <button class="btn-sm primary" onclick="AdminApp.saveApiKey('${p.id}')">Save</button>
+          ${p.testPath ? `
           <button class="api-key-test-btn" id="test-btn-${p.id}" onclick="AdminApp.testApiKey('${p.id}')">
             <div class="api-key-test-spinner" id="test-spin-${p.id}"></div>
-            ◉ Test
+            &#9685; Test
           </button>
-          <span class="api-key-test-result" id="test-result-${p.id}"></span>
-          <a class="api-key-docs-link" href="${esc(p.docsUrl)}" target="_blank" rel="noopener">Get key ↗</a>
+          <span class="api-key-test-result" id="test-result-${p.id}"></span>` : ''}
+          <a class="api-key-docs-link" href="${esc(p.docsUrl)}" target="_blank" rel="noopener">Get key &#8599;</a>
         </div>
       `;
       grid.appendChild(card);
-    });
+    }
+
+    // LLM providers
+    sectionHeading('🧠 AI Chat Providers', 'Keys for Claude, GPT, Gemini, Llama');
+    PROVIDER_DEFS.forEach(p => renderKeyCard(p, !!(storedKeys[p.id]?.trim())));
+
+    // Image generation providers
+    sectionHeading('🎨 Image Generation APIs', 'Flux Pro/Dev/Schnell — BFL, fal.ai, Replicate');
+    IMAGE_PROVIDER_DEFS.forEach(p => renderKeyCard(p, !!(storedKeys[p.id]?.trim())));
+
+    // ComfyUI URL (not a key — a URL setting)
+    const comfyUrlVal = _getImageSetting('comfyUrl') || 'http://127.0.0.1:8188';
+    const comfyCard = document.createElement('div');
+    comfyCard.className = 'api-key-card api-key-card-url';
+    comfyCard.id = 'api-card-comfyui';
+    comfyCard.style.setProperty('--provider-color', COMFYUI_SETTING.color);
+    comfyCard.innerHTML = `
+      <div class="api-key-card-header">
+        <div class="api-key-provider-icon" style="color:${esc(COMFYUI_SETTING.color)}">${COMFYUI_SETTING.icon}</div>
+        <div>
+          <div class="api-key-provider-name">${esc(COMFYUI_SETTING.name)}</div>
+          <div class="api-key-provider-url">No API key required</div>
+          <div class="api-key-provider-desc">${esc(COMFYUI_SETTING.desc)}</div>
+        </div>
+        <div class="api-key-status-pill ${comfyUrlVal !== 'http://127.0.0.1:8188' ? 'present' : 'missing'}" id="pill-comfyui">
+          <div class="api-key-status-dot"></div>
+          ${comfyUrlVal !== 'http://127.0.0.1:8188' ? 'Custom URL' : 'Default'}
+        </div>
+      </div>
+      <div class="api-key-input-row">
+        <input class="api-key-input" id="key-input-comfyui" type="url"
+          value="${esc(comfyUrlVal)}" placeholder="http://127.0.0.1:8188" autocomplete="off" />
+      </div>
+      <div class="api-key-actions">
+        <button class="btn-sm primary" onclick="AdminApp.saveComfyUrl()">Save URL</button>
+        <button class="api-key-test-btn" id="test-btn-comfyui" onclick="AdminApp.testComfyUrl()">
+          <div class="api-key-test-spinner" id="test-spin-comfyui"></div>
+          &#9685; Ping
+        </button>
+        <span class="api-key-test-result" id="test-result-comfyui"></span>
+        <a class="api-key-docs-link" href="https://github.com/comfyanonymous/ComfyUI#installing" target="_blank" rel="noopener">Install ComfyUI &#8599;</a>
+      </div>
+    `;
+    grid.appendChild(comfyCard);
+
+    // Image Gen defaults
+    const imgProviderVal = _getImageSetting('provider') || 'bfl';
+    const imgWidthVal    = _getImageSetting('width')    || 1024;
+    const imgHeightVal   = _getImageSetting('height')   || 1024;
+    const imgStepsVal    = _getImageSetting('steps')    || 28;
+
+    sectionHeading('⚙️ Image Generation Defaults', 'Default provider and output settings');
+    const defaultsCard = document.createElement('div');
+    defaultsCard.className = 'api-key-card api-key-card-defaults';
+    defaultsCard.innerHTML = `
+      <div class="img-defaults-grid">
+        <div class="img-default-field">
+          <label class="mcp-label">Default Provider</label>
+          <select class="api-key-input" id="imgdef-provider" style="cursor:pointer">
+            <option value="bfl"       ${imgProviderVal==='bfl'       ?'selected':''}>Black Forest Labs (BFL)</option>
+            <option value="fal"       ${imgProviderVal==='fal'       ?'selected':''}>fal.ai</option>
+            <option value="replicate" ${imgProviderVal==='replicate' ?'selected':''}>Replicate</option>
+            <option value="comfyui"   ${imgProviderVal==='comfyui'   ?'selected':''}>ComfyUI (Local)</option>
+          </select>
+        </div>
+        <div class="img-default-field">
+          <label class="mcp-label">Default Width</label>
+          <select class="api-key-input" id="imgdef-width" style="cursor:pointer">
+            <option value="512"  ${imgWidthVal==512  ?'selected':''}>512</option>
+            <option value="768"  ${imgWidthVal==768  ?'selected':''}>768</option>
+            <option value="1024" ${imgWidthVal==1024 ?'selected':''}>1024</option>
+            <option value="1440" ${imgWidthVal==1440 ?'selected':''}>1440</option>
+            <option value="1792" ${imgWidthVal==1792 ?'selected':''}>1792</option>
+          </select>
+        </div>
+        <div class="img-default-field">
+          <label class="mcp-label">Default Height</label>
+          <select class="api-key-input" id="imgdef-height" style="cursor:pointer">
+            <option value="512"  ${imgHeightVal==512  ?'selected':''}>512</option>
+            <option value="768"  ${imgHeightVal==768  ?'selected':''}>768</option>
+            <option value="1024" ${imgHeightVal==1024 ?'selected':''}>1024</option>
+            <option value="1440" ${imgHeightVal==1440 ?'selected':''}>1440</option>
+          </select>
+        </div>
+        <div class="img-default-field">
+          <label class="mcp-label">Sampling Steps</label>
+          <input class="api-key-input" id="imgdef-steps" type="number" min="4" max="100" step="1"
+            value="${imgStepsVal}" style="max-width:100px" />
+        </div>
+      </div>
+      <div class="api-key-actions" style="margin-top:12px">
+        <button class="btn-sm primary" onclick="AdminApp.saveImageDefaults()">Save Defaults</button>
+      </div>
+    `;
+    grid.appendChild(defaultsCard);
   }
 
   function toggleKeyReveal(providerId) {
@@ -984,7 +1142,16 @@ python3 cli.py export --format json</pre>
     input.type = input.type === 'password' ? 'text' : 'password';
   }
 
+  function _getImageSetting(key) {
+    try {
+      const raw = localStorage.getItem('claude_power_ui_v2');
+      const s = JSON.parse(raw);
+      return s?.settings?.imageGen?.[key] ?? null;
+    } catch { return null; }
+  }
+
   async function saveApiKey(providerId) {
+
     const input = document.getElementById(`key-input-${providerId}`);
     if (!input) return;
     const keyVal = input.value.trim();
@@ -1044,8 +1211,78 @@ python3 cli.py export --format json</pre>
     }
   }
 
+  // Save ComfyUI server URL into settings
+  async function saveComfyUrl() {
+    const input = document.getElementById('key-input-comfyui');
+    const url   = (input?.value || '').trim() || 'http://127.0.0.1:8188';
+    _patchImageSetting('comfyUrl', url);
+    const pill = document.getElementById('pill-comfyui');
+    if (pill) {
+      const isCustom = url !== 'http://127.0.0.1:8188';
+      pill.className = `api-key-status-pill ${isCustom ? 'present' : 'missing'}`;
+      pill.innerHTML = `<div class="api-key-status-dot"></div>${isCustom ? 'Custom URL' : 'Default'}`;
+    }
+    toast(`ComfyUI URL saved: ${url}`, 'success');
+  }
+
+  // Ping ComfyUI /system_stats to verify it's reachable
+  async function testComfyUrl() {
+    const input = document.getElementById('key-input-comfyui');
+    const url   = (input?.value || '').trim() || 'http://127.0.0.1:8188';
+    const btn   = document.getElementById('test-btn-comfyui');
+    const spin  = document.getElementById('test-spin-comfyui');
+    const res   = document.getElementById('test-result-comfyui');
+    if (btn) btn.disabled = true;
+    if (spin) spin.style.display = 'inline-block';
+    if (res)  res.style.display  = 'none';
+    try {
+      const r = await fetch(`${url}/system_stats`, { method: 'GET', signal: AbortSignal.timeout(4000) });
+      const ok = r.status === 200;
+      if (res) {
+        res.className   = `api-key-test-result ${ok ? 'ok' : 'fail'}`;
+        res.textContent = ok ? '✓ ComfyUI reachable' : `✕ HTTP ${r.status}`;
+        res.style.display = 'inline-flex';
+      }
+    } catch {
+      if (res) {
+        res.className   = 'api-key-test-result fail';
+        res.textContent = '✕ Not reachable — is ComfyUI running?';
+        res.style.display = 'inline-flex';
+      }
+    } finally {
+      if (btn)  btn.disabled = false;
+      if (spin) spin.style.display = 'none';
+    }
+  }
+
+  // Save image generation defaults (provider, size, steps)
+  function saveImageDefaults() {
+    const provider = document.getElementById('imgdef-provider')?.value || 'bfl';
+    const width    = parseInt(document.getElementById('imgdef-width')?.value  || 1024, 10);
+    const height   = parseInt(document.getElementById('imgdef-height')?.value || 1024, 10);
+    const steps    = parseInt(document.getElementById('imgdef-steps')?.value  || 28,   10);
+    _patchImageSetting('provider', provider);
+    _patchImageSetting('width',    width);
+    _patchImageSetting('height',   height);
+    _patchImageSetting('steps',    steps);
+    toast(`Image defaults saved: ${provider} · ${width}×${height} · ${steps} steps`, 'success');
+  }
+
+  // Helper: write one key into STATE.settings.imageGen in localStorage
+  function _patchImageSetting(key, value) {
+    try {
+      const raw = localStorage.getItem('claude_power_ui_v2');
+      const s = raw ? JSON.parse(raw) : {};
+      if (!s.settings) s.settings = {};
+      if (!s.settings.imageGen) s.settings.imageGen = {};
+      s.settings.imageGen[key] = value;
+      localStorage.setItem('claude_power_ui_v2', JSON.stringify(s));
+    } catch (e) { console.warn('_patchImageSetting:', e); }
+  }
+
   // ── MCP Servers ────────────────────────────────────────────
   const MCP_ICONS = { filesystem: '📁', postgres: '🗄', github: '🐙', sqlite: '🗃', memory: '🧠', fetch: '🌐', brave: '🔍', slack: '💬', jira: '📋', default: '🔌' };
+
 
   function getMcpIcon(name) {
     const n = (name || '').toLowerCase();
@@ -1302,6 +1539,9 @@ python3 cli.py export --format json</pre>
     toggleKeyReveal,
     saveApiKey,
     testApiKey,
+    saveComfyUrl,
+    testComfyUrl,
+    saveImageDefaults,
     toggleMcpAddForm,
     onMcpTransportChange,
     addMcpServer,

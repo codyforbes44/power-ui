@@ -15,9 +15,17 @@
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com data:;
-      connect-src 'self' https://api.anthropic.com https://api.openai.com
-        https://generativelanguage.googleapis.com https://api.groq.com
-        https://api.mistral.ai;
+      connect-src 'self'
+        https://api.anthropic.com
+        https://api.openai.com
+        https://generativelanguage.googleapis.com
+        https://api.groq.com
+        https://api.mistral.ai
+        https://api.bfl.ml
+        https://fal.run
+        https://api.replicate.com
+        http://127.0.0.1:8188
+        http://localhost:8188;
       img-src 'self' data: blob:;" />
 
   <!-- M4: Inline SVG favicon -->
@@ -489,9 +497,10 @@
   </script>
 
   <!-- Scripts: auth + analytics must load first -->
-  <script src="auth.js" defer></script>
-  <script src="analytics.js" defer></script>
-  <script src="admin.js" defer></script>
+  <script src="auth.js?v=20260708f" defer></script>
+  <script src="analytics.js?v=20260708f" defer></script>
+  <script src="admin.js?v=20260708f" defer></script>
+
 
 </body>
 </html>
