@@ -17,8 +17,9 @@ Last organized: 2026-07-07 — 43 user skills (36 after merges + 7 gap-fill addi
 - **product-self-knowledge**: Verified facts about Claude Code, API, claude.ai plans.
   Use when: response would state Anthropic product facts from memory.
 
-## Creative & Content (11 — examples)
+## Creative & Content (12 — examples)
 
+- **ai-persona-manager**: Create, launch, and manage AI influencer personas with a multi-stage workflow. Use when: managing a virtual AI influencer; generating content (bios, image prompts, video ideas) for platforms like Fanvue or Instagram.
 - **canvas-design**: Static posters/art as PNG/PDF. Use when: designing a visual piece.
 - **algorithmic-art**: Generative p5.js art. Use when: code-based/generative art requested.
 - **slack-gif-creator**: Animated GIFs within Slack constraints. Use when: "GIF for Slack".
