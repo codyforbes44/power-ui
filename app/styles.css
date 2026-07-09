@@ -1361,6 +1361,13 @@ button { font-family: var(--font-ui); }
   #current-model-name { display: none; }
   .session-title-input { max-width: 90px; }
   #skills-toggle span:last-child { display: none; } /* keep the icon, drop the "Tools" label */
+
+  /* .model-dropdown is right:0-anchored with a fixed 340px width — on a
+     narrow phone, wherever .model-selector actually sits in the squeezed
+     header, that can push the dropdown's left edge off-screen. Anchor to
+     the viewport instead of a fixed width so it can't overflow either
+     edge regardless of where the button ends up. */
+  .model-dropdown { left: 12px; right: 12px; width: auto; }
 }
 
 /* ============================================================
