@@ -2083,6 +2083,39 @@ function updateStreamingUI(streaming) {
 function stopStreaming() { STATE.currentAbortController?.abort(); }
 
 // ============================================================
+// Mobile off-canvas drawers (sidebar + skills-panel)
+// Below 1024px both panels become fixed slide-in drawers (see the
+// mobile block in styles.css) instead of squeezing into the flex row.
+// These helpers derive backdrop/scroll-lock state fresh from
+// STATE.ui every time, rather than an open-drawer counter, so it's
+// correct regardless of how many drawers happen to be open at once.
+// ============================================================
+function isMobileViewport() {
+  return window.matchMedia('(max-width: 1024px)').matches;
+}
+
+function syncDrawerState() {
+  const backdrop = document.getElementById('drawer-backdrop');
+  if (!backdrop) return;
+  const anyOpen = isMobileViewport() && (!STATE.ui.sidebarCollapsed || STATE.ui.skillsPanelOpen);
+  backdrop.classList.toggle('visible', anyOpen);
+  document.body.style.overflow = anyOpen ? 'hidden' : '';
+}
+
+function closeMobileDrawers() {
+  if (!isMobileViewport()) return;
+  STATE.ui.sidebarCollapsed = true;
+  STATE.ui.skillsPanelOpen = false;
+  document.getElementById('sidebar')?.classList.add('collapsed');
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+  if (sidebarToggle) sidebarToggle.textContent = '▶';
+  document.getElementById('skills-panel')?.classList.remove('open');
+  document.getElementById('skills-toggle')?.classList.remove('active');
+  syncDrawerState();
+  saveState();
+}
+
+// ============================================================
 // Event listeners
 // ============================================================
 function attachEventListeners() {
@@ -2132,15 +2165,32 @@ function attachEventListeners() {
     sidebar?.classList.toggle('collapsed', STATE.ui.sidebarCollapsed);
     const toggle = document.getElementById('sidebar-toggle');
     if (toggle) toggle.textContent = STATE.ui.sidebarCollapsed ? '▶' : '◀';
+    syncDrawerState();
     saveState();
   });
 
   document.getElementById('skills-toggle')?.addEventListener('click', () => {
     STATE.ui.skillsPanelOpen = !STATE.ui.skillsPanelOpen;
-    const panel = document.getElementById('skills-panel');
-    if (panel) panel.style.display = STATE.ui.skillsPanelOpen ? 'flex' : 'none';
+    document.getElementById('skills-panel')?.classList.toggle('open', STATE.ui.skillsPanelOpen);
     document.getElementById('skills-toggle')?.classList.toggle('active', STATE.ui.skillsPanelOpen);
+    syncDrawerState();
     saveState();
+  });
+
+  document.getElementById('drawer-backdrop')?.addEventListener('click', closeMobileDrawers);
+
+  // The sidebar's own toggle button lives inside the sidebar, so once it's
+  // off-canvas on mobile there's no way to reach it — this header button
+  // (visible only <1024px, see .mobile-sidebar-btn in styles.css) is the
+  // reopen affordance, and just re-uses the same toggle logic.
+  document.getElementById('mobile-sidebar-btn')?.addEventListener('click', () => {
+    document.getElementById('sidebar-toggle')?.click();
+  });
+
+  let _resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(syncDrawerState, 150);
   });
 
   document.getElementById('skills-tab-btn')?.addEventListener('click', () => {
@@ -2202,6 +2252,7 @@ function attachEventListeners() {
     }
     if (e.key === 'Escape') {
       closeMemoryPanel();
+      closeMobileDrawers();
       STATE.ui.modelDropdownOpen = false;
       const dd = document.getElementById('model-dropdown');
       if (dd) dd.style.display = 'none';
@@ -2217,6 +2268,9 @@ function buildHTML() {
 
   document.getElementById('app').innerHTML = `
     <div style="display:flex;height:100vh;width:100vw;overflow:hidden">
+
+      <!-- Shared backdrop for mobile off-canvas sidebar/skills-panel -->
+      <div class="drawer-backdrop" id="drawer-backdrop"></div>
 
       <!-- ── Sidebar ────────────────────────────────── -->
       <aside class="sidebar" id="sidebar">
@@ -2261,6 +2315,7 @@ function buildHTML() {
         <!-- Header -->
         <header class="chat-header">
           <div class="header-left">
+            <button class="mobile-sidebar-btn" id="mobile-sidebar-btn" aria-label="Open sidebar">☰</button>
             <input class="session-title-input" id="session-title-input" placeholder="New Conversation" />
             <span class="branch-count-badge" id="branch-count-badge" style="display:none">⎇ 0</span>
           </div>
@@ -2363,8 +2418,7 @@ function buildHTML() {
       </main>
 
       <!-- ── Skills panel ───────────────────────────── -->
-      <aside class="skills-panel" id="skills-panel"
-             style="display:${STATE.ui.skillsPanelOpen ? 'flex' : 'none'}">
+      <aside class="skills-panel ${STATE.ui.skillsPanelOpen ? 'open' : ''}" id="skills-panel">
         <div class="skills-panel-header">
           <div class="skills-tabs">
             <button class="skills-tab-btn ${STATE.ui.skillsTab === 'skills' ? 'active' : ''}" id="skills-tab-btn">AI Tools</button>
@@ -2495,6 +2549,16 @@ async function boot() {
     Object.assign(STATE.apiKeys, vaultResult);
   }
 
+  // 4b. On a narrow viewport, force both drawers closed for this session
+  // regardless of whatever was persisted from a desktop session — this is
+  // in-memory only (not saved here), so a returning desktop user's actual
+  // preference is untouched and still applies when they're back on a wide
+  // viewport.
+  if (isMobileViewport()) {
+    STATE.ui.sidebarCollapsed = true;
+    STATE.ui.skillsPanelOpen = false;
+  }
+
   // 5. Build DOM
   buildHTML();
 
@@ -2512,6 +2576,7 @@ async function boot() {
     const toggle = document.getElementById('sidebar-toggle');
     if (toggle) toggle.textContent = '▶';
   }
+  syncDrawerState();
 
   // 9. First full render
   renderAll();

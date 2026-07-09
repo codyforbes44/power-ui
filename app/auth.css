@@ -367,3 +367,11 @@ body.auth-screen {
 .user-menu-item.danger { color: #f87171; }
 .user-menu-item.danger:hover { background: rgba(239,68,68,0.1); }
 .user-menu-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 0; }
+
+/* Chat header on a phone has very little room (session title, model
+   selector, and drawer toggles all compete for it) — drop the badge
+   down to just the avatar, the menu it opens still has the full name. */
+@media (max-width: 768px) {
+  .user-badge-name, .user-badge-role { display: none; }
+  .user-badge { padding: 4px; gap: 0; }
+}
