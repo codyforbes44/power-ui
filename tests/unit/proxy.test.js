@@ -11,12 +11,43 @@ const assert = require('node:assert/strict');
 const nock = require('nock');
 const { handler } = require('../../netlify/functions/proxy.js');
 
-function makeEvent(body, method = 'POST') {
-  return { httpMethod: method, body: JSON.stringify(body) };
+function makeEvent(body, method = 'POST', headers) {
+  return { httpMethod: method, body: JSON.stringify(body), headers };
 }
 
 test.afterEach(() => {
   nock.cleanAll();
+});
+
+test('rejects a POST whose Origin does not match its own Host (open-relay guard)', async () => {
+  const res = await handler(makeEvent(
+    { provider: 'anthropic', path: '/v1/messages', payload: { a: 1 } },
+    'POST',
+    { host: 'my-deploy.netlify.app', origin: 'https://attacker.example' }
+  ));
+  assert.equal(res.statusCode, 403);
+});
+
+test('allows a POST whose Origin matches its own Host (same-origin browser call)', async () => {
+  const scope = nock('https://api.anthropic.com').post('/v1/messages').reply(200, { ok: true });
+  const res = await handler(makeEvent(
+    { provider: 'anthropic', path: '/v1/messages', apiKey: 'k', payload: { a: 1 } },
+    'POST',
+    { host: 'my-deploy.netlify.app', origin: 'https://my-deploy.netlify.app' }
+  ));
+  assert.equal(res.statusCode, 200);
+  assert.ok(scope.isDone());
+});
+
+test('allows a POST with no Origin header at all (curl / server-to-server, unchanged from before)', async () => {
+  const scope = nock('https://api.anthropic.com').post('/v1/messages').reply(200, { ok: true });
+  const res = await handler(makeEvent(
+    { provider: 'anthropic', path: '/v1/messages', apiKey: 'k', payload: { a: 1 } },
+    'POST',
+    { host: 'my-deploy.netlify.app' }
+  ));
+  assert.equal(res.statusCode, 200);
+  assert.ok(scope.isDone());
 });
 
 test('rejects a request with no provider or path', async () => {

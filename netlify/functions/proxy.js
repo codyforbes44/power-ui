@@ -87,7 +87,31 @@ async function fetchProvider(url, upstreamHeaders, payload, method = 'POST') {
   });
 }
 
+// This function is meant to be called only by this app's own browser JS
+// (it exists purely to dodge browser CORS — see file header). It has no
+// other authentication, so it's otherwise an open relay: anyone who finds
+// the URL could use it to send arbitrary-but-attacker-supplied API keys to
+// any of PROVIDER_BASE's hosts. A real same-origin browser POST always
+// carries an Origin header matching the request's own Host (the Fetch
+// standard sends Origin on POST regardless of same/cross-origin, for
+// exactly this kind of server-side check) — reject anything else that
+// *does* present an Origin. Requests with no Origin at all (curl, server-
+// to-server, older clients) are still let through unchanged from before,
+// so this doesn't require new configuration or break existing deploys.
+function isAllowedOrigin(event) {
+  const headers = event.headers || {};
+  const origin  = headers.origin || headers.Origin;
+  const host    = headers.host   || headers.Host;
+  if (!origin || !host) return true;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 exports.handler = async function(event) {
+  const startedAt = Date.now();
   // CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: CORS, body: '' };
@@ -95,6 +119,11 @@ exports.handler = async function(event) {
 
   if (event.httpMethod !== 'POST') {
     return response(405, { error: 'Method not allowed' });
+  }
+
+  if (!isAllowedOrigin(event)) {
+    console.warn(JSON.stringify({ fn: 'proxy', event: 'origin_rejected', origin: event.headers?.origin, host: event.headers?.host }));
+    return response(403, { error: 'Forbidden' });
   }
 
   // Parse body
@@ -108,6 +137,12 @@ exports.handler = async function(event) {
   const { provider, path: apiPath, apiKey, payload, queryParams, method } = req;
   const upstreamMethod = (method || 'POST').toUpperCase();
 
+  // Structured, single-line JSON logs — queryable in the Netlify Functions
+  // log viewer/CLI. Never logs apiKey or payload contents (BYOK keys must
+  // never end up in logs), only routing metadata needed to see which
+  // provider/endpoint is failing or slow in production.
+  const log = (fields) => console.log(JSON.stringify({ fn: 'proxy', provider, path: apiPath, method: upstreamMethod, ...fields }));
+
   if (!provider || !apiPath) {
     return response(400, { error: 'Missing: provider, path' });
   }
@@ -117,6 +152,7 @@ exports.handler = async function(event) {
 
   const base = PROVIDER_BASE[provider];
   if (!base) {
+    log({ event: 'unknown_provider' });
     return response(400, { error: `Unknown provider: ${provider}` });
   }
 
@@ -130,13 +166,17 @@ exports.handler = async function(event) {
         const chunks = [];
         res.on('data', c => chunks.push(c));
         res.on('end', () => {
+          log({ event: 'upstream_response', status: res.statusCode, durationMs: Date.now() - startedAt });
           resolve({
             statusCode: res.statusCode,
             headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' },
             body: Buffer.concat(chunks).toString('utf8'),
           });
         });
-      }).on('error', (e) => resolve(response(502, { error: e.message })));
+      }).on('error', (e) => {
+        log({ event: 'upstream_error', error: e.message, durationMs: Date.now() - startedAt });
+        resolve(response(502, { error: e.message }));
+      });
     });
   }
 
@@ -171,8 +211,11 @@ exports.handler = async function(event) {
   try {
     upstream = await fetchProvider(url, upstreamHeaders, payload, upstreamMethod);
   } catch (e) {
+    log({ event: 'upstream_error', error: e.message, durationMs: Date.now() - startedAt });
     return response(502, { error: `Upstream error: ${e.message}` });
   }
+
+  log({ event: 'upstream_response', status: upstream.status, durationMs: Date.now() - startedAt });
 
   // Return response — preserving SSE content as-is
   const contentType = upstream.headers['content-type'] || 'application/json';
