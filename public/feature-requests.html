@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feature Requests — Claude Power UI</title>
+  <meta name="description" content="Suggest a feature for Claude Power UI. Vote on ideas from the community and help shape the roadmap.">
+  <meta property="og:title" content="Feature Requests — Claude Power UI">
+  <meta property="og:description" content="Suggest features and vote on what gets built next.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>✦</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/public.css">
+  <style>
+    .fr-page { padding: 140px 0 96px; position: relative; }
+    .fr-glow { position:absolute;top:-10%;left:50%;transform:translateX(-50%);width:700px;height:500px;border-radius:50%;background:radial-gradient(ellipse,rgba(99,102,241,.13) 0%,transparent 70%);pointer-events:none; }
+    .fr-layout { display:grid;grid-template-columns:1fr 400px;gap:48px;align-items:start; }
+
+    /* ── Form card ── */
+    .fr-form-card { background:var(--grad-card);border:1px solid var(--border);border-radius:var(--r-xl);padding:36px;position:sticky;top:84px; }
+    .fr-form-card h2 { font-size:1.25rem;margin-bottom:6px; }
+    .fr-form-card p { font-size:.9rem;color:var(--text-muted);margin-bottom:28px;line-height:1.6; }
+    .fr-field { margin-bottom:20px; }
+    .fr-label { display:block;font-size:.8125rem;font-weight:600;color:var(--text-muted);margin-bottom:8px;letter-spacing:.01em; }
+    .fr-input, .fr-select, .fr-textarea {
+      width:100%;padding:11px 14px;border-radius:var(--r);
+      background:rgba(255,255,255,.05);border:1px solid var(--border-s);
+      color:var(--text);font-size:.9rem;font-family:var(--font);
+      outline:none;transition:border-color var(--transition),box-shadow var(--transition);
+    }
+    .fr-input::placeholder, .fr-textarea::placeholder { color:var(--text-dim); }
+    .fr-input:focus, .fr-select:focus, .fr-textarea:focus { border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.12); }
+    .fr-select { appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center; }
+    .fr-select option { background:var(--surface-2);color:var(--text); }
+    .fr-textarea { resize:vertical;min-height:110px;line-height:1.6; }
+    .fr-submit { width:100%;padding:13px;border-radius:var(--r);background:var(--primary);color:#fff;font-size:.9375rem;font-weight:600;font-family:var(--font);border:none;cursor:pointer;transition:all var(--transition); }
+    .fr-submit:hover { background:var(--primary-dark);box-shadow:0 8px 24px rgba(99,102,241,.4);transform:translateY(-1px); }
+    .fr-char-count { font-size:.75rem;color:var(--text-dim);text-align:right;margin-top:4px; }
+
+    /* ── Ideas board ── */
+    .fr-board-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px; }
+    .fr-board-header h2 { font-size:1.35rem; }
+    .fr-filters { display:flex;gap:8px;flex-wrap:wrap; }
+    .fr-filter-btn { padding:6px 14px;border-radius:100px;font-size:.8125rem;font-weight:500;border:1px solid var(--border-s);background:transparent;color:var(--text-muted);cursor:pointer;transition:all var(--transition); }
+    .fr-filter-btn:hover { color:var(--text);border-color:var(--border); }
+    .fr-filter-btn.active { background:rgba(99,102,241,.15);color:var(--primary-light);border-color:rgba(99,102,241,.35); }
+
+    .fr-idea {
+      background:var(--grad-card);border:1px solid var(--border-s);border-radius:var(--r-lg);
+      padding:20px 22px;display:flex;gap:16px;align-items:flex-start;
+      transition:border-color var(--transition),transform var(--transition),box-shadow var(--transition);
+      margin-bottom:12px;
+    }
+    .fr-idea:hover { border-color:rgba(99,102,241,.3);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3); }
+
+    .fr-vote { display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0; }
+    .fr-vote-btn {
+      width:40px;height:40px;border-radius:10px;border:1px solid var(--border-s);background:rgba(255,255,255,.04);
+      color:var(--text-muted);font-size:.75rem;cursor:pointer;transition:all var(--transition);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    }
+    .fr-vote-btn:hover { border-color:var(--primary);color:var(--primary-light);background:rgba(99,102,241,.08); }
+    .fr-vote-btn.voted { background:rgba(99,102,241,.18);border-color:var(--primary);color:var(--primary-light); }
+    .fr-vote-count { font-size:.75rem;font-weight:700;color:var(--text-dim); }
+
+    .fr-idea-body { flex:1;min-width:0; }
+    .fr-idea-meta { display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap; }
+    .fr-idea-title { font-weight:600;font-size:.9375rem;color:var(--text);margin-bottom:4px; }
+    .fr-idea-desc { font-size:.875rem;color:var(--text-muted);line-height:1.6; }
+    .fr-idea-footer { display:flex;align-items:center;gap:12px;margin-top:12px; }
+    .fr-idea-author { font-size:.75rem;color:var(--text-dim); }
+    .fr-idea-comments { font-size:.75rem;color:var(--text-dim);display:flex;align-items:center;gap:4px; }
+
+    .fr-status { display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:.7rem;font-weight:600; }
+    .fr-status-planned    { background:rgba(99,102,241,.15);color:var(--primary-light); }
+    .fr-status-reviewing  { background:rgba(245,158,11,.12);color:#fbbf24; }
+    .fr-status-open       { background:rgba(255,255,255,.06);color:var(--text-dim); }
+    .fr-status-shipped    { background:rgba(34,197,94,.1);color:#4ade80; }
+
+    .fr-cat { display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:600;background:rgba(255,255,255,.06);color:var(--text-dim); }
+
+    /* ── Empty / success states ── */
+    .fr-success { text-align:center;padding:40px;display:none; }
+    .fr-success-icon { font-size:3rem;margin-bottom:16px; }
+    .fr-success h3 { margin-bottom:8px; }
+    .fr-success p { color:var(--text-muted);font-size:.9375rem; }
+
+    @media(max-width:960px) { .fr-layout{grid-template-columns:1fr;} .fr-form-card{position:static;} }
+    @media(max-width:640px) { .fr-board-header{flex-direction:column;align-items:flex-start;} }
+  </style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo"><div class="nav-logo-icon">✦</div>Claude Power UI</a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="features.html" class="nav-link">Features</a>
+      <a href="pricing.html" class="nav-link">Pricing</a>
+      <a href="getting-started.html" class="nav-link">Docs</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+    <div class="nav-actions">
+      <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Get Started Free →</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="fr-page">
+  <div class="fr-glow"></div>
+  <div class="container">
+
+    <div style="margin-bottom:52px;">
+      <span class="badge badge-cyan" style="margin-bottom:18px;display:inline-flex;">Community Roadmap</span>
+      <h1 class="display" style="margin-bottom:16px;">Shape what gets <span class="grad-text">built next.</span></h1>
+      <p style="font-size:1.125rem;color:var(--text-muted);max-width:540px;line-height:1.7;">Vote on community ideas or submit your own. We read every request and use votes to prioritise the roadmap.</p>
+    </div>
+
+    <div class="fr-layout">
+
+      <!-- ── Ideas board ── -->
+      <div>
+        <div class="fr-board-header">
+          <h2>Community Ideas</h2>
+          <div class="fr-filters" role="group" aria-label="Filter requests">
+            <button class="fr-filter-btn active" data-filter="all" onclick="setFilter(this,'all')">All</button>
+            <button class="fr-filter-btn" data-filter="planned" onclick="setFilter(this,'planned')">Planned</button>
+            <button class="fr-filter-btn" data-filter="reviewing" onclick="setFilter(this,'reviewing')">Reviewing</button>
+            <button class="fr-filter-btn" data-filter="open" onclick="setFilter(this,'open')">Open</button>
+            <button class="fr-filter-btn" data-filter="shipped" onclick="setFilter(this,'shipped')">Shipped ✓</button>
+          </div>
+        </div>
+
+        <div id="ideas-list">
+
+          <div class="fr-idea" data-status="planned">
+            <div class="fr-vote">
+              <button class="fr-vote-btn" aria-label="Upvote" onclick="vote(this, 247)">▲<br><span class="vote-num">247</span></button>
+            </div>
+            <div class="fr-idea-body">
+              <div class="fr-idea-meta">
+                <span class="fr-status fr-status-planned">● Planned</span>
+                <span class="fr-cat">UI / UX</span>
+              </div>
+              <p class="fr-idea-title">Split-pane view for comparing two conversations side-by-side</p>
+              <p class="fr-idea-desc">When working on prompts, it's really useful to run two conversations with different system prompts and compare responses. A split view would save so much context-switching.</p>
+              <div class="fr-idea-footer">
+                <span class="fr-idea-author">Suggested by @promptr</span>
+                <span class="fr-idea-comments">💬 14 comments</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fr-idea" data-status="planned">
+            <div class="fr-vote">
+              <button class="fr-vote-btn" aria-label="Upvote" onclick="vote(this, 189)">▲<br><span class="vote-num">189</span></button>
+            </div>
+            <div class="fr-idea-body">
+              <div class="fr-idea-meta">
+                <span class="fr-status fr-status-planned">● Planned</span>
+                <span class="fr-cat">Integrations</span>
+              </div>
+              <p class="fr-idea-title">Obsidian plugin to sync conversations and memories</p>
+              <p class="fr-idea-desc">An Obsidian plugin that automatically exports conversations as notes and syncs memory vault entries as a knowledge graph. Would make Claude Power UI a core part of my PKM workflow.</p>
+              <div class="fr-idea-footer">
+                <span class="fr-idea-author">Suggested by @neuron_net</span>
+                <span class="fr-idea-comments">💬 31 comments</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fr-idea" data-status="reviewing">
+            <div class="fr-vote">
+              <button class="fr-vote-btn" aria-label="Upvote" onclick="vote(this, 142)">▲<br><span class="vote-num">142</span></button>
+            </div>
+            <div class="fr-idea-body">
+              <div class="fr-idea-meta">
+                <span class="fr-status fr-status-reviewing">● Reviewing</span>
+                <span class="fr-cat">AI / Models</span>
+              </div>
+              <p class="fr-idea-title">Local model support via Ollama / LM Studio</p>
+              <p class="fr-idea-desc">Connect to locally-running models (Llama 3, Mistral, Phi-3) via the OpenAI-compatible API that Ollama and LM Studio expose. Zero cost, fully offline, maximum privacy.</p>
+              <div class="fr-idea-footer">
+                <span class="fr-idea-author">Suggested by @offline_ai</span>
+                <span class="fr-idea-comments">💬 28 comments</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fr-idea" data-status="reviewing">
+            <div class="fr-vote">
+              <button class="fr-vote-btn" aria-label="Upvote" onclick="vote(this, 98)">▲<br><span class="vote-num">98</span></button>
+            </div>
+            <div class="fr-idea-body">
+              <div class="fr-idea-meta">
+                <span class="fr-status fr-status-reviewing">● Reviewing</span>
+                <span class="fr-cat">Productivity</span>
+              </div>
+              <p class="fr-idea-title">Keyboard shortcut cheat sheet &amp; custom keybindings</p>
+              <p class="fr-idea-desc">A built-in shortcut reference (⌘/) and ability to remap any keyboard shortcut. Power users live in the keyboard — let us configure everything.</p>
+              <div class="fr-idea-footer">
+                <span class="fr-idea-author">Suggested by @keyboardnerd</span>
+                <span class="fr-idea-comments">💬 9 comments</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fr-idea" data-status="open">
+            <div class="fr-vote">
+              <button class="fr-vote-btn" aria-label="Upvote" onclick="vote(this, 67)">▲<br><span class="vote-num">67</span></button>
+            </div>
+            <div class="fr-idea-body">
+              <div class="fr-idea-meta">
+                <span class="fr-status fr-status-open">○ Open</span>
+                <span class="fr-cat">Sharing</span>
+              </div>
+              <p class="fr-idea-title">One-click shareable conversation links with view-only mode</p>
+              <p class="fr-idea-desc">Generate a shareable permalink for a conversation that anyone can view (read-only). Optionally allow them to fork it into their own session. Great for sharing AI-assisted work.</p>
+              <div class="fr-idea-footer">
+                <span class="fr-idea-author">Suggested by @share_it</span>
+                <span class="fr-idea-comments">💬 6 comments</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fr-idea" data-status="open">
+            <div class="fr-vote">
+              <button class="fr-vote-btn" aria-label="Upvote" onclick="vote(this, 54)">▲<br><span class="vote-num">54</span></button>
+            </div>
+            <div class="fr-idea-body">
+              <div class="fr-idea-meta">
+                <span class="fr-status fr-status-open">○ Open</span>
+                <span class="fr-cat">Files</span>
+              </div>
+              <p class="fr-idea-title">Drag-and-drop file upload with automatic context injection</p>
+              <p class="fr-idea-desc">Drag a PDF, image, or code file onto the chat window to have its contents automatically injected into the context. Support for Claude's vision API for images.</p>
+              <div class="fr-idea-footer">
+                <span class="fr-idea-author">Suggested by @dropfiles</span>
+                <span class="fr-idea-comments">💬 11 comments</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fr-idea" data-status="shipped">
+            <div class="fr-vote">
+              <button class="fr-vote-btn voted" aria-label="Upvote" onclick="vote(this, 203)">▲<br><span class="vote-num">203</span></button>
+            </div>
+            <div class="fr-idea-body">
+              <div class="fr-idea-meta">
+                <span class="fr-status fr-status-shipped">✓ Shipped in v1.4.0</span>
+                <span class="fr-cat">Export</span>
+              </div>
+              <p class="fr-idea-title">Export conversations as Markdown or JSON</p>
+              <p class="fr-idea-desc">Simple export to Markdown, JSON, or plain text so I can archive conversations in my own notes system or process them programmatically.</p>
+              <div class="fr-idea-footer">
+                <span class="fr-idea-author">Suggested by @export_lover</span>
+                <span class="fr-idea-comments">💬 19 comments</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /ideas-list -->
+
+        <p style="text-align:center;padding:24px 0 0;font-size:.875rem;color:var(--text-dim);">
+          Have more ideas? <a href="https://github.com/codyforbes/claude-power-ui/discussions" target="_blank" rel="noopener" style="color:var(--primary-light);">Join the discussion on GitHub →</a>
+        </p>
+      </div>
+
+      <!-- ── Submit form ── -->
+      <div>
+        <div class="fr-form-card" id="request-form-wrap">
+          <h2>Submit a request</h2>
+          <p>Describe the feature you'd like and why it would be useful. Clear, concise requests get reviewed faster.</p>
+
+          <form id="request-form" onsubmit="handleSubmit(event)" novalidate>
+            <div class="fr-field">
+              <label class="fr-label" for="fr-title">Feature title <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="fr-title" class="fr-input" placeholder="e.g. Split-pane conversation view" maxlength="120" required>
+              <div class="fr-char-count"><span id="title-count">0</span>/120</div>
+            </div>
+
+            <div class="fr-field">
+              <label class="fr-label" for="fr-category">Category <span style="color:var(--danger)">*</span></label>
+              <select id="fr-category" class="fr-select" required>
+                <option value="" disabled selected>Select a category…</option>
+                <option value="ui">UI / UX</option>
+                <option value="ai">AI / Models</option>
+                <option value="productivity">Productivity</option>
+                <option value="integrations">Integrations</option>
+                <option value="export">Export / Import</option>
+                <option value="sharing">Sharing</option>
+                <option value="privacy">Privacy / Security</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div class="fr-field">
+              <label class="fr-label" for="fr-description">Description <span style="color:var(--danger)">*</span></label>
+              <textarea id="fr-description" class="fr-textarea" placeholder="What would this feature do? What problem does it solve? How often would you use it?" maxlength="1000" required></textarea>
+              <div class="fr-char-count"><span id="desc-count">0</span>/1000</div>
+            </div>
+
+            <div class="fr-field">
+              <label class="fr-label" for="fr-email">Your email <span style="color:var(--text-dim);font-weight:400;">(optional — to notify you of updates)</span></label>
+              <input type="email" id="fr-email" class="fr-input" placeholder="you@example.com">
+            </div>
+
+            <button type="submit" class="fr-submit" id="fr-submit-btn">Submit Feature Request →</button>
+          </form>
+
+          <div class="fr-success" id="fr-success">
+            <div class="fr-success-icon">🎉</div>
+            <h3>Request submitted!</h3>
+            <p>Thanks for helping shape Claude Power UI. We'll review your idea and add it to the public board. If you left your email, we'll update you when the status changes.</p>
+            <a href="https://github.com/codyforbes/claude-power-ui/discussions" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="margin-top:20px;">Join the discussion on GitHub →</a>
+          </div>
+        </div>
+
+        <!-- Tips -->
+        <div style="margin-top:20px;padding:20px 24px;border-radius:var(--r);border:1px solid var(--border-s);background:rgba(255,255,255,.02);">
+          <p style="font-size:.8125rem;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;">Tips for great requests</p>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;">
+            <li style="font-size:.8125rem;color:var(--text-dim);display:flex;gap:8px;"><span style="color:var(--primary-light);">✦</span> Focus on the <strong style="color:var(--text-muted);">problem</strong>, not the solution.</li>
+            <li style="font-size:.8125rem;color:var(--text-dim);display:flex;gap:8px;"><span style="color:var(--primary-light);">✦</span> Explain <strong style="color:var(--text-muted);">how often</strong> you'd use it.</li>
+            <li style="font-size:.8125rem;color:var(--text-dim);display:flex;gap:8px;"><span style="color:var(--primary-light);">✦</span> Search existing ideas before submitting.</li>
+            <li style="font-size:.8125rem;color:var(--text-dim);display:flex;gap:8px;"><span style="color:var(--primary-light);">✦</span> One feature per request — keep it focused.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="nav-logo" style="margin-bottom:0;"><div class="nav-logo-icon">✦</div>Claude Power UI</a>
+        <p>A premium, privacy-first AI workspace. Multi-model. Local-first. Built for power users.</p>
+        <div class="footer-socials">
+          <a href="https://github.com/codyforbes/claude-power-ui" class="footer-social-link" title="GitHub" target="_blank" rel="noopener">⌘</a>
+          <a href="#" class="footer-social-link" title="Twitter / X">𝕏</a>
+          <a href="#" class="footer-social-link" title="Discord">◈</a>
+        </div>
+      </div>
+      <div class="footer-col"><h4>Product</h4><ul><li><a href="features.html">Features</a></li><li><a href="image-generation.html">Image Generation</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="getting-started.html">Documentation</a></li><li><a href="changelog.html">Changelog</a></li></ul></div>
+      <div class="footer-col"><h4>Company</h4><ul><li><a href="about.html">About</a></li><li><a href="privacy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li></ul></div>
+      <div class="footer-col"><h4>Community</h4><ul><li><a href="https://github.com/codyforbes/claude-power-ui" target="_blank" rel="noopener">GitHub</a></li><li><a href="#">Discord</a></li><li><a href="#">Twitter / X</a></li><li><a href="feature-requests.html">Feature Requests</a></li></ul></div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Claude Power UI. Open source under MIT License.</p>
+      <p>Not affiliated with Anthropic PBC.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Nav
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => { nav.style.background = window.scrollY > 40 ? 'rgba(3,7,18,.92)' : 'rgba(3,7,18,.70)'; });
+  document.getElementById('hamburger').addEventListener('click', () => {
+    const links = document.querySelector('.nav-links'), acts = document.querySelector('.nav-actions');
+    const open = links.style.display === 'flex';
+    [links, acts].forEach(el => { el.style.display = open ? '' : 'flex'; el.style.flexDirection = 'column'; el.style.position = 'absolute'; el.style.top = '64px'; el.style.left = '0'; el.style.right = '0'; el.style.background = 'rgba(3,7,18,.98)'; el.style.padding = '16px 24px'; el.style.borderBottom = '1px solid rgba(255,255,255,.06)'; });
+    if (open) { links.style.display = ''; acts.style.display = ''; }
+  });
+
+  // Char counts
+  document.getElementById('fr-title').addEventListener('input', function() {
+    document.getElementById('title-count').textContent = this.value.length;
+  });
+  document.getElementById('fr-description').addEventListener('input', function() {
+    document.getElementById('desc-count').textContent = this.value.length;
+  });
+
+  // Filter
+  function setFilter(btn, filter) {
+    document.querySelectorAll('.fr-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.fr-idea').forEach(el => {
+      el.style.display = (filter === 'all' || el.dataset.status === filter) ? 'flex' : 'none';
+    });
+  }
+
+  // Vote
+  function vote(btn, base) {
+    const numEl = btn.querySelector('.vote-num');
+    const isVoted = btn.classList.toggle('voted');
+    numEl.textContent = isVoted ? base + 1 : base;
+    btn.setAttribute('aria-label', isVoted ? 'Remove vote' : 'Upvote');
+  }
+
+  // Submit
+  function handleSubmit(e) {
+    e.preventDefault();
+    const title = document.getElementById('fr-title').value.trim();
+    const cat   = document.getElementById('fr-category').value;
+    const desc  = document.getElementById('fr-description').value.trim();
+    if (!title || !cat || !desc) {
+      [['fr-title',title],['fr-category',cat],['fr-description',desc]].forEach(([id,val]) => {
+        if (!val) document.getElementById(id).style.borderColor = 'var(--danger)';
+      });
+      return;
+    }
+    document.getElementById('request-form').style.display = 'none';
+    document.getElementById('fr-success').style.display = 'block';
+  }
+</script>
+</body>
+</html>

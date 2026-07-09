@@ -80,13 +80,26 @@ const ImageRouter = (() => {
       { id: 'flux-schnell', name: 'Flux Schnell' }
     ],
     fal: [
-      { id: 'fal-ai/flux/dev',      name: 'Flux Dev' },
-      { id: 'fal-ai/flux/schnell',  name: 'Flux Schnell' },
-      { id: 'fal-ai/flux-realism',  name: 'Flux Realism' }
+      { id: 'fal-ai/flux-pro/v1.1', name: 'Flux Pro 1.1' },
+      { id: 'fal-ai/flux/dev',       name: 'Flux Dev' },
+      { id: 'fal-ai/flux/schnell',   name: 'Flux Schnell' },
+      { id: 'fal-ai/flux-realism',   name: 'Flux Realism' },
+      { id: 'fal-ai/flux-2-pro',     name: 'Flux 2 Pro' },
+      { id: 'fal-ai/flux-lora',      name: 'Flux Dev with LoRA' },
+      { id: 'xai/grok-imagine-image', name: 'Grok Imagine Image' },
+      { id: 'fal-ai/z-image/turbo',  name: 'Z-Image Turbo' }
     ],
     replicate: [
       { id: 'black-forest-labs/flux-1.1-pro', name: 'Flux 1.1 Pro' },
-      { id: 'black-forest-labs/flux-schnell', name: 'Flux Schnell' }
+      { id: 'black-forest-labs/flux-schnell', name: 'Flux Schnell' },
+      { id: 'black-forest-labs/flux-dev',     name: 'Flux Dev' }
+    ],
+    huggingface: [
+      { id: 'kpsss34/FHDR_Uncensored',              name: 'FHDR Uncensored (Flux)' },
+      { id: 'black-forest-labs/FLUX.1-schnell',     name: 'Flux Schnell (HF)' },
+      { id: 'black-forest-labs/FLUX.1-dev',         name: 'Flux Dev (HF)' },
+      { id: 'stabilityai/stable-diffusion-xl-base-1.0', name: 'SDXL Base 1.0' },
+      { id: 'runwayml/stable-diffusion-v1-5',       name: 'SD v1.5' }
     ],
     comfyui: [
       { id: 'comfyui-default', name: 'ComfyUI (local)' }
@@ -124,6 +137,56 @@ const ImageRouter = (() => {
   }
 
   /**
+   * parseProviderError — converts a raw HTTP error into a human-readable message.
+   * @param {string} provider  - 'bfl' | 'fal' | 'replicate'
+   * @param {number} status    - HTTP status code
+   * @param {string} rawText   - raw response body text
+   * @returns {string}
+   */
+  function parseProviderError(provider, status, rawText) {
+    const providerLabel = { bfl: 'Black Forest Labs', fal: 'fal.ai', replicate: 'Replicate' }[provider] || provider;
+
+    // Attempt to extract a machine-readable reason from the JSON body
+    let serverMsg = '';
+    try {
+      const parsed = JSON.parse(rawText);
+      serverMsg = parsed.error || parsed.detail || parsed.message || parsed.title || '';
+      if (typeof serverMsg !== 'string') serverMsg = JSON.stringify(serverMsg);
+    } catch (_) {
+      serverMsg = rawText ? rawText.slice(0, 200) : '';
+    }
+
+    // Upstream / gateway timeouts (502, 504, and BFL's specific upstream message)
+    const isUpstreamTimeout =
+      status === 502 || status === 504 ||
+      serverMsg.toLowerCase().includes('upstream') ||
+      serverMsg.toLowerCase().includes('timeout');
+
+    if (isUpstreamTimeout) {
+      return `${providerLabel} is temporarily unavailable (upstream timeout). This is a transient server error — please wait a moment and try again.`;
+    }
+
+    switch (status) {
+      case 401:
+        return `${providerLabel} API key is missing or invalid (401 Unauthenticated). Open Settings → Image Generation and paste a valid API key.`;
+      case 402:
+        return `${providerLabel} account has insufficient credits (402). Top up your balance at the provider dashboard.`;
+      case 403:
+        return `${providerLabel} key does not have permission to access this model (403 Forbidden). Check your plan or model access at the provider dashboard.`;
+      case 422:
+        return `${providerLabel} rejected the request parameters (422 Unprocessable). ${serverMsg ? 'Server said: ' + serverMsg : 'Check your prompt, dimensions, or step count.'}`;
+      case 429:
+        return `${providerLabel} rate limit reached (429). Slow down or upgrade your plan.`;
+      case 500:
+        return `${providerLabel} encountered an internal server error (500). Try again in a moment.`;
+      case 503:
+        return `${providerLabel} is overloaded or down for maintenance (503). Try again shortly.`;
+      default:
+        return `${providerLabel} returned an error (${status})${serverMsg ? ': ' + serverMsg : '.'}`;
+    }
+  }
+
+  /**
    * proxyFetch — sends a request through the Netlify proxy function.
    * @param {{ provider: string, path: string, apiKey: string, payload: any, method?: string }} opts
    * @returns {Promise<Response>}
@@ -143,10 +206,21 @@ const ImageRouter = (() => {
    */
   async function cloudFetch({ provider, baseUrl, path, headers, body, method = 'POST', signal }) {
     if (USE_PROXY) {
+      // The proxy adds its own auth scheme per provider (e.g. "Key " for fal,
+      // "Token " for replicate, "x-key" header for bfl). If we pass the full
+      // Authorization header value the proxy would double-wrap it —
+      // e.g. "Key Key sk-..." — so strip any scheme prefix here and send
+      // only the bare key.
+      const rawAuthHeader = headers['x-key'] || headers['Authorization'] || '';
+      const bareKey = rawAuthHeader
+        .replace(/^Key\s+/i, '')
+        .replace(/^Token\s+/i, '')
+        .replace(/^Bearer\s+/i, '')
+        .trim();
       const resp = await proxyFetch({
         provider,
         path,
-        apiKey: headers['x-key'] || headers['Authorization'] || '',
+        apiKey: bareKey,
         payload: body,
         method
       });
@@ -188,7 +262,7 @@ const ImageRouter = (() => {
 
     if (!submitResp.ok) {
       const errText = await submitResp.text().catch(() => '');
-      throw new Error(`BFL error ${submitResp.status}: ${errText}`);
+      throw new Error(parseProviderError('bfl', submitResp.status, errText));
     }
 
     const { id } = await submitResp.json();
@@ -214,7 +288,7 @@ const ImageRouter = (() => {
 
       if (!pollResp.ok) {
         const errText = await pollResp.text().catch(() => '');
-        throw new Error(`BFL poll error ${pollResp.status}: ${errText}`);
+        throw new Error(parseProviderError('bfl', pollResp.status, errText));
       }
 
       const data = await pollResp.json();
@@ -227,7 +301,8 @@ const ImageRouter = (() => {
       }
 
       if (data.status === 'Failed') {
-        throw new Error(`BFL error: generation failed — ${JSON.stringify(data)}`);
+        const reason = (data.result && (data.result.error || data.result.reason)) || JSON.stringify(data);
+        throw new Error(`Black Forest Labs generation failed: ${reason}`);
       }
       // status === 'Pending' or 'Processing' — keep polling
     }
@@ -238,24 +313,53 @@ const ImageRouter = (() => {
   // ---------------------------------------------------------------------------
   // Provider: fal.ai
   // ---------------------------------------------------------------------------
-  async function generateFal({ prompt, model, width, height, steps, seed, apiKey, signal }) {
+  async function generateFal({
+    prompt, model, width, height, steps, seed, apiKey,
+    num_images, image_url, mode, control_model, strength,
+    enable_safety_checker, safety_tolerance, signal
+  }) {
     if (!apiKey) throw new Error('API key required for fal');
 
     const FAL_BASE = 'https://fal.run';
     const headers = { 'Authorization': `Key ${apiKey}` };
 
+    let endpoint = `/${model}`;
     const body = {
       prompt,
       image_size: { width, height },
       num_inference_steps: steps,
-      num_images: 1
+      num_images: num_images || 1
     };
+
+    if (enable_safety_checker !== undefined) {
+      body.enable_safety_checker = enable_safety_checker;
+    }
+    if (safety_tolerance !== undefined) {
+      body.safety_tolerance = safety_tolerance;
+    }
+
+    if (image_url) {
+      if (mode === 'img2img') {
+        endpoint = '/fal-ai/flux/dev/image-to-image';
+        body.image_url = image_url;
+        body.strength = strength !== undefined ? strength : 0.5;
+      } else if (mode === 'pose' || mode === 'controlnet') {
+        endpoint = '/fal-ai/flux-controlnet';
+        body.controlnet_model = control_model || 'openpose';
+        body.control_image_url = image_url;
+        body.controlnet_strength = strength !== undefined ? strength : 0.5;
+      } else if (mode === 'redux') {
+        endpoint = '/fal-ai/flux/dev/redux';
+        body.image_url = image_url;
+      }
+    }
+
     if (seed !== -1) body.seed = seed;
 
     const resp = await cloudFetch({
       provider: 'fal',
       baseUrl: FAL_BASE,
-      path: `/${model}`,
+      path: endpoint,
       headers,
       body,
       method: 'POST',
@@ -264,15 +368,34 @@ const ImageRouter = (() => {
 
     if (!resp.ok) {
       const errText = await resp.text().catch(() => '');
-      throw new Error(`fal.ai error ${resp.status}: ${errText}`);
+      throw new Error(parseProviderError('fal', resp.status, errText));
     }
 
     const data = await resp.json();
-    const url = data.images && data.images[0] && data.images[0].url;
-    if (!url) throw new Error('fal.ai error: no image URL in response');
+    if (!data.images || data.images.length === 0) {
+      throw new Error('fal.ai error: no images in response');
+    }
 
-    const dataUrl = await urlToDataUrl(url);
-    return { url, dataUrl, seed: data.seed !== undefined ? data.seed : seed };
+    const images = await Promise.all(data.images.map(async (img) => {
+      let dataUrl = null;
+      try {
+        dataUrl = await urlToDataUrl(img.url);
+      } catch (err) {
+        console.warn('Failed to convert image URL to data URL:', err);
+      }
+      return {
+        url: img.url,
+        dataUrl,
+        seed: data.seed !== undefined ? data.seed : seed
+      };
+    }));
+
+    return {
+      url: images[0].url,
+      dataUrl: images[0].dataUrl,
+      seed: images[0].seed,
+      images
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -301,7 +424,7 @@ const ImageRouter = (() => {
 
     if (!submitResp.ok) {
       const errText = await submitResp.text().catch(() => '');
-      throw new Error(`Replicate error ${submitResp.status}: ${errText}`);
+      throw new Error(parseProviderError('replicate', submitResp.status, errText));
     }
 
     const prediction = await submitResp.json();
@@ -328,7 +451,7 @@ const ImageRouter = (() => {
 
       if (!pollResp.ok) {
         const errText = await pollResp.text().catch(() => '');
-        throw new Error(`Replicate poll error ${pollResp.status}: ${errText}`);
+        throw new Error(parseProviderError('replicate', pollResp.status, errText));
       }
 
       const data = await pollResp.json();
@@ -482,6 +605,101 @@ const ImageRouter = (() => {
   // ---------------------------------------------------------------------------
   // Main generate() function
   // ---------------------------------------------------------------------------
+  // Provider: HuggingFace Inference API
+  // ---------------------------------------------------------------------------
+  /**
+   * Calls the HuggingFace Inference API for text-to-image models.
+   * • Returns raw binary image bytes — the proxy base64-encodes them in a JSON
+   *   envelope: { base64: '...', contentType: 'image/jpeg' }
+   * • If the model is cold (503 + estimated_time), we wait and retry automatically.
+   */
+  async function generateHuggingFace({ prompt, model, width, height, steps, seed, apiKey, signal }) {
+    if (!apiKey) throw new Error('API key required for huggingface');
+
+    const HF_BASE = 'https://api-inference.huggingface.co';
+    const headers = { 'Authorization': `Bearer ${apiKey}` };
+
+    const body = {
+      inputs: prompt,
+      parameters: {
+        width,
+        height,
+        num_inference_steps: steps,
+        ...(seed !== -1 ? { seed } : {})
+      }
+    };
+
+    // HuggingFace cold-start: 503 + JSON { error: '...loading', estimated_time: N }
+    // We retry up to ~5 minutes total.
+    const MAX_COLD_RETRIES = 20;
+    const MIN_COLD_WAIT    = 5000;  // min 5s between retries
+
+    for (let attempt = 0; attempt <= MAX_COLD_RETRIES; attempt++) {
+      if (signal && signal.aborted) throw new Error('Generation cancelled');
+
+      const resp = await cloudFetch({
+        provider: 'huggingface',
+        baseUrl: HF_BASE,
+        path: `/models/${model}`,
+        headers,
+        body,
+        method: 'POST',
+        signal
+      });
+
+      // Proxy wraps successful binary as { base64, contentType }
+      if (resp.ok) {
+        let envelope;
+        try { envelope = await resp.json(); } catch (e) {
+          throw new Error('huggingface error: unexpected non-JSON response from proxy');
+        }
+
+        if (envelope.base64) {
+          // Decode base64 → binary string → Uint8Array → Blob → data URL
+          const byteChars = atob(envelope.base64);
+          const bytes = new Uint8Array(byteChars.length);
+          for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+          const blob = new Blob([bytes], { type: envelope.contentType || 'image/jpeg' });
+          const dataUrl = await new Promise((res, rej) => {
+            const reader = new FileReader();
+            reader.onload  = () => res(reader.result);
+            reader.onerror = rej;
+            reader.readAsDataURL(blob);
+          });
+          return { url: null, dataUrl, seed };
+        }
+
+        // Fallback: maybe it returned JSON with error even on 200
+        throw new Error('huggingface error: no image data in response');
+      }
+
+      // Error response
+      const errText = await resp.text().catch(() => '');
+      let errJson = {};
+      try { errJson = JSON.parse(errText); } catch (_) {}
+
+      // Cold-start: model still loading
+      if (resp.status === 503 && (errJson.error || '').toLowerCase().includes('loading')) {
+        const waitMs = Math.max(
+          MIN_COLD_WAIT,
+          ((errJson.estimated_time || 20) * 1000)
+        );
+        if (attempt < MAX_COLD_RETRIES) {
+          await sleep(waitMs);
+          continue;
+        }
+        throw new Error(`huggingface error: model still loading after ${Math.round((attempt * MIN_COLD_WAIT) / 1000)}s — try again in a moment`);
+      }
+
+      throw new Error(parseProviderError('huggingface', resp.status, errText));
+    }
+
+    throw new Error('huggingface error: max retries exceeded');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Main generate() function
+  // ---------------------------------------------------------------------------
   async function generate(prompt, options) {
     options = options || {};
     const provider = options.provider || DEFAULTS.provider;
@@ -504,10 +722,23 @@ const ImageRouter = (() => {
           result = await generateBFL({ prompt, model, width, height, steps, seed, apiKey, signal });
           break;
         case 'fal':
-          result = await generateFal({ prompt, model, width, height, steps, seed, apiKey, signal });
+          result = await generateFal({
+            prompt, model, width, height, steps, seed, apiKey,
+            num_images: options.num_images,
+            image_url: options.image_url,
+            mode: options.mode,
+            control_model: options.control_model,
+            strength: options.strength,
+            enable_safety_checker: options.enable_safety_checker,
+            safety_tolerance: options.safety_tolerance,
+            signal
+          });
           break;
         case 'replicate':
           result = await generateReplicate({ prompt, model, width, height, steps, seed, apiKey, signal });
+          break;
+        case 'huggingface':
+          result = await generateHuggingFace({ prompt, model, width, height, steps, seed, apiKey, signal });
           break;
         case 'comfyui':
           result = await generateComfyUI({ prompt, width, height, steps, seed, comfyUrl, workflow, signal });
@@ -533,6 +764,7 @@ const ImageRouter = (() => {
       dataUrl:  result.dataUrl  !== undefined ? result.dataUrl  : null,
       url:      result.url      !== undefined ? result.url      : null,
       seed:     result.seed     !== undefined ? result.seed     : seed,
+      images:   result.images   !== undefined ? result.images   : null,
       model,
       provider,
       timingMs: Date.now() - t0,

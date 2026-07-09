@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — Claude Power UI</title>
+  <meta name="description" content="Sign in to Claude Power UI — the premium BYOK multi-model AI workspace." />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#0a0f1e" />
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>✦</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Netlify Identity Widget for Google OAuth -->
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #030712;
+      --surface:      rgba(15, 23, 42, 0.88);
+      --border:       rgba(99, 102, 241, 0.18);
+      --indigo-500:   #6366f1;
+      --purple-500:   #8b5cf6;
+      --text-primary: #f1f5f9;
+      --text-muted:   #64748b;
+      --text-subtle:  #475569;
+      --error:        #f87171;
+      --success:      #34d399;
+      --font:         'Inter', system-ui, sans-serif;
+      --transition:   0.2s ease;
+    }
+
+    html, body { min-height: 100vh; background: var(--bg); font-family: var(--font); -webkit-font-smoothing: antialiased; color: var(--text-primary); }
+
+    body {
+      background:
+        radial-gradient(ellipse 80% 60% at 20% -20%, rgba(99,102,241,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 120%, rgba(139,92,246,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(6,182,212,0.05) 0%, transparent 70%),
+        #030712;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; text-decoration: none; }
+    .brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg,#6366f1,#8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; box-shadow: 0 0 20px rgba(99,102,241,0.4); }
+    .brand-name { font-size: 18px; font-weight: 700; background: linear-gradient(135deg,#f1f5f9,#a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    .card { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 24px 64px rgba(0,0,0,0.4), 0 0 80px rgba(99,102,241,0.08); }
+
+    .tabs { display: flex; gap: 4px; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 4px; margin-bottom: 28px; }
+    .tab { flex: 1; padding: 9px 0; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition); background: transparent; color: var(--text-muted); font-family: var(--font); }
+    .tab.active { background: linear-gradient(135deg,rgba(99,102,241,0.25),rgba(139,92,246,0.2)); color: var(--text-primary); }
+    .tab:hover:not(.active) { color: var(--text-primary); }
+
+    .heading { font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; letter-spacing: -0.3px; }
+    .subheading { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; line-height: 1.5; }
+
+    .btn-google { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 20px; border: 1px solid rgba(255,255,255,0.1); border-radius: 11px; background: rgba(255,255,255,0.04); color: var(--text-primary); font-size: 14px; font-weight: 600; font-family: var(--font); cursor: pointer; transition: all var(--transition); margin-bottom: 20px; }
+    .btn-google:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); transform: translateY(-1px); }
+    .btn-google:active { transform: translateY(0); }
+
+    .divider { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+    .divider-label { font-size: 11px; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+
+    .field { margin-bottom: 16px; }
+    .field-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
+    .field-input { width: 100%; padding: 12px 14px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; color: var(--text-primary); font-size: 14px; font-family: var(--font); transition: all var(--transition); outline: none; }
+    .field-input::placeholder { color: var(--text-subtle); }
+    .field-input:focus { border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.06); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+
+    .banner { border-radius: 10px; padding: 11px 14px; font-size: 13px; margin-bottom: 18px; display: none; line-height: 1.5; }
+    .banner.visible { display: block; }
+    .banner.error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); color: var(--error); }
+    .banner.success { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2); color: var(--success); }
+
+    .btn-submit { width: 100%; padding: 13px; background: linear-gradient(135deg,#6366f1,#8b5cf6); border: none; border-radius: 11px; color: white; font-size: 14px; font-weight: 700; font-family: var(--font); cursor: pointer; transition: all var(--transition); margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: 0.02em; }
+    .btn-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(99,102,241,0.4); }
+    .btn-submit:active:not(:disabled) { transform: translateY(0); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+
+    .footer-row { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .footer-link { font-size: 12px; color: var(--text-muted); text-decoration: none; transition: color var(--transition); background: none; border: none; cursor: pointer; font-family: var(--font); }
+    .footer-link:hover { color: #a5b4fc; }
+
+    .back-link { display: flex; align-items: center; gap: 6px; margin-top: 28px; font-size: 12px; color: var(--text-subtle); text-decoration: none; transition: color var(--transition); }
+    .back-link:hover { color: var(--text-muted); }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .pw-strength { height: 3px; border-radius: 99px; background: rgba(255,255,255,0.06); margin-top: 6px; overflow: hidden; }
+    .pw-strength-fill { height: 100%; border-radius: 99px; width: 0; transition: width 0.3s, background 0.3s; }
+
+    .info-box { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 20px; }
+    .info-box strong { color: #c4b5fd; }
+    .info-box a { color: #a5b4fc; }
+
+    @media (max-width: 480px) {
+      .card { padding: 28px 20px; }
+      .field-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a class="brand" href="/public/index.html">
+    <div class="brand-icon">✦</div>
+    <span class="brand-name">Claude Power UI</span>
+  </a>
+
+  <div class="card">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tab-signin" onclick="showTab('signin')">Sign In</button>
+      <button class="tab" id="tab-signup" onclick="showTab('signup')">Create Account</button>
+    </div>
+
+    <!-- SIGN IN -->
+    <div id="signin-section">
+      <div class="heading">Welcome back</div>
+      <div class="subheading">Sign in to your AI workspace</div>
+
+      <button class="btn-google" onclick="signInWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.233 17.64 11.926 17.64 9.2Z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/><path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332Z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.96L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+
+      <div class="divider"><div class="divider-line"></div><span class="divider-label">or continue with email</span><div class="divider-line"></div></div>
+
+      <div class="banner error" id="signin-error"></div>
+
+      <form id="signin-form" autocomplete="on" onsubmit="handleSignin(event)">
+        <div class="field">
+          <label class="field-label" for="si-user">Username</label>
+          <input class="field-input" id="si-user" type="text" placeholder="Enter your username" autocomplete="username" autofocus />
+        </div>
+        <div class="field">
+          <label class="field-label" for="si-pass">Password</label>
+          <input class="field-input" id="si-pass" type="password" placeholder="Enter your password" autocomplete="current-password" />
+        </div>
+        <button class="btn-submit" type="submit" id="si-btn">
+          <span class="spinner" id="si-spin"></span>
+          <span id="si-text">Sign In →</span>
+        </button>
+      </form>
+
+      <div class="footer-row">
+        <button class="footer-link" onclick="showTab('forgot')">Forgot password?</button>
+        <button class="footer-link" onclick="showTab('signup')">New here? Create account →</button>
+      </div>
+    </div>
+
+    <!-- SIGN UP -->
+    <div id="signup-section" style="display:none">
+      <div class="heading">Create account</div>
+      <div class="subheading">Join Claude Power UI — bring your own API keys</div>
+
+      <button class="btn-google" onclick="signInWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.233 17.64 11.926 17.64 9.2Z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/><path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332Z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.96L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/></svg>
+        Sign up with Google
+      </button>
+
+      <div class="divider"><div class="divider-line"></div><span class="divider-label">or use email</span><div class="divider-line"></div></div>
+
+      <div class="banner error" id="su-error"></div>
+      <div class="banner success" id="su-success"></div>
+
+      <form id="signup-form" autocomplete="on" onsubmit="handleSignup(event)">
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="su-user">Username</label>
+            <input class="field-input" id="su-user" type="text" placeholder="johndoe" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="su-name">Display Name</label>
+            <input class="field-input" id="su-name" type="text" placeholder="John Doe" autocomplete="name" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="su-pass">Password <span style="color:#475569;font-weight:400;text-transform:none;letter-spacing:0">(min 6 chars)</span></label>
+          <input class="field-input" id="su-pass" type="password" placeholder="Choose a strong password" autocomplete="new-password" oninput="updateStrength(this.value)" />
+          <div class="pw-strength"><div class="pw-strength-fill" id="pw-fill"></div></div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="su-confirm">Confirm Password</label>
+          <input class="field-input" id="su-confirm" type="password" placeholder="Repeat password" autocomplete="new-password" />
+        </div>
+        <button class="btn-submit" type="submit" id="su-btn">
+          <span class="spinner" id="su-spin"></span>
+          <span id="su-text">Create Account →</span>
+        </button>
+      </form>
+
+      <div class="footer-row">
+        <span></span>
+        <button class="footer-link" onclick="showTab('signin')">Already have an account? Sign in</button>
+      </div>
+    </div>
+
+    <!-- FORGOT PASSWORD -->
+    <div id="forgot-section" style="display:none">
+      <div class="heading">Reset password</div>
+      <div class="subheading">Password reset is managed by the admin.</div>
+      <div class="info-box">
+        💡 <strong>Admin users</strong> can reset any password from the
+        <a href="/app/admin.html#users">Admin Dashboard → Users</a> panel.<br/><br/>
+        If you are the admin, sign in with your current credentials.
+      </div>
+      <button class="btn-submit" onclick="showTab('signin')">← Back to Sign In</button>
+      <div class="footer-row" style="margin-top:16px"><span></span>
+        <button class="footer-link" onclick="showTab('signup')">Create a new account</button>
+      </div>
+    </div>
+  </div>
+
+  <a class="back-link" href="/public/index.html">← Back to homepage</a>
+</div>
+
+<script>
+  /* ── Tab switching ─────────────────────────────────────── */
+  function showTab(tab) {
+    ['signin','signup','forgot'].forEach(t => {
+      document.getElementById(t+'-section').style.display = t === tab ? 'block' : 'none';
+    });
+    document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
+    document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+    const foci = { signin:'si-user', signup:'su-user' };
+    if (foci[tab]) setTimeout(() => document.getElementById(foci[tab])?.focus(), 50);
+  }
+
+  /* ── Password strength ─────────────────────────────────── */
+  function updateStrength(val) {
+    const fill = document.getElementById('pw-fill');
+    if (!fill) return;
+    let s = 0;
+    if (val.length >= 8) s++;
+    if (val.length >= 12) s++;
+    if (/[A-Z]/.test(val) && /[a-z]/.test(val)) s++;
+    if (/\d/.test(val)) s++;
+    if (/[^A-Za-z0-9]/.test(val)) s++;
+    fill.style.width  = Math.round(s/5*100) + '%';
+    fill.style.background = s <= 1 ? '#f87171' : s <= 3 ? '#f59e0b' : '#34d399';
+  }
+
+  /* ── Banner helpers ────────────────────────────────────── */
+  function showBanner(id, msg, type='error') {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'banner ' + type + ' visible';
+  }
+  function clearBanner(id) {
+    const el = document.getElementById(id);
+    if (el) el.className = 'banner';
+  }
+
+  function setLoading(btnId, spinId, textId, loading, label='') {
+    const btn = document.getElementById(btnId);
+    const spin = document.getElementById(spinId);
+    const txt = document.getElementById(textId);
+    if (btn)  btn.disabled  = loading;
+    if (spin) spin.style.display = loading ? 'inline-block' : 'none';
+    if (txt && label) txt.textContent = label;
+  }
+
+  /* ── Sign In ───────────────────────────────────────────── */
+  async function handleSignin(e) {
+    e.preventDefault();
+    clearBanner('signin-error');
+    const username = document.getElementById('si-user').value.trim();
+    const password = document.getElementById('si-pass').value;
+    if (!username || !password) { showBanner('signin-error', 'Please enter your username and password.'); return; }
+
+    setLoading('si-btn','si-spin','si-text', true, 'Signing in…');
+    try {
+      // Store intent and redirect to app — boot() will pick it up
+      sessionStorage.setItem('cpu_login_intent', JSON.stringify({ username, password }));
+      const ret = sessionStorage.getItem('cpu_auth_redirect') || '/app/index.html';
+      window.location.href = ret.startsWith('/app') ? ret : '/app/index.html';
+    } catch(err) {
+      showBanner('signin-error', err.message || 'Sign in failed.');
+      setLoading('si-btn','si-spin','si-text', false, 'Sign In →');
+      document.getElementById('si-pass').value = '';
+    }
+  }
+
+  /* ── Sign Up ───────────────────────────────────────────── */
+  async function handleSignup(e) {
+    e.preventDefault();
+    clearBanner('su-error');
+    const username    = document.getElementById('su-user').value.trim();
+    const displayName = document.getElementById('su-name').value.trim();
+    const password    = document.getElementById('su-pass').value;
+    const confirm     = document.getElementById('su-confirm').value;
+
+    if (!username || username.length < 2) { showBanner('su-error', 'Username must be at least 2 characters.'); return; }
+    if (!password || password.length < 6)  { showBanner('su-error', 'Password must be at least 6 characters.'); return; }
+    if (password !== confirm)               { showBanner('su-error', 'Passwords do not match.'); return; }
+
+    setLoading('su-btn','su-spin','su-text', true, 'Creating account…');
+    try {
+      sessionStorage.setItem('cpu_signup_intent', JSON.stringify({ username, displayName, password }));
+      window.location.href = '/app/index.html?signup=1';
+    } catch(err) {
+      showBanner('su-error', err.message || 'Sign up failed.');
+      setLoading('su-btn','su-spin','su-text', false, 'Create Account →');
+    }
+  }
+
+  /* ── Google OAuth via Netlify Identity ─────────────────── */
+  function signInWithGoogle() {
+    if (typeof netlifyIdentity === 'undefined') {
+      alert('Google sign-in requires Netlify Identity to be enabled.\nGo to your Netlify dashboard → Identity → Enable Identity,\nthen add Google as an external provider.');
+      return;
+    }
+    netlifyIdentity.open('login');
+    netlifyIdentity.on('login', function(user) {
+      netlifyIdentity.close();
+      sessionStorage.setItem('cpu_ni_login', JSON.stringify({
+        id:       user.id,
+        email:    user.email,
+        name:     (user.user_metadata && user.user_metadata.full_name) || user.email.split('@')[0],
+        provider: 'google',
+        token:    user.token && user.token.access_token,
+      }));
+      window.location.href = '/app/index.html?ni=1';
+    });
+  }
+
+  /* ── Auto-switch tab from URL ──────────────────────────── */
+  (function() {
+    const p = new URLSearchParams(location.search);
+    if (p.get('tab') === 'signup') showTab('signup');
+  })();
+
+  /* ── If NI already has session, bounce to app ────────────── */
+  if (typeof netlifyIdentity !== 'undefined') {
+    netlifyIdentity.on('init', function(user) {
+      if (user) {
+        sessionStorage.setItem('cpu_ni_login', JSON.stringify({
+          id:       user.id,
+          email:    user.email,
+          name:     (user.user_metadata && user.user_metadata.full_name) || user.email.split('@')[0],
+          provider: (user.app_metadata && user.app_metadata.provider) || 'email',
+          token:    user.token && user.token.access_token,
+        }));
+        window.location.href = '/app/index.html?ni=1';
+      }
+    });
+  }
+</script>
+</body>
+</html>

@@ -52,14 +52,15 @@
   <div class="nav-inner">
     <a href="index.html" class="nav-logo"><div class="nav-logo-icon">✦</div>Claude Power UI</a>
     <div class="nav-links">
-      <a href="features.html" class="nav-link active">Features</a>
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="features.html" class="nav-link active" aria-current="page">Features</a>
       <a href="pricing.html" class="nav-link">Pricing</a>
       <a href="getting-started.html" class="nav-link">Docs</a>
       <a href="about.html" class="nav-link">About</a>
     </div>
     <div class="nav-actions">
-      <a href="../app/index.html" class="btn btn-ghost btn-sm">Sign In</a>
-      <a href="../app/index.html" class="btn btn-primary btn-sm">Get Started Free →</a>
+      <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Get Started Free →</a>
     </div>
     <button class="nav-hamburger" id="hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
   </div>
@@ -248,6 +249,61 @@
   </div>
 </div>
 
+<div class="feat-section" style="border-bottom:none;border-top:1px solid var(--border-s);">
+  <div class="container">
+    <div class="feat-grid">
+      <div>
+        <span class="badge badge-amber" style="margin-bottom:16px;">07 · Image Generation</span>
+        <h2 class="h2" style="margin-bottom:0;">Text to image.<br>Three world-class APIs.</h2>
+        <div class="feat-bullets">
+          <div class="feat-bullet"><div class="feat-bullet-icon">⬛</div><div class="feat-bullet-text"><strong>Black Forest Labs FLUX</strong> — FLUX.1 pro, dev, and schnell models. Best-in-class photorealism and prompt adherence. From $0.003/image.</div></div>
+          <div class="feat-bullet"><div class="feat-bullet-icon">🔮</div><div class="feat-bullet-text"><strong>fal.ai fast inference</strong> — Sub-second image generation. Streaming previews as your image renders. Ideal for iterative creative workflows.</div></div>
+          <div class="feat-bullet"><div class="feat-bullet-icon">🔁</div><div class="feat-bullet-text"><strong>Replicate open catalogue</strong> — 10,000+ models including SDXL, ControlNet, and your own LoRA fine-tunes. The most model variety of any API.</div></div>
+          <div class="feat-bullet"><div class="feat-bullet-icon">📥</div><div class="feat-bullet-text"><strong>Production export</strong> — Download PNG, JPEG, or WebP at full resolution. Images saved to workspace history with model, prompt, seed, and cost metadata.</div></div>
+        </div>
+        <a href="image-generation.html" class="btn btn-outline btn-sm">Image Generation deep dive →</a>
+      </div>
+      <div class="mockup-window">
+        <div class="mockup-bar"><div class="mockup-dot" style="background:#ff5f57"></div><div class="mockup-dot" style="background:#febc2e"></div><div class="mockup-dot" style="background:#28c840"></div><div class="mockup-title">Image Generator · FLUX.1 [pro]</div></div>
+        <div class="mockup-body">
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <div class="provider-pill selected" style="border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08);color:#fbbf24;">⬛ BFL · FLUX.1 [pro]</div>
+            <div class="provider-pill">🔮 fal.ai</div>
+            <div class="provider-pill">🔁 Replicate</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+            <div style="aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,rgba(99,102,241,.3),rgba(139,92,246,.2),rgba(6,182,212,.1));border:1px solid var(--border-s);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🌅</div>
+            <div style="aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(239,68,68,.1),rgba(139,92,246,.2));border:1px solid var(--border-s);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🌃</div>
+            <div style="aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(6,182,212,.2),rgba(99,102,241,.15));border:1px solid var(--border-s);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🎋</div>
+            <div style="aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,rgba(236,72,153,.2),rgba(139,92,246,.2),rgba(99,102,241,.1));border:1px solid var(--border-s);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🌌</div>
+          </div>
+          <div style="background:var(--surface-2);border-radius:8px;padding:8px 10px;font-size:.72rem;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:var(--text-dim);">Model</span><span>FLUX.1 [pro]</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:var(--text-dim);">Steps</span><span>28</span></div>
+            <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border-s);"><span style="color:var(--text-dim);">Total cost</span><span style="color:#4ade80;font-weight:700;">$0.22</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        <div class="mockup-bar"><div class="mockup-dot" style="background:#ff5f57"></div><div class="mockup-dot" style="background:#febc2e"></div><div class="mockup-dot" style="background:#28c840"></div><div class="mockup-title">Admin · Overview</div></div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+            <div style="background:var(--surface-2);border-radius:8px;padding:10px;"><div style="font-size:.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Messages Today</div><div style="font-size:1.4rem;font-weight:800;color:var(--text);font-family:'Outfit',sans-serif;">247</div><div style="font-size:.65rem;color:#4ade80;">↑ 18% vs yesterday</div></div>
+            <div style="background:var(--surface-2);border-radius:8px;padding:10px;"><div style="font-size:.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">API Cost Today</div><div style="font-size:1.4rem;font-weight:800;color:var(--text);font-family:'Outfit',sans-serif;">$2.14</div><div style="font-size:.65rem;color:var(--text-dim);">Avg $0.009/msg</div></div>
+          </div>
+          <div style="background:var(--surface-2);border-radius:8px;padding:10px;">
+            <div style="font-size:.65rem;color:var(--text-dim);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Top Models</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><div style="font-size:.72rem;color:var(--text-muted);width:100px;">claude-opus-4-5</div><div style="flex:1;height:5px;background:var(--surface-3);border-radius:3px;"><div style="width:68%;height:100%;background:var(--primary);border-radius:3px;"></div></div><div style="font-size:.7rem;color:var(--text-dim);">68%</div></div>
+            <div style="display:flex;gap:8px;align-items:center;"><div style="font-size:.72rem;color:var(--text-muted);width:100px;">gpt-4o</div><div style="flex:1;height:5px;background:var(--surface-3);border-radius:3px;"><div style="width:22%;height:100%;background:var(--secondary);border-radius:3px;"></div></div><div style="font-size:.7rem;color:var(--text-dim);">22%</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <section style="background:linear-gradient(180deg,transparent,rgba(99,102,241,.04),transparent);">
   <div class="container">
     <div class="section-header">
@@ -288,10 +344,14 @@
 <footer class="footer">
   <div class="container">
     <div class="footer-grid">
-      <div class="footer-brand"><a href="index.html" class="nav-logo"><div class="nav-logo-icon">✦</div>Claude Power UI</a><p>A premium, privacy-first AI workspace.</p><div class="footer-socials"><a href="#" class="footer-social-link">⌘</a><a href="#" class="footer-social-link">𝕏</a><a href="#" class="footer-social-link">◈</a></div></div>
-      <div class="footer-col"><h4>Product</h4><ul><li><a href="features.html">Features</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="getting-started.html">Docs</a></li></ul></div>
-      <div class="footer-col"><h4>Company</h4><ul><li><a href="about.html">About</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="terms.html">Terms</a></li></ul></div>
-      <div class="footer-col"><h4>Community</h4><ul><li><a href="#">Discord</a></li><li><a href="#">GitHub</a></li><li><a href="#">Twitter</a></li></ul></div>
+      <div class="footer-brand">
+        <a href="index.html" class="nav-logo" style="margin-bottom:0;"><div class="nav-logo-icon">✦</div>Claude Power UI</a>
+        <p>A premium, privacy-first AI workspace. Multi-model. Local-first. Built for power users.</p>
+        <div class="footer-socials"><a href="#" class="footer-social-link">⌘</a><a href="#" class="footer-social-link">𝕏</a><a href="#" class="footer-social-link">◈</a></div>
+      </div>
+      <div class="footer-col"><h4>Product</h4><ul><li><a href="features.html">Features</a></li><li><a href="image-generation.html">Image Generation</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="getting-started.html">Documentation</a></li><li><a href="changelog.html">Changelog</a></li></ul></div>
+      <div class="footer-col"><h4>Company</h4><ul><li><a href="about.html">About</a></li><li><a href="privacy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li></ul></div>
+      <div class="footer-col"><h4>Community</h4><ul><li><a href="https://github.com/codyforbes/claude-power-ui" target="_blank" rel="noopener">GitHub</a></li><li><a href="#">Discord</a></li><li><a href="#">Twitter / X</a></li></ul></div>
     </div>
     <div class="footer-bottom"><p>© 2026 Claude Power UI. MIT License.</p><p>Not affiliated with Anthropic PBC.</p></div>
   </div>

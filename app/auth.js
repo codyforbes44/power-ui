@@ -3,6 +3,248 @@
    Local auth: SHA-256 hashing · Role-based access · Session tokens
    ============================================================ */
 
+// ──────────────────────────────────────────────────────────
+// Cryptographic Polyfill for Insecure Contexts (e.g. mobile LAN access)
+// ──────────────────────────────────────────────────────────
+(function() {
+  let needPolyfill = false;
+  try {
+    if (!window.crypto || !window.crypto.subtle) {
+      needPolyfill = true;
+    }
+  } catch (e) {
+    needPolyfill = true;
+  }
+
+  if (!needPolyfill) return;
+
+  // Self-contained SHA-256 implementation
+  function sha256(bytes) {
+    const K = new Uint32Array([
+      0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+      0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+      0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+      0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+      0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    ]);
+
+    const H = new Uint32Array([
+      0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    ]);
+
+    const l = bytes.length;
+    const n = ((l + 8) >> 6) + 1;
+    const w = new Uint32Array(n * 16);
+    for (let i = 0; i < l; i++) {
+      w[i >> 2] |= bytes[i] << (24 - (i & 3) * 8);
+    }
+    w[l >> 2] |= 0x80 << (24 - (l & 3) * 8);
+    w[n * 16 - 1] = l * 8;
+
+    const W = new Uint32Array(64);
+    const v = new Uint32Array(8);
+
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < 16; j++) W[j] = w[i * 16 + j];
+      for (let j = 16; j < 64; j++) {
+        const s0 = ((W[j - 15] >>> 7) | (W[j - 15] << 25)) ^ ((W[j - 15] >>> 18) | (W[j - 15] << 14)) ^ (W[j - 15] >>> 3);
+        const s1 = ((W[j - 2] >>> 17) | (W[j - 2] << 15)) ^ ((W[j - 2] >>> 19) | (W[j - 2] << 13)) ^ (W[j - 2] >>> 10);
+        W[j] = (W[j - 16] + s0 + W[j - 7] + s1) | 0;
+      }
+
+      for (let j = 0; j < 8; j++) v[j] = H[j];
+
+      for (let j = 0; j < 64; j++) {
+        const S1 = ((v[4] >>> 6) | (v[4] << 26)) ^ ((v[4] >>> 11) | (v[4] << 21)) ^ ((v[4] >>> 25) | (v[4] << 7));
+        const ch = (v[4] & v[5]) ^ (~v[4] & v[6]);
+        const temp1 = (v[7] + S1 + ch + K[j] + W[j]) | 0;
+        const S0 = ((v[0] >>> 2) | (v[0] << 30)) ^ ((v[0] >>> 13) | (v[0] << 19)) ^ ((v[0] >>> 22) | (v[0] << 10));
+        const maj = (v[0] & v[1]) ^ (v[0] & v[2]) ^ (v[1] & v[2]);
+        const temp2 = (S0 + maj) | 0;
+
+        v[7] = v[6];
+        v[6] = v[5];
+        v[5] = v[4];
+        v[4] = (v[3] + temp1) | 0;
+        v[3] = v[2];
+        v[2] = v[1];
+        v[1] = v[0];
+        v[0] = (temp1 + temp2) | 0;
+      }
+
+      for (let j = 0; j < 8; j++) H[j] = (H[j] + v[j]) | 0;
+    }
+
+    const out = new Uint8Array(32);
+    for (let i = 0; i < 8; i++) {
+      out[i * 4]     = H[i] >>> 24;
+      out[i * 4 + 1] = H[i] >>> 16;
+      out[i * 4 + 2] = H[i] >>> 8;
+      out[i * 4 + 3] = H[i];
+    }
+    return out;
+  }
+
+  // Self-contained HMAC-SHA256 implementation
+  function hmac_sha256(key, message) {
+    let k = new Uint8Array(64);
+    if (key.length > 64) {
+      k.set(sha256(key));
+    } else {
+      k.set(key);
+    }
+
+    const ipad = new Uint8Array(64);
+    const opad = new Uint8Array(64);
+    for (let i = 0; i < 64; i++) {
+      ipad[i] = k[i] ^ 0x36;
+      opad[i] = k[i] ^ 0x5c;
+    }
+
+    const innerMsg = new Uint8Array(64 + message.length);
+    innerMsg.set(ipad);
+    innerMsg.set(message, 64);
+    const innerHash = sha256(innerMsg);
+
+    const outerMsg = new Uint8Array(64 + 32);
+    outerMsg.set(opad);
+    outerMsg.set(innerHash, 64);
+    return sha256(outerMsg);
+  }
+
+  // Self-contained PBKDF2-SHA256 implementation
+  function pbkdf2_sha256(password, salt, iterations, keyLen) {
+    const derivedKey = new Uint8Array(keyLen);
+    const blockCount = Math.ceil(keyLen / 32);
+    const u = new Uint8Array(32);
+    const t = new Uint8Array(32);
+    const d = new Uint8Array(salt.length + 4);
+    d.set(salt);
+
+    for (let i = 1; i <= blockCount; i++) {
+      d[salt.length]     = (i >>> 24) & 0xff;
+      d[salt.length + 1] = (i >>> 16) & 0xff;
+      d[salt.length + 2] = (i >>> 8) & 0xff;
+      d[salt.length + 3] = i & 0xff;
+
+      let ui = hmac_sha256(password, d);
+      t.set(ui);
+
+      for (let j = 1; j < iterations; j++) {
+        ui = hmac_sha256(password, ui);
+        for (let k = 0; k < 32; k++) {
+          t[k] ^= ui[k];
+        }
+      }
+
+      const offset = (i - 1) * 32;
+      const count = Math.min(32, keyLen - offset);
+      for (let k = 0; k < count; k++) {
+        derivedKey[offset + k] = t[k];
+      }
+    }
+
+    return derivedKey;
+  }
+
+  // Self-contained SHA-256 CTR stream cipher (acting as AES-GCM replacement for vault)
+  function cryptSHA256CTR(keyBytes, ivBytes, dataBytes) {
+    const out = new Uint8Array(dataBytes.length);
+    const blockInput = new Uint8Array(keyBytes.length + ivBytes.length + 4);
+    blockInput.set(keyBytes, 0);
+    blockInput.set(ivBytes, keyBytes.length);
+    
+    const numBlocks = Math.ceil(dataBytes.length / 32);
+    for (let i = 0; i < numBlocks; i++) {
+      blockInput[blockInput.length - 4] = (i >>> 24) & 0xff;
+      blockInput[blockInput.length - 3] = (i >>> 16) & 0xff;
+      blockInput[blockInput.length - 2] = (i >>> 8) & 0xff;
+      blockInput[blockInput.length - 1] = i & 0xff;
+      
+      const blockHash = sha256(blockInput);
+      const offset = i * 32;
+      const limit = Math.min(32, dataBytes.length - offset);
+      for (let j = 0; j < limit; j++) {
+        out[offset + j] = dataBytes[offset + j] ^ blockHash[j];
+      }
+    }
+    return out;
+  }
+
+  const polyfillSubtle = {
+    async digest(algo, data) {
+      if (algo.toUpperCase() !== 'SHA-256') throw new Error('Unsupported digest algorithm');
+      const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+      return sha256(bytes).buffer;
+    },
+    async importKey(format, keyData, algorithm, extractable, keyUsages) {
+      const rawKey = keyData instanceof Uint8Array ? keyData : new Uint8Array(keyData);
+      return {
+        type: 'secret',
+        extractable,
+        algorithm,
+        usages: keyUsages,
+        _rawKey: rawKey
+      };
+    },
+    async deriveBits(algorithm, baseKey, numberOfBits) {
+      if (algorithm.name.toUpperCase() !== 'PBKDF2') throw new Error('Unsupported derivation algorithm');
+      const password = baseKey._rawKey;
+      const salt = algorithm.salt instanceof Uint8Array ? algorithm.salt : new Uint8Array(algorithm.salt);
+      const iterations = algorithm.iterations;
+      const keyLen = numberOfBits / 8;
+      return pbkdf2_sha256(password, salt, iterations, keyLen).buffer;
+    },
+    async encrypt(algorithm, key, data) {
+      const iv = algorithm.iv instanceof Uint8Array ? algorithm.iv : new Uint8Array(algorithm.iv);
+      const plaintext = data instanceof Uint8Array ? data : new Uint8Array(data);
+      return cryptSHA256CTR(key._rawKey, iv, plaintext).buffer;
+    },
+    async decrypt(algorithm, key, data) {
+      const iv = algorithm.iv instanceof Uint8Array ? algorithm.iv : new Uint8Array(algorithm.iv);
+      const ciphertext = data instanceof Uint8Array ? data : new Uint8Array(data);
+      return cryptSHA256CTR(key._rawKey, iv, ciphertext).buffer;
+    }
+  };
+
+  try {
+    if (!window.crypto) {
+      window.crypto = {};
+    }
+    if (!window.crypto.subtle) {
+      Object.defineProperty(window.crypto, 'subtle', {
+        value: polyfillSubtle,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      });
+    }
+    if (!window.crypto.getRandomValues) {
+      window.crypto.getRandomValues = function(array) {
+        for (let i = 0; i < array.length; i++) {
+          array[i] = Math.floor(Math.random() * 256);
+        }
+        return array;
+      };
+    }
+  } catch (e) {
+    try {
+      window.crypto = {
+        subtle: polyfillSubtle,
+        getRandomValues: function(array) {
+          for (let i = 0; i < array.length; i++) {
+            array[i] = Math.floor(Math.random() * 256);
+          }
+          return array;
+        }
+      };
+    } catch (err) {}
+  }
+})();
+
 const AuthSystem = (() => {
 
   const USERS_KEY   = 'cpu_auth_users';
@@ -301,11 +543,128 @@ const AuthSystem = (() => {
   // ──────────────────────────────────────────────────────────
   // First-run: migrate existing state, create admin user
   // ──────────────────────────────────────────────────────────
+  // Process intents forwarded from /public/login.html
+  // ──────────────────────────────────────────────────────────
+  /**
+   * Handle a Netlify Identity (Google OAuth) login.
+   * Creates a local user account if one does not already exist,
+   * then establishes a local session so requireAuth() passes.
+   */
+  async function netlifyIdentityLogin(niUser) {
+    if (!niUser || !niUser.id) return null;
+    const users = loadUsers();
+    // Use email as the canonical identifier for NI users
+    const email  = niUser.email || '';
+    const uname  = 'ni_' + niUser.id.slice(0, 12); // stable local username
+    let user = users.find(u => u.niId === niUser.id || u.username === uname);
+
+    if (!user) {
+      // Auto-create a local account for this NI identity
+      const salt = randomHex(16);
+      // Use NI token as pseudo-password (never actually used for PW login)
+      const passwordHash = await hashPassword(niUser.token || niUser.id, salt, 'pbkdf2');
+      user = {
+        id:          randomHex(8),
+        username:    uname,
+        displayName: niUser.name || email.split('@')[0] || 'User',
+        email,
+        role:        'user',
+        niId:        niUser.id,
+        niProvider:  niUser.provider || 'google',
+        salt,
+        passwordHash,
+        hashAlgo:    'pbkdf2',
+        createdAt:   Date.now(),
+        lastLogin:   Date.now(),
+        active:      true,
+        messageCount:0,
+        totalCost:   0,
+      };
+      users.push(user);
+      saveUsers(users);
+      console.log(`✦ AuthSystem: auto-created NI user → ${uname} (${email})`);
+    } else {
+      // Update last login
+      const idx = users.findIndex(u => u.id === user.id);
+      if (idx !== -1) { users[idx].lastLogin = Date.now(); saveUsers(users); }
+    }
+
+    // Derive a stable vault key from the NI token so vault functions work
+    await deriveVaultKey(niUser.token || niUser.id, user.salt);
+
+    const session = {
+      userId:    user.id,
+      username:  user.username,
+      role:      user.role,
+      token:     generateToken(),
+      createdAt: Date.now(),
+      expiresAt: Date.now() + (8 * 60 * 60 * 1000),
+    };
+    saveSession(session);
+    return sanitize(user);
+  }
+
   async function initAndMigrate() {
+    // ── Process intents forwarded from /public/login.html ──
+    // These are set by the login page before redirecting here.
+
+    // 1. Netlify Identity (Google OAuth) session
+    const niRaw = sessionStorage.getItem('cpu_ni_login');
+    if (niRaw) {
+      sessionStorage.removeItem('cpu_ni_login');
+      try {
+        const niUser = JSON.parse(niRaw);
+        await netlifyIdentityLogin(niUser);
+        // Clear URL param without reload
+        const url = new URL(location.href);
+        url.searchParams.delete('ni');
+        history.replaceState({}, '', url);
+        return; // session established — skip normal init
+      } catch(e) { console.warn('AuthSystem: NI login error', e); }
+    }
+
+    // 2. Signup intent (new account registration)
+    const suRaw = sessionStorage.getItem('cpu_signup_intent');
+    if (suRaw) {
+      sessionStorage.removeItem('cpu_signup_intent');
+      try {
+        const { username, displayName, password } = JSON.parse(suRaw);
+        const existing = loadUsers();
+        // Only create if users already exist (not a first-run)
+        if (existing.length > 0) {
+          await createUser({ username, displayName, password, role: 'user' });
+          const user = await login(username, password);
+          const url = new URL(location.href);
+          url.searchParams.delete('signup');
+          history.replaceState({}, '', url);
+          console.log(`✦ AuthSystem: signup + login → ${username}`);
+          return;
+        }
+      } catch(e) { console.warn('AuthSystem: signup intent error', e); }
+    }
+
+    // 3. Login intent (credential-based login from login page)
+    const liRaw = sessionStorage.getItem('cpu_login_intent');
+    if (liRaw) {
+      sessionStorage.removeItem('cpu_login_intent');
+      try {
+        const { username, password } = JSON.parse(liRaw);
+        await login(username, password);
+        const url = new URL(location.href);
+        url.searchParams.delete('login');
+        history.replaceState({}, '', url);
+        console.log(`✦ AuthSystem: login intent → ${username}`);
+        return;
+      } catch(e) {
+        sessionStorage.setItem('cpu_auth_error', e.message || 'Invalid username or password.');
+        console.warn('AuthSystem: login intent error', e);
+      }
+    }
+
+    // ── First-run: create default admin ───────────────────
     const users = loadUsers();
     if (users.length > 0) return; // already initialized
 
-    // Create default admin with PBKDF2 from the start
     const salt = randomHex(16);
     const passwordHash = await hashPassword('admin123', salt, 'pbkdf2');
     const admin = {
@@ -349,6 +708,23 @@ const AuthSystem = (() => {
 
           ${error ? `<div class="auth-error-banner">${esc(error)}</div>` : ''}
 
+          <!-- Google / OAuth sign-in -->
+          <button class="auth-google-btn" id="auth-google-btn" onclick="window.__authGoogleSignIn()" type="button">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.233 17.64 11.926 17.64 9.2Z" fill="#4285F4"/>
+              <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
+              <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332Z" fill="#FBBC05"/>
+              <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.96L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
+            </svg>
+            Continue with Google
+          </button>
+
+          <div class="auth-divider">
+            <span class="auth-divider-line"></span>
+            <span class="auth-divider-label">or sign in with username</span>
+            <span class="auth-divider-line"></span>
+          </div>
+
           <form class="auth-form" id="login-form" autocomplete="on">
             <div class="auth-field">
               <label class="auth-label" for="auth-username">Username</label>
@@ -380,14 +756,23 @@ const AuthSystem = (() => {
             </button>
           </form>
 
-          <p class="auth-footer-note">
-            First time? Use <strong>admin</strong> / <strong>admin123</strong><br/>
-            You will be prompted to set a new password on first login.
-          </p>
+          <div style="display:flex;justify-content:space-between;margin-top:16px;flex-wrap:wrap;gap:8px">
+            <p class="auth-footer-note" style="margin:0">
+              First time? <strong>admin</strong> / <strong>admin123</strong>
+            </p>
+            <a class="auth-footer-note" style="margin:0;color:#6366f1;text-decoration:none" href="/public/login.html?tab=signup">Create account →</a>
+          </div>
         </div>
         <div id="toast-container"></div>
       </div>
     `;
+
+    // Expose Google sign-in handler globally so the inline button onclick can call it
+    window.__authGoogleSignIn = function() {
+      // Redirect to the dedicated login page which has the full NI widget
+      sessionStorage.setItem('cpu_auth_redirect', window.location.href);
+      window.location.href = '/public/login.html';
+    };
 
     // Attach submit handler
     document.getElementById('login-form').addEventListener('submit', async e => {
@@ -406,12 +791,10 @@ const AuthSystem = (() => {
 
       try {
         const user = await login(username, password);
-        // Check if password change is required
         if (user.mustChangePassword) {
           renderForcePasswordChange(user);
           return;
         }
-        // Restore redirect or reload
         const redirect = sessionStorage.getItem('cpu_auth_redirect');
         sessionStorage.removeItem('cpu_auth_redirect');
         if (redirect && redirect !== window.location.href) {
@@ -511,6 +894,7 @@ const AuthSystem = (() => {
     recordMessageSent,
     renderLoginScreen,
     refreshVaultKey,   // for re-deriving vault key after external password change
+    netlifyIdentityLogin,   // Google OAuth bridge
   };
 
 })();

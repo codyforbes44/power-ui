@@ -11,7 +11,7 @@ const STATE = {
   sessions:        [],
   activeSessionId: null,
 
-  apiKeys: { anthropic: '', openai: '', google: '', groq: '' },
+  apiKeys: { anthropic: '', openai: '', google: '', groq: '', mistral: '', bfl: '', fal: '', replicate: '', huggingface: '' },
 
   settings: {
     model:              'claude-sonnet-4-5',
@@ -98,7 +98,66 @@ function autoResize(el) {
   el.style.height = Math.min(el.scrollHeight, 220) + 'px';
 }
 
+// ============================================================
+// IndexedDB Image Store (Resolves QuotaExceededError)
+// ============================================================
+const ImageDb = (() => {
+  const DB_NAME = 'claude_power_ui_images';
+  const DB_VERSION = 1;
+  const STORE_NAME = 'images';
+  let dbPromise = null;
 
+  function getDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+    return dbPromise;
+  }
+
+  async function get(key) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get(key);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function set(key, value) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.put(value, key);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function remove(key) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.delete(key);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  return { get, set, remove };
+})();
 
 // ============================================================
 // ServerSync — detect local server, persist to disk, SSE sync
@@ -946,19 +1005,41 @@ function renderMessages() {
       inner.appendChild(div);
       return;
     }
-
     if (msg.content && msg.content.startsWith('__IMAGE__:')) {
       let imgData;
       try { imgData = JSON.parse(msg.content.slice(10)); } catch { imgData = null; }
       if (imgData) {
-        const dlLink = imgData.src
-          ? `<a class="image-gen-download" href="${imgData.src}" download="generated-${imgData.seed || Date.now()}.png" title="Download image">⬇ Download</a>`
-          : '';
-        div.innerHTML = `
-          <div class="message-avatar">${avatar}</div>
-          <div class="message-content">
+        let imagesHtml = '';
+        if (imgData.images && imgData.images.length > 1) {
+          imagesHtml = `
+            <div class="image-gen-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 8px;">
+              ${imgData.images.map((img, idx) => {
+                const imgDb = img.src && img.src.startsWith('db:');
+                const dl = img.src
+                  ? `<a class="image-gen-download" href="${imgDb ? '#' : img.src}" download="generated-${img.seed || Date.now()}-${idx}.png" title="Download image">⬇ Download</a>`
+                  : '';
+                return `
+                  <div class="image-gen-grid-item" style="display: flex; flex-direction: column; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; padding: 4px;">
+                    <img src="${imgDb ? '' : img.src}" ${imgDb ? `data-db-src="${img.src.slice(3)}"` : ''} alt="${esc(imgData.prompt)}" class="image-gen-img ${imgDb ? 'db-image-load' : ''}"
+                      loading="lazy" style="width: 100%; border-radius: 4px; cursor: pointer; aspect-ratio: ${imgData.width}/${imgData.height}; object-fit: cover;"
+                      onclick="this.classList.toggle('image-gen-img-expanded')" />
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 4px 2px 4px; font-size: 11px; color: var(--text-muted);">
+                      ${img.seed > 0 ? `<span>seed: ${img.seed}</span>` : ''}
+                      ${dl}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
+        } else {
+          const isDb = imgData.src && imgData.src.startsWith('db:');
+          const dlLink = imgData.src
+            ? `<a class="image-gen-download" href="${isDb ? '#' : imgData.src}" download="generated-${imgData.seed || Date.now()}.png" title="Download image">⬇ Download</a>`
+            : '';
+          imagesHtml = `
             <div class="image-gen-result">
-              <img src="${imgData.src}" alt="${esc(imgData.prompt)}" class="image-gen-img"
+              <img src="${isDb ? '' : imgData.src}" ${isDb ? `data-db-src="${imgData.src.slice(3)}"` : ''} alt="${esc(imgData.prompt)}" class="image-gen-img ${isDb ? 'db-image-load' : ''}"
                 loading="lazy" onclick="this.classList.toggle('image-gen-img-expanded')" />
               <div class="image-gen-footer">
                 <span class="image-gen-provider">${esc(imgData.provider || '')} • ${esc(imgData.model || '')}</span>
@@ -967,7 +1048,47 @@ function renderMessages() {
                 <span class="image-gen-timing">${imgData.timingS}s</span>
                 ${dlLink}
               </div>
-              <div class="image-gen-caption">${esc(imgData.prompt)}</div>
+            </div>
+          `;
+        }
+
+        div.innerHTML = `
+          <div class="message-avatar">${avatar}</div>
+          <div class="message-content">
+            ${imagesHtml}
+            <div class="image-gen-caption" style="margin-top: 6px;">${esc(imgData.prompt)}</div>
+            ${imgData.images && imgData.images.length > 1 ? `
+              <div class="image-gen-footer" style="margin-top: 4px; border-top: none; padding-top: 0;">
+                <span class="image-gen-provider">${esc(imgData.provider || '')} • ${esc(imgData.model || '')}</span>
+                <span class="image-gen-dims">${imgData.width}×${imgData.height}</span>
+                <span class="image-gen-timing">${imgData.timingS}s</span>
+              </div>
+            ` : ''}
+          </div>
+        `;
+        inner.appendChild(div);
+        return;
+      }
+    }
+
+    // ── Image generation error card ──────────────────────
+    if (msg.content && msg.content.startsWith('__IMG_ERROR__:')) {
+      let errData;
+      try { errData = JSON.parse(msg.content.slice(14)); } catch { errData = null; }
+      if (errData) {
+        div.innerHTML = `
+          <div class="message-avatar">${avatar}</div>
+          <div class="message-content">
+            <div class="image-gen-error-card">
+              <div class="image-gen-error-header">
+                <span class="image-gen-error-icon">${errData.icon || '⚠️'}</span>
+                <div>
+                  <div class="image-gen-error-title">${esc(errData.title || 'Generation Failed')}</div>
+                  <div class="image-gen-error-provider">${esc(errData.provider || '')}</div>
+                </div>
+              </div>
+              <div class="image-gen-error-body">${esc(errData.body || '')}</div>
+              ${errData.action ? `<div class="image-gen-error-action">${errData.action}</div>` : ''}
             </div>
           </div>
         `;
@@ -1083,6 +1204,25 @@ function renderMessages() {
   container.innerHTML = '';
   container.appendChild(inner);
   scrollToBottom();
+
+  // Asynchronously load images from IndexedDB
+  container.querySelectorAll('.db-image-load').forEach(async (img) => {
+    const key = img.getAttribute('data-db-src');
+    if (!key) return;
+    try {
+      const base64 = await ImageDb.get(key);
+      if (base64) {
+        img.src = base64;
+        const containerItem = img.closest('.image-gen-result, .image-gen-grid-item');
+        if (containerItem) {
+          const dlLink = containerItem.querySelector('.image-gen-download');
+          if (dlLink) dlLink.href = base64;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load image from IndexedDB:', err);
+    }
+  });
 }
 
 /* ---- Template Gallery (welcome screen) ---- */
@@ -1605,11 +1745,26 @@ function handleSend() {
 
   // ── /imagine command — image generation shortcut ──────────────
   if (userText.startsWith('/imagine ') || userText.startsWith('/img ')) {
-    const prompt = userText.replace(/^\/(?:imagine|img)\s+/, '');
-    if (prompt) {
+    // Parse flags: --provider <id>  --model <id>  --size WxH  --steps N
+    let raw = userText.replace(/^\/(?:imagine|img)\s+/, '');
+    const imgOpts = {};
+
+    const flagRe = /--(?:provider|model|size|steps)\s+\S+/gi;
+    for (const flagMatch of raw.matchAll(/--provider\s+(\S+)/gi))  imgOpts.provider = flagMatch[1];
+    for (const flagMatch of raw.matchAll(/--model\s+(\S+)/gi))     imgOpts.model    = flagMatch[1];
+    for (const flagMatch of raw.matchAll(/--size\s+(\d+x\d+)/gi)) {
+      const [w, h] = flagMatch[1].split('x').map(Number);
+      imgOpts.width = w; imgOpts.height = h;
+    }
+    for (const flagMatch of raw.matchAll(/--steps\s+(\d+)/gi))    imgOpts.steps    = parseInt(flagMatch[1], 10);
+
+    // Remove all parsed flags from the prompt string
+    const cleanPrompt = raw.replace(/--(?:provider|model|size|steps)\s+\S+/gi, '').trim();
+
+    if (cleanPrompt) {
       input.value = '';
       autoResize(input);
-      handleImageGeneration(session, prompt);
+      handleImageGeneration(session, cleanPrompt, imgOpts);
       return;
     }
   }
@@ -1722,7 +1877,8 @@ async function executeTool(toolName, input, session) {
           timingS: (result.timingMs / 1000).toFixed(1),
         })}`;
       } catch (e) {
-        return `Image generation failed: ${e.message}`;
+        const classified = classifyImageError(e, provider);
+        return classified || `⚠️ Image generation failed: ${e.message}`;
       }
     }
 
@@ -1785,11 +1941,21 @@ async function executeTool(toolName, input, session) {
 async function sendMessageDirect(session, userText, messageContent = null) {
   // ── Image-mode intercept ──────────────────────────────────
   if (session.imageMode) {
-    const prompt = userText.replace(/^\/imagine\s*/i, '').trim();
-    return handleImageGeneration(session, prompt, {
+    // Strip /imagine prefix then parse the same flags as the handleSend /imagine handler
+    let _raw = userText.replace(/^\/imagine\s*/i, '').trim();
+    const _imgOpts = {
       provider: session.imageProvider,
       model:    session.imageModel,
-    });
+    };
+    for (const _m of _raw.matchAll(/--provider\s+(\S+)/gi))  _imgOpts.provider = _m[1];
+    for (const _m of _raw.matchAll(/--model\s+(\S+)/gi))     _imgOpts.model    = _m[1];
+    for (const _m of _raw.matchAll(/--size\s+(\d+x\d+)/gi)) {
+      const [_w, _h] = _m[1].split('x').map(Number);
+      _imgOpts.width = _w; _imgOpts.height = _h;
+    }
+    for (const _m of _raw.matchAll(/--steps\s+(\d+)/gi))     _imgOpts.steps = parseInt(_m[1], 10);
+    const _cleanPrompt = _raw.replace(/--(?:provider|model|size|steps)\s+\S+/gi, '').trim();
+    return handleImageGeneration(session, _cleanPrompt || _raw, _imgOpts);
   }
 
   const model    = session.model || STATE.settings.model;
@@ -1998,12 +2164,70 @@ async function sendMessageDirect(session, userText, messageContent = null) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// classifyImageError — convert a raw provider error into a structured error
+// card string that renderMessages() will handle.
+// Returns a string starting with __IMG_ERROR__: for special rendering, or a
+// plain text fallback if something unexpected happened.
+// ---------------------------------------------------------------------------
+function classifyImageError(err, provider) {
+  const msg = (err && err.message) ? err.message : String(err);
+
+  // Detect categories
+  const isAuth = /401|unauthenticated|authentication required|invalid.*key|missing.*key|api key is missing/i.test(msg);
+  const isCredits = /402|insufficient credits|billing|payment/i.test(msg);
+  const isPermission = /403|forbidden|no.*permission|cannot access/i.test(msg);
+  const isRateLimit = /429|rate limit/i.test(msg);
+  const isTransient = /502|503|504|upstream|timeout|temporarily unavailable|overloaded|server error|try again/i.test(msg);
+  const isCancelled = /cancelled|aborted/i.test(msg);
+
+  const providerLabel = { bfl: 'Black Forest Labs', fal: 'fal.ai', replicate: 'Replicate', comfyui: 'ComfyUI' }[provider] || provider || 'Image provider';
+
+  let icon, title, body, action;
+
+  if (isCancelled) {
+    return null; // silent cancel
+  } else if (isAuth || isCredits || isPermission) {
+    icon = '🔑';
+    title = isAuth ? 'API Key Required' : isCredits ? 'Insufficient Credits' : 'Access Denied';
+    body = msg;
+    action = isAuth
+      ? '<a href="admin.html#settings" style="color:var(--primary-light);text-decoration:underline;">Open Settings → Image Generation →</a>'
+      : `<a href="${provider === 'bfl' ? 'https://api.bfl.ml' : provider === 'fal' ? 'https://fal.ai/dashboard' : 'https://replicate.com/account/billing'}" target="_blank" rel="noopener" style="color:var(--primary-light);text-decoration:underline;">Open ${providerLabel} dashboard →</a>`;
+  } else if (isRateLimit) {
+    icon = '⏳';
+    title = 'Rate Limit Reached';
+    body = msg;
+    action = 'Wait a moment, then try again.';
+  } else if (isTransient) {
+    icon = '🔄';
+    title = 'Temporary Server Error';
+    body = msg;
+    action = 'This is a transient error. Wait 15–30 seconds and try again.';
+  } else {
+    icon = '⚠️';
+    title = 'Generation Failed';
+    body = msg;
+    action = null;
+  }
+
+  return `__IMG_ERROR__:${JSON.stringify({ icon, title, body, action, provider: providerLabel })}`;
+}
+
 async function handleImageGeneration(session, prompt, opts = {}) {
   if (!session) { session = getActiveSession() || createSession(); saveState(); }
 
   const imgSettings = STATE.settings.imageGen || {};
   const provider = opts.provider || imgSettings.provider || 'bfl';
-  const model    = opts.model    || imgSettings.model    || null;
+
+  // Resolve model: explicit opt OR saved setting — but only if it belongs to this provider.
+  // This prevents a BFL model ID (e.g. 'flux-pro-1.1') from being used as a fal.ai path.
+  const providerModelIds = (ImageRouter.MODELS[provider] || []).map(m => m.id);
+  const candidateModel = opts.model || imgSettings.model || null;
+  const model = candidateModel && providerModelIds.includes(candidateModel)
+    ? candidateModel
+    : (ImageRouter.MODELS[provider]?.[0]?.id || null);
+
   const width    = opts.width    || imgSettings.width    || 1024;
   const height   = opts.height   || imgSettings.height   || 1024;
   const steps    = opts.steps    || imgSettings.steps    || 28;
@@ -2033,14 +2257,47 @@ async function handleImageGeneration(session, prompt, opts = {}) {
       width, height, steps,
       apiKey,
       comfyUrl,
+      num_images: opts.num_images,
+      image_url: opts.image_url,
+      mode: opts.mode,
+      control_model: opts.control_model,
+      strength: opts.strength,
+      enable_safety_checker: opts.enable_safety_checker,
+      safety_tolerance: opts.safety_tolerance,
     });
 
     const timingS = ((Date.now() - startMs) / 1000).toFixed(1);
-    // Build a data-url img tag (prefer dataUrl for offline use, fallback to url)
-    const imgSrc = result.dataUrl || result.url;
-    const downloadName = `claude-power-ui-${Date.now()}.png`;
+    
+    // Save image to IndexedDB and use db: key in JSON to prevent QuotaExceededError
+    const imageId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const mainSrc = result.dataUrl || result.url;
+    if (mainSrc && mainSrc.startsWith('data:')) {
+      try {
+        await ImageDb.set(imageId, mainSrc);
+      } catch (err) {
+        console.error('Failed to save main image to IndexedDB:', err);
+      }
+    }
+
+    let batchImages = null;
+    if (result.images && result.images.length > 0) {
+      batchImages = await Promise.all(result.images.map(async (img, idx) => {
+        const batchId = `${imageId}_b${idx}`;
+        const src = img.dataUrl || img.url;
+        if (src && src.startsWith('data:')) {
+          try {
+            await ImageDb.set(batchId, src);
+          } catch (err) {
+            console.error(`Failed to save batch image ${idx} to IndexedDB:`, err);
+          }
+          return { src: `db:${batchId}`, seed: img.seed };
+        }
+        return { src: img.url, seed: img.seed };
+      }));
+    }
+
     const content = `__IMAGE__:${JSON.stringify({
-      src: imgSrc,
+      src: mainSrc.startsWith('data:') ? `db:${imageId}` : mainSrc,
       prompt,
       provider: result.provider,
       model: result.model,
@@ -2048,7 +2305,9 @@ async function handleImageGeneration(session, prompt, opts = {}) {
       height: result.height,
       seed: result.seed,
       timingS,
+      images: batchImages
     })}`;
+
     // Update the placeholder message with real content
     const sess = STATE.sessions.find(s => s.id === session.id);
     const msg = sess?.messages.find(m => m.id === placeholderId);
@@ -2063,13 +2322,20 @@ async function handleImageGeneration(session, prompt, opts = {}) {
     const sess = STATE.sessions.find(s => s.id === session.id);
     const msg = sess?.messages.find(m => m.id === placeholderId);
     if (msg) {
-      msg.content = `⚠️ Image generation failed: ${err.message}`;
+      const classified = classifyImageError(err, provider);
+      msg.content = classified || `⚠️ Image generation failed: ${err.message}`;
       msg.imageGenerating = false;
     }
     saveState();
     renderMessages();
     scrollToBottom();
-    toast(`🎨 Generation failed: ${err.message}`, 'error');
+    // Toast: short summary only (Settings link is in the chat card)
+    const toastMsg = /api key|unauthenticated|authentication|401|403/i.test(err.message)
+      ? `🔑 ${provider.toUpperCase()} API key missing or invalid — check Settings`
+      : /upstream|timeout|502|503/i.test(err.message)
+      ? `🔄 ${provider} is temporarily unavailable — try again shortly`
+      : `🎨 Generation failed: ${err.message.slice(0, 80)}`;
+    toast(toastMsg, 'error', 8000);
   }
 }
 
@@ -2236,7 +2502,7 @@ function attachEventListeners() {
     }
   });
 
-  document.getElementById('settings-btn')?.addEventListener('click', () => window.location.href = 'admin.html');
+  document.getElementById('settings-btn')?.addEventListener('click', () => window.location.href = 'admin.html#settings');
   document.getElementById('export-btn')?.addEventListener('click', exportSession);
   document.getElementById('memory-btn')?.addEventListener('click', openMemoryPanel);
 
@@ -2396,6 +2662,7 @@ function buildHTML() {
                     <option value="bfl">Black Forest Labs</option>
                     <option value="fal">fal.ai</option>
                     <option value="replicate">Replicate</option>
+                    <option value="huggingface">🤗 HuggingFace</option>
                     <option value="comfyui">ComfyUI (local)</option>
                   </select>
                   <select class="image-popover-select" id="imagine-model">
@@ -2409,6 +2676,71 @@ function buildHTML() {
                     <option value="1024x1440">1024 × 1440 (tall)</option>
                     <option value="768x768">768 × 768 (fast)</option>
                   </select>
+                </div>
+                <!-- Advanced options -->
+                <div class="image-popover-row" id="imagine-qty-row" style="display:none; justify-content:space-between; align-items:center;">
+                  <span style="font-size:12px; color:var(--text-muted);">Quantity:</span>
+                  <select class="image-popover-select" id="imagine-qty" style="width:auto; min-width:80px;">
+                    <option value="1">1 Image</option>
+                    <option value="2">2 Images</option>
+                    <option value="4">4 Images</option>
+                  </select>
+                </div>
+                <div id="imagine-fal-extras" style="display:none; border-top:1px solid var(--border-color); margin-top:8px; padding-top:8px;">
+                  <div class="image-popover-row" style="justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:12px; color:var(--text-muted);">Mode:</span>
+                    <select class="image-popover-select" id="imagine-mode" onchange="syncImagineModeFields()" style="width:auto; min-width:140px;">
+                      <option value="text2img">Text to Image</option>
+                      <option value="img2img">Image to Image</option>
+                      <option value="controlnet">Pose Control</option>
+                      <option value="redux">Style Transfer (Redux)</option>
+                    </select>
+                  </div>
+                  <div id="imagine-ref-row" style="display:none; margin-bottom:8px;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">Reference Image URL:</div>
+                    <input type="text" class="image-popover-input" id="imagine-image-url" placeholder="https://example.com/pose.jpg" style="width:100%; box-sizing:border-box; background:var(--bg-app); color:var(--text-main); border:1px solid var(--border-color); border-radius:4px; padding:6px 8px; font-size:12px; margin-bottom:8px;" />
+                    <div class="image-popover-row" id="imagine-strength-row" style="justify-content:space-between; align-items:center;">
+                      <span style="font-size:12px; color:var(--text-muted);">Strength:</span>
+                      <input type="range" id="imagine-strength" min="0.1" max="1.0" step="0.05" value="0.5" style="flex:1; margin:0 12px; cursor:pointer;" oninput="document.getElementById('imagine-strength-val').textContent = this.value" />
+                      <span id="imagine-strength-val" style="font-size:12px; color:var(--text-main); font-family:monospace; min-width:24px; text-align:right;">0.5</span>
+                    </div>
+                  </div>
+                  <!-- Safety filters (added to resolve content policy block issues) -->
+                  <div class="image-popover-row" style="justify-content:space-between; align-items:center; margin-top:8px;">
+                    <span style="font-size:12px; color:var(--text-muted);">Safety Filter:</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <select class="image-popover-select" id="imagine-safety-tolerance" style="width:auto; font-size:12px; padding:4px 8px; min-width:110px;">
+                        <option value="2">Standard (2)</option>
+                        <option value="1">Strict (1)</option>
+                        <option value="3">Permissive (3)</option>
+                        <option value="4">Highly Permissive (4)</option>
+                        <option value="5">Unfiltered (5)</option>
+                      </select>
+                      <label style="display:flex; align-items:center; gap:4px; font-size:12px; cursor:pointer; color:var(--text-muted);">
+                        <input type="checkbox" id="imagine-safety-checker" checked style="cursor:pointer;" /> Enable
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <!-- HuggingFace extras -->
+                <div id="imagine-hf-extras" style="display:none; border-top:1px solid var(--border-color); margin-top:8px; padding-top:8px;">
+                  <div style="display:flex; align-items:flex-start; gap:8px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:6px; padding:8px 10px;">
+                    <span style="font-size:16px; flex-shrink:0;">🤗</span>
+                    <div style="font-size:11px; color:var(--text-muted); line-height:1.5;">
+                      <strong style="color:var(--text-main); font-size:12px;">HuggingFace Inference API</strong><br>
+                      Select any open-source text-to-image model. First run may take <strong style="color:#f59e0b;">20–60 s</strong> while the model warms up — the app retries automatically.<br>
+                      <span style="opacity:0.7;">Requires a HuggingFace token saved in Settings → Image Generation.</span>
+                    </div>
+                  </div>
+                  <div class="image-popover-row" style="justify-content:space-between; align-items:center; margin-top:8px;">
+                    <span style="font-size:12px; color:var(--text-muted);">Steps:</span>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <input type="range" id="imagine-hf-steps" min="10" max="50" step="1" value="28"
+                        style="flex:1; width:100px; cursor:pointer;"
+                        oninput="document.getElementById('imagine-hf-steps-val').textContent = this.value" />
+                      <span id="imagine-hf-steps-val" style="font-size:12px; color:var(--text-main); font-family:monospace; min-width:22px; text-align:right;">28</span>
+                    </div>
+                  </div>
                 </div>
                 <button class="image-popover-generate" onclick="generateFromPopover()">🎨 Generate</button>
               </div>
@@ -2469,6 +2801,58 @@ function renderAll() {
   if (STATE.ui.skillsTab === 'templates') renderTemplatesPanel();
   updateCostDisplays();
   updateContextBar();
+}
+
+async function migrateImagesToDb() {
+  let migratedAny = false;
+  if (!STATE.sessions || !STATE.sessions.length) return;
+  
+  for (const session of STATE.sessions) {
+    if (!session.messages) continue;
+    for (const msg of session.messages) {
+      if (msg.content && msg.content.startsWith('__IMAGE__:')) {
+        try {
+          const imgData = JSON.parse(msg.content.slice(10));
+          if (!imgData) continue;
+          
+          let changed = false;
+          
+          // Migrate main image
+          if (imgData.src && imgData.src.startsWith('data:')) {
+            const imageId = `img_migrated_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            await ImageDb.set(imageId, imgData.src);
+            imgData.src = `db:${imageId}`;
+            changed = true;
+          }
+          
+          // Migrate batch images
+          if (imgData.images && imgData.images.length > 0) {
+            for (let idx = 0; idx < imgData.images.length; idx++) {
+              const img = imgData.images[idx];
+              if (img.src && img.src.startsWith('data:')) {
+                const batchId = `img_migrated_${Date.now()}_b${idx}_${Math.random().toString(36).substr(2, 9)}`;
+                await ImageDb.set(batchId, img.src);
+                img.src = `db:${batchId}`;
+                changed = true;
+              }
+            }
+          }
+          
+          if (changed) {
+            msg.content = `__IMAGE__:${JSON.stringify(imgData)}`;
+            migratedAny = true;
+          }
+        } catch (e) {
+          console.error('Error migrating image to IndexedDB:', e);
+        }
+      }
+    }
+  }
+  
+  if (migratedAny) {
+    console.log('Successfully migrated legacy base64 images to IndexedDB');
+    saveState();
+  }
 }
 
 // ============================================================
@@ -2539,6 +2923,9 @@ async function boot() {
       Object.assign(STATE.ui,       serverData.ui       || {});
     }
   }
+
+  // Auto-migrate legacy base64 images to IndexedDB to free up localStorage space
+  await migrateImagesToDb();
 
   // 4. Load encrypted API keys from vault
   const vaultResult = await ApiKeyVault.load();
@@ -2826,8 +3213,48 @@ function updateImagineModels() {
   if (!providerSel || !modelSel || typeof ImageRouter === 'undefined') return;
   const models = ImageRouter.MODELS[providerSel.value] || [];
   modelSel.innerHTML = models.map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('');
+  syncImaginePopoverFields();
 }
 
+function syncImaginePopoverFields() {
+  const provider = document.getElementById('imagine-provider')?.value;
+  const qtyRow    = document.getElementById('imagine-qty-row');
+  const falExtras = document.getElementById('imagine-fal-extras');
+  const hfExtras  = document.getElementById('imagine-hf-extras');
+
+  // fal.ai: show quantity + mode extras
+  if (provider === 'fal') {
+    if (qtyRow)    qtyRow.style.display    = 'flex';
+    if (falExtras) falExtras.style.display = 'block';
+    if (hfExtras)  hfExtras.style.display  = 'none';
+    syncImagineModeFields();
+  } else if (provider === 'huggingface') {
+    if (qtyRow)    qtyRow.style.display    = 'none';
+    if (falExtras) falExtras.style.display = 'none';
+    if (hfExtras)  hfExtras.style.display  = 'block';
+  } else {
+    if (qtyRow)    qtyRow.style.display    = 'none';
+    if (falExtras) falExtras.style.display = 'none';
+    if (hfExtras)  hfExtras.style.display  = 'none';
+  }
+}
+
+function syncImagineModeFields() {
+  const mode = document.getElementById('imagine-mode')?.value;
+  const refRow = document.getElementById('imagine-ref-row');
+  const strengthRow = document.getElementById('imagine-strength-row');
+  
+  if (refRow) {
+    if (mode && mode !== 'text2img') {
+      refRow.style.display = 'block';
+      if (strengthRow) {
+        strengthRow.style.display = (mode === 'redux') ? 'none' : 'flex';
+      }
+    } else {
+      refRow.style.display = 'none';
+    }
+  }
+}
 function generateFromPopover() {
   const prompt   = document.getElementById('imagine-prompt')?.value.trim();
   const provider = document.getElementById('imagine-provider')?.value;
@@ -2835,15 +3262,31 @@ function generateFromPopover() {
   const sizeVal  = document.getElementById('imagine-size')?.value || '1024x1024';
   const [width, height] = sizeVal.split('x').map(Number);
 
+  const num_images = provider === 'fal' ? parseInt(document.getElementById('imagine-qty')?.value || '1', 10) : 1;
+  const mode = provider === 'fal' ? (document.getElementById('imagine-mode')?.value || 'text2img') : 'text2img';
+  const image_url = provider === 'fal' ? (document.getElementById('imagine-image-url')?.value.trim() || null) : null;
+  const strength = provider === 'fal' ? parseFloat(document.getElementById('imagine-strength')?.value || '0.5') : 0.5;
+  const enable_safety_checker = provider === 'fal' ? document.getElementById('imagine-safety-checker')?.checked : true;
+  const safety_tolerance = provider === 'fal' ? (document.getElementById('imagine-safety-tolerance')?.value || '2') : '2';
+
+  // HuggingFace-specific: steps from the HF slider
+  const steps = provider === 'huggingface'
+    ? parseInt(document.getElementById('imagine-hf-steps')?.value || '28', 10)
+    : undefined; // undefined → handleImageGeneration uses its own default
+
   if (!prompt) {
-    toast('\ud83c\udfa8 Please enter an image description', 'warning');
+    toast('🎨 Please enter an image description', 'warning');
     return;
   }
 
   toggleImagePopover(); // close popover
   const session = getActiveSession() || createSession();
-  handleImageGeneration(session, prompt, { provider, model, width, height });
+  handleImageGeneration(session, prompt, {
+    provider, model, width, height,
+    ...(steps !== undefined ? { steps } : {}),
+    num_images, mode, image_url, strength,
+    enable_safety_checker, safety_tolerance
+  });
 }
 
 document.addEventListener('DOMContentLoaded', boot);
-

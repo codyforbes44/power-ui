@@ -61,14 +61,15 @@
       Claude Power UI
     </a>
     <div class="nav-links">
+      <a href="index.html" class="nav-link active" aria-current="page">Home</a>
       <a href="features.html" class="nav-link">Features</a>
       <a href="pricing.html" class="nav-link">Pricing</a>
       <a href="getting-started.html" class="nav-link">Docs</a>
       <a href="about.html" class="nav-link">About</a>
     </div>
     <div class="nav-actions">
-      <a href="/app/" class="btn btn-ghost btn-sm">Sign In</a>
-      <a href="/app/" class="btn btn-primary btn-sm">Get Started Free →</a>
+      <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Get Started Free →</a>
     </div>
     <button class="nav-hamburger" id="hamburger" aria-label="Open menu">
       <span></span><span></span><span></span>
@@ -147,14 +148,16 @@
 <!-- ── Provider Strip ───────────────────────────────────────────── -->
 <div class="providers">
   <div class="container">
-    <p class="providers-label">Works with every major AI provider</p>
+    <p class="providers-label">Works with every major AI &amp; image provider</p>
     <div class="providers-row">
       <div class="provider-logo"><span>🤖</span> Anthropic Claude</div>
       <div class="provider-logo"><span>⚡</span> OpenAI GPT-4</div>
       <div class="provider-logo"><span>♊</span> Google Gemini</div>
       <div class="provider-logo"><span>🚀</span> Groq Llama</div>
       <div class="provider-logo"><span>🌀</span> Mistral</div>
-      <div class="provider-logo"><span>🔮</span> + More</div>
+      <div class="provider-logo" style="border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.05);"><span>⬛</span> Black Forest Labs</div>
+      <div class="provider-logo" style="border-color:rgba(139,92,246,.25);background:rgba(139,92,246,.05);"><span>🔮</span> fal.ai</div>
+      <div class="provider-logo" style="border-color:rgba(6,182,212,.25);background:rgba(6,182,212,.05);"><span>🔁</span> Replicate</div>
     </div>
   </div>
 </div>
@@ -200,6 +203,17 @@
         <h3 class="h3" style="margin-bottom:8px;">Local-First & Encrypted</h3>
         <p style="color:var(--text-muted); font-size:.9375rem; line-height:1.6;">All data stays on your device. API keys are AES-GCM encrypted at rest, derived from your login password. No telemetry. No cloud sync unless you want it.</p>
       </div>
+      <div class="card feature-card" style="border-color:rgba(139,92,246,.2);">
+        <div class="card-icon" style="background:rgba(139,92,246,.15);">🎨</div>
+        <h3 class="h3" style="margin-bottom:8px;">Image Generation</h3>
+        <p style="color:var(--text-muted); font-size:.9375rem; line-height:1.6;">Generate production-ready images using FLUX (Black Forest Labs), fal.ai, and Replicate — all with your own API keys. No watermarks, full resolution, instant export.</p>
+        <div class="skill-pills" style="margin-top:12px;">
+          <span class="skill-pill" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.25);color:#fbbf24;">⬛ FLUX</span>
+          <span class="skill-pill" style="background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.25);color:#a78bfa;">🔮 fal.ai</span>
+          <span class="skill-pill" style="background:rgba(6,182,212,.1);border-color:rgba(6,182,212,.25);color:#67e8f9;">🔁 Replicate</span>
+        </div>
+        <a href="image-generation.html" class="btn btn-outline btn-sm" style="margin-top:16px;display:inline-flex;">Learn more →</a>
+      </div>
       <div class="card feature-card">
         <div class="card-icon" style="background:rgba(99,102,241,.1);">📊</div>
         <h3 class="h3" style="margin-bottom:8px;">Admin Dashboard</h3>
@@ -209,33 +223,61 @@
   </div>
 </section>
 
-<!-- ── How it Works ──────────────────────────────────────────────── -->
-<section style="background:linear-gradient(180deg,transparent,rgba(99,102,241,.04),transparent);">
+<!-- ── Image Generation Teaser ───────────────────────────────────── -->
+<section style="background:linear-gradient(180deg,transparent,rgba(139,92,246,.05),transparent);padding:80px 0;">
   <div class="container">
-    <div class="section-header">
-      <span class="badge badge-cyan">Quick Start</span>
-      <h2 class="h2" style="margin-top:12px;">Up and running in 60 seconds</h2>
-      <p>No build step. No account required. Just open the file and go.</p>
-    </div>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <h3 class="h3">Open the App</h3>
-        <p>Download the release, open <code style="background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;font-size:.85em;">app/index.html</code> in any modern browser — or run <code style="background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;font-size:.85em;">server.py</code> for multi-device sync.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;">
+      <div>
+        <span class="badge badge-indigo" style="margin-bottom:16px;display:inline-flex;">🎨 Image Generation</span>
+        <h2 class="h2" style="margin-bottom:16px;">Text to image.<br><span class="grad-text">Three world-class APIs.</span></h2>
+        <p style="color:var(--text-muted);font-size:1rem;line-height:1.75;margin-bottom:28px;">Generate production-ready images from natural language prompts using the best image models on the market — all within your AI workspace. Bring your own keys, pay at cost, export clean files.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:32px;">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;border:1px solid rgba(245,158,11,.2);background:rgba(245,158,11,.04);">
+            <span style="font-size:1.25rem;">⬛</span>
+            <div><div style="font-size:.9rem;font-weight:700;color:var(--text);">Black Forest Labs — FLUX</div><div style="font-size:.8rem;color:var(--text-dim);">Industry-leading photorealism. FLUX.1 pro, dev &amp; schnell. From $0.003/img.</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;border:1px solid rgba(139,92,246,.2);background:rgba(139,92,246,.04);">
+            <span style="font-size:1.25rem;">🔮</span>
+            <div><div style="font-size:.9rem;font-weight:700;color:var(--text);">fal.ai — Ultra-fast inference</div><div style="font-size:.8rem;color:var(--text-dim);">Sub-second generation. FLUX &amp; SDXL variants. Streaming previews.</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;border:1px solid rgba(6,182,212,.2);background:rgba(6,182,212,.04);">
+            <span style="font-size:1.25rem;">🔁</span>
+            <div><div style="font-size:.9rem;font-weight:700;color:var(--text);">Replicate — Open model catalogue</div><div style="font-size:.8rem;color:var(--text-dim);">10,000+ models including LoRA fine-tunes. SDXL, ControlNet, custom.</div></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <a href="image-generation.html" class="btn btn-primary">Explore Image Generation →</a>
+          <a href="../app/index.html" class="btn btn-ghost">Open the App</a>
+        </div>
       </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <h3 class="h3">Add Your API Key</h3>
-        <p>Paste your Anthropic, OpenAI, Google, or Groq API key in Settings. Keys are encrypted immediately — never stored in plaintext.</p>
+      <div style="position:relative;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5);">
+          <div style="background:var(--surface-2);padding:10px 16px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border-s);">
+            <div style="width:10px;height:10px;border-radius:50%;background:#ff5f57;"></div>
+            <div style="width:10px;height:10px;border-radius:50%;background:#febc2e;"></div>
+            <div style="width:10px;height:10px;border-radius:50%;background:#28c840;"></div>
+            <div style="flex:1;text-align:center;font-size:.7rem;color:var(--text-dim);">Image Generator · FLUX.1 [pro]</div>
+          </div>
+          <div style="padding:18px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+              <div style="aspect-ratio:1;border-radius:10px;background:linear-gradient(135deg,rgba(99,102,241,.3),rgba(139,92,246,.2),rgba(6,182,212,.15));border:1px solid var(--border-s);display:flex;align-items:center;justify-content:center;font-size:1.8rem;">🌅</div>
+              <div style="aspect-ratio:1;border-radius:10px;background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(239,68,68,.15),rgba(139,92,246,.2));border:1px solid var(--border-s);display:flex;align-items:center;justify-content:center;font-size:1.8rem;">🌃</div>
+              <div style="aspect-ratio:1;border-radius:10px;background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(6,182,212,.2),rgba(99,102,241,.2));border:1px solid var(--border-s);display:flex;align-items:center;justify-content:center;font-size:1.8rem;">🎋</div>
+              <div style="aspect-ratio:1;border-radius:10px;background:linear-gradient(135deg,rgba(236,72,153,.2),rgba(139,92,246,.2),rgba(99,102,241,.15));border:1px solid var(--border-s);display:flex;align-items:center;justify-content:center;font-size:1.8rem;">🌌</div>
+            </div>
+            <div style="background:rgba(255,255,255,.03);border:1px solid var(--border-s);border-radius:8px;padding:10px 12px;">
+              <div style="font-size:.65rem;color:var(--text-dim);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Prompt</div>
+              <div style="font-size:.78rem;color:var(--text-muted);line-height:1.5;">A serene Japanese zen garden at dusk, cinematic, 8K…</div>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-s);">
+                <span style="font-size:.65rem;color:var(--text-dim);">⬛ FLUX.1 [pro] · 28 steps · 4:3</span>
+                <span style="font-size:.65rem;color:#4ade80;font-weight:700;">$0.22 total</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;top:-12px;right:-12px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:8px 12px;font-size:.75rem;color:var(--primary-light);font-weight:700;">✦ 4 images</div>
+        <div style="position:absolute;bottom:-12px;left:-12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:8px 12px;font-size:.75rem;color:#4ade80;font-weight:700;">📥 PNG export</div>
       </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <h3 class="h3">Start Chatting</h3>
-        <p>The skills engine detects your intent and injects expert context automatically. Just talk — the platform handles the rest.</p>
-      </div>
-    </div>
-    <div style="text-align:center; margin-top:48px;">
-      <a href="getting-started.html" class="btn btn-outline">Full Setup Guide →</a>
     </div>
   </div>
 </section>
@@ -546,9 +588,10 @@
         <h4>Product</h4>
         <ul>
           <li><a href="features.html">Features</a></li>
+          <li><a href="image-generation.html">Image Generation</a></li>
           <li><a href="pricing.html">Pricing</a></li>
           <li><a href="getting-started.html">Documentation</a></li>
-          <li><a href="#">Changelog</a></li>
+          <li><a href="changelog.html">Changelog</a></li>
           <li><a href="#">GitHub</a></li>
         </ul>
       </div>
@@ -568,7 +611,7 @@
           <li><a href="#">Discord</a></li>
           <li><a href="#">Twitter / X</a></li>
           <li><a href="#">GitHub Discussions</a></li>
-          <li><a href="#">Feature Requests</a></li>
+          <li><a href="feature-requests.html">Feature Requests</a></li>
           <li><a href="#">Report a Bug</a></li>
         </ul>
       </div>

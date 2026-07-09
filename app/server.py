@@ -140,10 +140,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
             "connect-src 'self' https://api.anthropic.com https://api.openai.com "
             "https://generativelanguage.googleapis.com https://api.groq.com "
             "https://api.mistral.ai https://api.bfl.ml https://fal.run "
+            "https://*.fal.run https://*.fal.media "
             "https://api.replicate.com http://127.0.0.1:8188 http://localhost:8188 "
             "https://unpkg.com; "
             "frame-src blob:; "
-            "img-src 'self' data: blob:;"
+            "img-src 'self' data: blob: https://*.fal.run https://*.fal.media;"
         )
 
     def _json(self, data, status: int = 200):

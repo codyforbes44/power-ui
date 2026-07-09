@@ -1592,6 +1592,61 @@ button { font-family: var(--font-ui); }
   line-height: 1.4;
 }
 
+/* --- Image generation error card --- */
+.image-gen-error-card {
+  max-width: 480px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(251,191,36,0.22);
+  background: rgba(251,191,36,0.05);
+  overflow: hidden;
+}
+
+.image-gen-error-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgba(251,191,36,0.12);
+}
+
+.image-gen-error-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.image-gen-error-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fcd34d;
+  margin-bottom: 2px;
+}
+
+.image-gen-error-provider {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.image-gen-error-body {
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(255,255,255,0.65));
+  line-height: 1.6;
+}
+
+.image-gen-error-action {
+  padding: 8px 16px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  border-top: 1px solid rgba(251,191,36,0.1);
+}
+
+.image-gen-error-action a {
+  font-weight: 600;
+}
+
 /* --- 🎨 Imagine button in composer --- */
 .composer-imagine-btn {
   padding: 5px 11px;
@@ -1682,7 +1737,6 @@ button { font-family: var(--font-ui); }
   transition: border-color 0.15s;
 }
 .image-popover-select:focus { outline: none; border-color: rgba(99,102,241,0.5); }
-
 .image-popover-generate {
   width: 100%;
   padding: 10px;
@@ -1698,6 +1752,38 @@ button { font-family: var(--font-ui); }
 .image-popover-generate:hover  { opacity: 0.9; }
 .image-popover-generate:active { transform: scale(0.98); }
 
+/* Custom slider styling for image-popover */
+.image-popover input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border, rgba(255,255,255,0.1));
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+}
+.image-popover input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.image-popover input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Image grid items styling */
+.image-gen-grid-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.image-gen-grid-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  border-color: rgba(99,102,241,0.4) !important;
+}
 /* Ensure composer has position:relative for popover anchoring.
    overflow must be un-hidden too — the base .composer rule sets
    overflow:hidden to clip the textarea to its rounded corners, which

@@ -16,11 +16,11 @@
       font-src 'self' https://fonts.gstatic.com data:;
       connect-src 'self' https://api.anthropic.com https://api.openai.com
         https://generativelanguage.googleapis.com https://api.groq.com
-        https://api.mistral.ai https://api.bfl.ml https://fal.run
+        https://api.mistral.ai https://api.bfl.ml https://fal.run https://*.fal.run https://*.fal.media
         https://api.replicate.com http://127.0.0.1:8188 http://localhost:8188
         https://unpkg.com;
       frame-src blob:;
-      img-src 'self' data: blob:;" />
+      img-src 'self' data: blob: https://*.fal.run https://*.fal.media;" />
 
   <!-- M4: Inline SVG favicon — no file needed -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>✦</text></svg>" />

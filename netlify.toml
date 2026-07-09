@@ -27,7 +27,7 @@
   for = "/*.html"
   [headers.values]
     Cache-Control = "no-store, no-cache, must-revalidate"
-    Content-Security-Policy = "frame-ancestors 'none'; default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.groq.com https://api.mistral.ai https://api.bfl.ml https://fal.run https://api.replicate.com http://127.0.0.1:8188 http://localhost:8188 https://unpkg.com; frame-src blob:; img-src 'self' data: blob:;"
+    Content-Security-Policy = "frame-ancestors 'none'; default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://identity.netlify.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.groq.com https://api.mistral.ai https://api.bfl.ml https://fal.run https://*.fal.run https://*.fal.media https://api.replicate.com https://api-inference.huggingface.co http://127.0.0.1:8188 http://localhost:8188 https://unpkg.com https://identity.netlify.com https://*.netlify.com; frame-src blob: https://identity.netlify.com; img-src 'self' data: blob: https://*.fal.run https://*.fal.media https://*.replicate.delivery; worker-src blob:;"
 
 
 [[headers]]
@@ -46,6 +46,18 @@
 [[redirects]]
   from   = "/"
   to     = "/public/index.html"
+  status = 200
+
+# /login shortcut → public login page
+[[redirects]]
+  from   = "/login"
+  to     = "/public/login.html"
+  status = 200
+
+# /signup shortcut
+[[redirects]]
+  from   = "/signup"
+  to     = "/public/login.html?tab=signup"
   status = 200
 
 # /app with no trailing slash

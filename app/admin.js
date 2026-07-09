@@ -908,6 +908,16 @@ python3 cli.py export --format json</pre>
       docsUrl: 'https://replicate.com/account/api-tokens',
       desc: 'Flux 1.1 Pro via Replicate. Pay-per-run, no subscription needed.',
     },
+    {
+      id: 'huggingface',
+      name: 'HuggingFace',
+      icon: '🤗',
+      color: '#f59e0b',
+      placeholder: 'hf_…',
+      baseUrl: 'https://api-inference.huggingface.co',
+      docsUrl: 'https://huggingface.co/settings/tokens',
+      desc: 'HuggingFace Inference API — access thousands of open-source models including FHDR Uncensored, Flux, SDXL and more.',
+    },
   ];
 
   // ── ComfyUI local URL (not a key — a URL setting) ────────
@@ -980,11 +990,22 @@ python3 cli.py export --format json</pre>
       if (sub) sub.textContent = 'Settings Dashboard';
     }
 
-    // Render default panel
-    if (isAdmin) {
-      await switchPanel('overview', document.getElementById('nav-item-overview'));
-    } else {
-      await switchPanel('settings', document.getElementById('nav-item-settings'));
+    // Render default panel — or honour URL hash deep-link
+    const _hashPanel = location.hash.replace('#', '').trim(); // e.g. 'settings' or 'image-gen'
+    const _startPanel = _hashPanel === 'settings' || _hashPanel === 'image-gen'
+      ? 'settings'
+      : isAdmin ? 'overview' : 'settings';
+    await switchPanel(_startPanel, document.getElementById(`nav-item-${_startPanel}`));
+
+    // If deep-linked to image generation, scroll to that section after render
+    if (_hashPanel === 'settings' || _hashPanel === 'image-gen') {
+      setTimeout(() => {
+        const imgHeading = Array.from(document.querySelectorAll('.api-key-section-heading'))
+          .find(el => el.textContent.includes('Image Generation'));
+        imgHeading?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        imgHeading?.classList.add('api-key-section-highlight');
+        setTimeout(() => imgHeading?.classList.remove('api-key-section-highlight'), 2500);
+      }, 350);
     }
 
     // Canvas charts (drawDailyChart/drawDonut/drawBarChart/renderCostTrendChart)
@@ -1194,7 +1215,16 @@ python3 cli.py export --format json</pre>
 
     const input = document.getElementById(`key-input-${providerId}`);
     if (!input) return;
-    const keyVal = input.value.trim();
+    // Strip any auth-scheme prefix the user might have copied along with the key
+    // (e.g. "Key abc123" → "abc123", "Token r8_..." → "r8_...").
+    // The proxy adds the correct scheme for each provider; storing a prefixed value
+    // would cause double-wrapping → 401 Unauthenticated from the provider.
+    const keyVal = input.value.trim()
+      .replace(/^Key\s+/i, '')
+      .replace(/^Token\s+/i, '')
+      .replace(/^Bearer\s+/i, '');
+    // Reflect the normalised value back into the input so the user can see it
+    if (keyVal !== input.value.trim()) input.value = keyVal;
 
     try {
       let storedKeys = {};
@@ -1230,9 +1260,43 @@ python3 cli.py export --format json</pre>
     if (result) { result.style.display = 'none'; }
 
     try {
-      let url = pDef.baseUrl + (pDef.id === 'google' ? pDef.testPath.replace('KEY', encodeURIComponent(key)) : pDef.testPath);
-      const headers = pDef.testHeaders(key);
-      const res = await fetch(url, { method: 'GET', headers });
+      let res;
+      const _isLocalhost = (
+        location.hostname === 'localhost' ||
+        location.hostname === '127.0.0.1' ||
+        location.hostname === '[::1]'
+      );
+      const useProxy = !_isLocalhost && location.protocol !== 'file:';
+
+      if (useProxy) {
+        let path = pDef.testPath;
+        let queryParams = undefined;
+        let apiKey = key;
+
+        if (pDef.id === 'google') {
+          path = '/v1beta/models';
+          queryParams = { key };
+          apiKey = '';
+        }
+
+        res = await fetch('/.netlify/functions/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: pDef.id,
+            path,
+            apiKey,
+            queryParams,
+            method: 'GET',
+            payload: {}
+          })
+        });
+      } else {
+        let url = pDef.baseUrl + (pDef.id === 'google' ? pDef.testPath.replace('KEY', encodeURIComponent(key)) : pDef.testPath);
+        const headers = pDef.testHeaders(key);
+        res = await fetch(url, { method: 'GET', headers });
+      }
+
       const ok  = res.status === 200 || res.status === 400; // 400 = auth ok, bad params
       if (result) {
         result.className = `api-key-test-result ${ok ? 'ok' : 'fail'}`;

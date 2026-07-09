@@ -26,9 +26,10 @@ const PROVIDER_BASE = {
   mistral:   'https://api.mistral.ai',
   google:    'https://generativelanguage.googleapis.com',
   // Image generation providers
-  bfl:       'https://api.bfl.ml',
-  fal:       'https://fal.run',
-  replicate: 'https://api.replicate.com',
+  bfl:          'https://api.bfl.ml',
+  fal:          'https://fal.run',
+  replicate:    'https://api.replicate.com',
+  huggingface:  'https://api-inference.huggingface.co',
   // Web search
   ddg:       'https://api.duckduckgo.com',
 };
@@ -77,7 +78,7 @@ async function fetchProvider(url, upstreamHeaders, payload, method = 'POST') {
     const chunks = [];
     const req = client.request(options, (res) => {
       res.on('data', (chunk) => chunks.push(chunk));
-      res.on('end',  () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8'), headers: res.headers }));
+      res.on('end',  () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('latin1'), headers: res.headers }));
     });
 
     req.on('error', reject);
@@ -200,6 +201,8 @@ exports.handler = async function(event) {
     upstreamHeaders['Authorization'] = `Key ${apiKey || ''}`;
   } else if (provider === 'replicate') {
     upstreamHeaders['Authorization'] = `Token ${apiKey || ''}`;
+  } else if (provider === 'huggingface') {
+    upstreamHeaders['Authorization'] = `Bearer ${apiKey || ''}`;
   } else if (provider !== 'google') {
     // openai, groq, mistral — Bearer token
     upstreamHeaders['Authorization'] = `Bearer ${apiKey || ''}`;
@@ -217,8 +220,28 @@ exports.handler = async function(event) {
 
   log({ event: 'upstream_response', status: upstream.status, durationMs: Date.now() - startedAt });
 
-  // Return response — preserving SSE content as-is
   const contentType = upstream.headers['content-type'] || 'application/json';
+
+  // HuggingFace Inference API (and some other image providers) return raw binary
+  // image bytes. The fetch() body is accumulated as a Buffer, so we can safely
+  // base64-encode it and wrap in a small JSON envelope that the client can turn
+  // into a data URL without going through a separate URL fetch.
+  const isImageResponse = contentType.startsWith('image/');
+  if (isImageResponse && upstream.status === 200) {
+    // upstream.body was collected via Buffer.concat().toString('utf8') which
+    // corrupts binary data.  We need the raw buffer — re-fetch synchronously.
+    // Since we already have the body string, use a workaround: re-encode via
+    // latin1 (which is a 1:1 byte mapping) so we can recover the raw bytes.
+    const rawBuffer = Buffer.from(upstream.body, 'latin1');
+    const b64 = rawBuffer.toString('base64');
+    return {
+      statusCode: 200,
+      headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+      body: JSON.stringify({ base64: b64, contentType }),
+    };
+  }
+
+  // Return response — preserving SSE content as-is
   return {
     statusCode: upstream.status,
     headers: {

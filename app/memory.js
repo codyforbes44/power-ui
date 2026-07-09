@@ -193,20 +193,39 @@ Conversation:
 ${transcript}`;
 
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
-          },
-          body: JSON.stringify({
-            model: 'claude-haiku-3-5',
-            max_tokens: 512,
-            messages: [{ role: 'user', content: extractPrompt }],
-          }),
-        });
+        let response;
+        const useProxy = typeof ApiRouter !== 'undefined' && ApiRouter.isProxied;
+        if (useProxy) {
+          response = await fetch('/.netlify/functions/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              provider: 'anthropic',
+              path: '/v1/messages',
+              apiKey,
+              payload: {
+                model: 'claude-haiku-3-5',
+                max_tokens: 512,
+                messages: [{ role: 'user', content: extractPrompt }],
+              }
+            })
+          });
+        } else {
+          response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type':    'application/json',
+              'x-api-key':       apiKey,
+              'anthropic-version': '2023-06-01',
+              'anthropic-dangerous-direct-browser-access': 'true',
+            },
+            body: JSON.stringify({
+              model: 'claude-haiku-3-5',
+              max_tokens: 512,
+              messages: [{ role: 'user', content: extractPrompt }],
+            }),
+          });
+        }
 
         if (!response.ok) return [];
         const data = await response.json();

@@ -10,8 +10,11 @@ Usage:
 Requirements: internet connection (Node.js downloaded on first run).
 """
 
-import os, subprocess, sys, urllib.request
+import os, subprocess, sys, urllib.request, ssl
 from pathlib import Path
+
+# Disable SSL verification for Node.js download on macOS
+ssl._create_default_https_context = ssl._create_unverified_context
 
 ROOT       = Path(__file__).parent.resolve()
 TOKEN_FILE = ROOT / '.netlify-token'

@@ -1318,6 +1318,15 @@ table.admin-table {
   color: #4b5563;
 }
 
+@keyframes sectionPulse {
+  0%   { color: var(--text-muted); border-color: rgba(255,255,255,0.05); }
+  30%  { color: #fcd34d;           border-color: rgba(252,211,77,0.4);   }
+  100% { color: var(--text-muted); border-color: rgba(255,255,255,0.05); }
+}
+.api-key-section-highlight {
+  animation: sectionPulse 2s ease forwards;
+}
+
 /* Provider description line */
 .api-key-provider-desc {
   font-size: 10px;

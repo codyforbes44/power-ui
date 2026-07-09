@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog — Claude Power UI</title>
+  <meta name="description" content="Track every release, improvement, and fix to Claude Power UI. Stay up to date with what's new.">
+  <meta property="og:title" content="Changelog — Claude Power UI">
+  <meta property="og:description" content="Track every release, improvement, and fix to Claude Power UI.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>✦</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/public.css">
+  <style>
+    .cl-page { padding: 140px 0 96px; position: relative; }
+    .cl-hero-glow { position:absolute;top:-10%;left:50%;transform:translateX(-50%);width:700px;height:500px;border-radius:50%;background:radial-gradient(ellipse,rgba(99,102,241,.13) 0%,transparent 70%);pointer-events:none; }
+    .cl-layout { display:grid;grid-template-columns:220px 1fr;gap:64px;align-items:start; }
+    .cl-sidebar { position:sticky;top:84px; }
+    .cl-sidebar-label { font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);margin-bottom:14px; }
+    .cl-sidebar-link { display:block;padding:7px 12px;border-radius:8px;font-size:.875rem;color:var(--text-muted);transition:all var(--transition);margin-bottom:2px;border-left:2px solid transparent; }
+    .cl-sidebar-link:hover { color:var(--text);background:rgba(255,255,255,.05); }
+    .cl-sidebar-link.active { color:var(--primary-light);border-left-color:var(--primary);background:rgba(99,102,241,.08); }
+    .cl-sidebar-version { font-size:.7rem;color:var(--text-dim);margin-left:4px; }
+    .cl-entry { position:relative;padding-bottom:56px;border-left:1px solid var(--border-s);padding-left:32px;margin-left:8px; }
+    .cl-entry:last-child { border-left:1px solid transparent; }
+    .cl-dot { position:absolute;left:-9px;top:4px;width:17px;height:17px;border-radius:50%;background:var(--surface-2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;transition:border-color var(--transition); }
+    .cl-entry:hover .cl-dot { border-color:var(--primary); }
+    .cl-dot-inner { width:7px;height:7px;border-radius:50%;background:var(--text-dim); }
+    .cl-entry.latest .cl-dot { border-color:var(--primary);background:rgba(99,102,241,.15); }
+    .cl-entry.latest .cl-dot-inner { background:var(--primary);box-shadow:0 0 8px rgba(99,102,241,.6); }
+    .cl-meta { display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap; }
+    .cl-version { font-family:var(--font-d);font-weight:700;font-size:1.25rem;color:var(--text); }
+    .cl-date { font-size:.8125rem;color:var(--text-dim); }
+    .cl-tag { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em; }
+    .cl-tag-major { background:rgba(99,102,241,.15);color:var(--primary-light);border:1px solid rgba(99,102,241,.3); }
+    .cl-tag-minor { background:rgba(6,182,212,.1);color:#67e8f9;border:1px solid rgba(6,182,212,.25); }
+    .cl-tag-patch { background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.25); }
+    .cl-title { font-size:1.125rem;font-weight:700;color:var(--text);margin-bottom:8px; }
+    .cl-summary { font-size:.9375rem;color:var(--text-muted);line-height:1.7;margin-bottom:20px; }
+    .cl-changes { display:flex;flex-direction:column;gap:6px; }
+    .cl-change { display:flex;align-items:flex-start;gap:10px;font-size:.875rem;color:var(--text-muted);line-height:1.5; }
+    .cl-change-icon { width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.65rem;flex-shrink:0;margin-top:1px; }
+    .cl-new .cl-change-icon { background:rgba(99,102,241,.15);color:var(--primary-light); }
+    .cl-fix .cl-change-icon { background:rgba(34,197,94,.12);color:#4ade80; }
+    .cl-perf .cl-change-icon { background:rgba(6,182,212,.1);color:#67e8f9; }
+    .cl-break .cl-change-icon { background:rgba(239,68,68,.1);color:#f87171; }
+    .cl-change strong { color:var(--text); }
+    .cl-gh-link { display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-size:.8125rem;color:var(--text-dim);padding:6px 12px;border-radius:8px;border:1px solid var(--border-s);transition:all var(--transition); }
+    .cl-gh-link:hover { color:var(--text);border-color:var(--border);background:rgba(255,255,255,.04); }
+    .cl-subscribe { background:var(--grad-card);border:1px solid var(--border);border-radius:var(--r-xl);padding:36px 40px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:64px; }
+    .cl-subscribe h3 { font-size:1.1rem;margin-bottom:4px; }
+    .cl-subscribe p { font-size:.9rem;color:var(--text-muted); }
+    .cl-subscribe-form { display:flex;gap:10px;flex-wrap:wrap; }
+    .cl-input { padding:10px 16px;border-radius:var(--r);background:rgba(255,255,255,.05);border:1px solid var(--border-s);color:var(--text);font-size:.9rem;font-family:var(--font);outline:none;transition:border-color var(--transition);min-width:220px; }
+    .cl-input::placeholder { color:var(--text-dim); }
+    .cl-input:focus { border-color:var(--primary); }
+    @media(max-width:900px) { .cl-layout{grid-template-columns:1fr;} .cl-sidebar{position:static;display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;} .cl-sidebar-label{display:none;} .cl-sidebar-link{border-left:none;border-bottom:2px solid transparent;padding:5px 10px;} .cl-sidebar-link.active{border-bottom-color:var(--primary);border-left:none;} }
+  </style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo"><div class="nav-logo-icon">✦</div>Claude Power UI</a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="features.html" class="nav-link">Features</a>
+      <a href="pricing.html" class="nav-link">Pricing</a>
+      <a href="getting-started.html" class="nav-link">Docs</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+    <div class="nav-actions">
+      <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Get Started Free →</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="cl-page">
+  <div class="cl-hero-glow"></div>
+  <div class="container">
+
+    <div style="margin-bottom:56px;">
+      <span class="badge badge-indigo" style="margin-bottom:18px;display:inline-flex;">Release History</span>
+      <h1 class="display" style="margin-bottom:16px;">What's <span class="grad-text">new.</span></h1>
+      <p style="font-size:1.125rem;color:var(--text-muted);max-width:520px;line-height:1.7;">Every update, improvement, and fix — tracked and documented. Star us on GitHub to get notified of new releases.</p>
+      <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap;">
+        <a href="https://github.com/codyforbes/claude-power-ui/releases" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">GitHub Releases</a>
+        <a href="feature-requests.html" class="btn btn-ghost btn-sm">💡 Request a Feature →</a>
+      </div>
+    </div>
+
+    <div class="cl-subscribe">
+      <div>
+        <h3>Stay in the loop</h3>
+        <p>Get notified when a new version drops. No spam, ever.</p>
+      </div>
+      <form class="cl-subscribe-form" onsubmit="handleSubscribe(event)">
+        <input type="email" class="cl-input" placeholder="your@email.com" id="subscribe-email" required>
+        <button type="submit" class="btn btn-primary btn-sm" id="subscribe-btn">Notify Me</button>
+      </form>
+    </div>
+
+    <div class="cl-layout">
+
+      <aside class="cl-sidebar" aria-label="Release navigation">
+        <p class="cl-sidebar-label">Versions</p>
+        <a href="#v1-4-0" class="cl-sidebar-link active">v1.4.0 <span class="cl-sidebar-version">Jul 2026</span></a>
+        <a href="#v1-3-2" class="cl-sidebar-link">v1.3.2 <span class="cl-sidebar-version">Jun 2026</span></a>
+        <a href="#v1-3-0" class="cl-sidebar-link">v1.3.0 <span class="cl-sidebar-version">Jun 2026</span></a>
+        <a href="#v1-2-1" class="cl-sidebar-link">v1.2.1 <span class="cl-sidebar-version">May 2026</span></a>
+        <a href="#v1-2-0" class="cl-sidebar-link">v1.2.0 <span class="cl-sidebar-version">Apr 2026</span></a>
+        <a href="#v1-1-0" class="cl-sidebar-link">v1.1.0 <span class="cl-sidebar-version">Mar 2026</span></a>
+        <a href="#v1-0-0" class="cl-sidebar-link">v1.0.0 <span class="cl-sidebar-version">Feb 2026</span></a>
+      </aside>
+
+      <div>
+
+        <article class="cl-entry latest" id="v1-4-0">
+          <div class="cl-dot"><div class="cl-dot-inner"></div></div>
+          <div class="cl-meta"><span class="cl-version">v1.4.0</span><span class="cl-tag cl-tag-major">Major</span><span class="cl-date">July 9, 2026</span></div>
+          <h2 class="cl-title">Workspace Profiles &amp; Claude 3.7 Support</h2>
+          <p class="cl-summary">Introduces full workspace profile management — switch between completely separate API key sets, model presets, and memory configurations instantly. Also adds native support for Claude 3.7 Sonnet and Opus.</p>
+          <div class="cl-changes">
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Workspace Profiles — save and switch entire configurations (API key, model, system prompt, memory) with one click.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Claude 3.7 Sonnet and Opus model support.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Export conversation as Markdown, JSON, or plain text.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Collapsible sidebar with pinnable favourites for fast skill access.</span></div>
+            <div class="cl-change cl-perf"><div class="cl-change-icon">⚡</div><span><strong>Perf:</strong> Streaming rendering is 40% faster on long responses thanks to virtual DOM batching.</span></div>
+            <div class="cl-change cl-fix"><div class="cl-change-icon">✓</div><span><strong>Fix:</strong> Memory search now correctly handles multi-byte Unicode characters.</span></div>
+            <div class="cl-change cl-fix"><div class="cl-change-icon">✓</div><span><strong>Fix:</strong> Code block copy button no longer fails silently on Firefox 128.</span></div>
+          </div>
+          <a href="https://github.com/codyforbes/claude-power-ui/releases/tag/v1.4.0" class="cl-gh-link" target="_blank" rel="noopener">View full release on GitHub</a>
+        </article>
+
+        <article class="cl-entry" id="v1-3-2">
+          <div class="cl-dot"><div class="cl-dot-inner"></div></div>
+          <div class="cl-meta"><span class="cl-version">v1.3.2</span><span class="cl-tag cl-tag-patch">Patch</span><span class="cl-date">June 22, 2026</span></div>
+          <h2 class="cl-title">Bug Fixes &amp; Stability</h2>
+          <p class="cl-summary">Hotfix addressing memory encryption on Safari and token counter accuracy issues.</p>
+          <div class="cl-changes">
+            <div class="cl-change cl-fix"><div class="cl-change-icon">✓</div><span><strong>Fix:</strong> Memory vault decryption failing intermittently on Safari 17.4+ due to WebCrypto API changes.</span></div>
+            <div class="cl-change cl-fix"><div class="cl-change-icon">✓</div><span><strong>Fix:</strong> Token counter now correctly handles Claude 3 special tokens — count was ~8% off.</span></div>
+            <div class="cl-change cl-fix"><div class="cl-change-icon">✓</div><span><strong>Fix:</strong> Skill search box no longer loses focus after typing two characters on Chrome.</span></div>
+            <div class="cl-change cl-perf"><div class="cl-change-icon">⚡</div><span><strong>Perf:</strong> Reduced initial bundle size by 18 KB by lazy-loading the skill library.</span></div>
+          </div>
+          <a href="https://github.com/codyforbes/claude-power-ui/releases/tag/v1.3.2" class="cl-gh-link" target="_blank" rel="noopener">View full release on GitHub</a>
+        </article>
+
+        <article class="cl-entry" id="v1-3-0">
+          <div class="cl-dot"><div class="cl-dot-inner"></div></div>
+          <div class="cl-meta"><span class="cl-version">v1.3.0</span><span class="cl-tag cl-tag-minor">Minor</span><span class="cl-date">June 5, 2026</span></div>
+          <h2 class="cl-title">Admin Dashboard &amp; Team Features</h2>
+          <p class="cl-summary">A full admin dashboard for multi-seat deployments — manage user permissions, audit API usage, and set organisation-wide defaults.</p>
+          <div class="cl-changes">
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Admin dashboard with role-based access control (Owner, Admin, Member).</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Organisation-level API key management.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Usage analytics: per-user token spend, top skills, conversation volume.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Shared prompt library — admins can push approved system prompts to all users.</span></div>
+            <div class="cl-change cl-fix"><div class="cl-change-icon">✓</div><span><strong>Fix:</strong> Dark mode OLED variant no longer flashes white on page load.</span></div>
+          </div>
+          <a href="https://github.com/codyforbes/claude-power-ui/releases/tag/v1.3.0" class="cl-gh-link" target="_blank" rel="noopener">View full release on GitHub</a>
+        </article>
+
+        <article class="cl-entry" id="v1-2-1">
+          <div class="cl-dot"><div class="cl-dot-inner"></div></div>
+          <div class="cl-meta"><span class="cl-version">v1.2.1</span><span class="cl-tag cl-tag-patch">Patch</span><span class="cl-date">May 18, 2026</span></div>
+          <h2 class="cl-title">Performance &amp; Accessibility Fixes</h2>
+          <p class="cl-summary">Addresses performance regressions from v1.2.0 and improves keyboard navigation throughout the app.</p>
+          <div class="cl-changes">
+            <div class="cl-change cl-perf"><div class="cl-change-icon">⚡</div><span><strong>Perf:</strong> Fixed memory leak in conversation history virtualiser causing slowdowns after 200+ messages.</span></div>
+            <div class="cl-change cl-fix"><div class="cl-change-icon">✓</div><span><strong>Fix:</strong> Full keyboard navigation restored for skill picker modal (Tab, Esc, Enter).</span></div>
+            <div class="cl-change cl-fix"><div class="cl-change-icon">✓</div><span><strong>Fix:</strong> Screen reader now announces streaming token count correctly.</span></div>
+            <div class="cl-change cl-fix"><div class="cl-change-icon">✓</div><span><strong>Fix:</strong> Gemini provider timeout setting was being ignored.</span></div>
+          </div>
+          <a href="https://github.com/codyforbes/claude-power-ui/releases/tag/v1.2.1" class="cl-gh-link" target="_blank" rel="noopener">View full release on GitHub</a>
+        </article>
+
+        <article class="cl-entry" id="v1-2-0">
+          <div class="cl-dot"><div class="cl-dot-inner"></div></div>
+          <div class="cl-meta"><span class="cl-version">v1.2.0</span><span class="cl-tag cl-tag-minor">Minor</span><span class="cl-date">April 30, 2026</span></div>
+          <h2 class="cl-title">Encrypted Memory Vault</h2>
+          <p class="cl-summary">The new Memory Vault stores long-term context locally, encrypted with AES-256-GCM. Nothing ever leaves your device.</p>
+          <div class="cl-changes">
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Memory Vault — AES-256-GCM encrypted persistent memory, local-only.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Semantic memory search — AI automatically retrieves relevant memories per conversation.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Memory import/export for backup and migration.</span></div>
+            <div class="cl-change cl-break"><div class="cl-change-icon">!</div><span><strong>Breaking:</strong> Local storage schema updated — existing conversations auto-migrated on first launch.</span></div>
+          </div>
+          <a href="https://github.com/codyforbes/claude-power-ui/releases/tag/v1.2.0" class="cl-gh-link" target="_blank" rel="noopener">View full release on GitHub</a>
+        </article>
+
+        <article class="cl-entry" id="v1-1-0">
+          <div class="cl-dot"><div class="cl-dot-inner"></div></div>
+          <div class="cl-meta"><span class="cl-version">v1.1.0</span><span class="cl-tag cl-tag-minor">Minor</span><span class="cl-date">March 14, 2026</span></div>
+          <h2 class="cl-title">Multi-Provider Support &amp; 72 Skills</h2>
+          <p class="cl-summary">Expanded AI provider support to include OpenAI, Gemini, Mistral, and Groq alongside Claude. Shipped the full skill library — 72 built-in, role-specific prompts.</p>
+          <div class="cl-changes">
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> OpenAI GPT-4o, GPT-4 Turbo, and o3 model support.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Google Gemini 2.0 Flash and Pro support.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Mistral Large and Groq Llama 3 support.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> 72 built-in Skills across Developer, Writer, Analyst, and Designer roles.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Custom skill builder — create and save your own reusable system prompts.</span></div>
+          </div>
+          <a href="https://github.com/codyforbes/claude-power-ui/releases/tag/v1.1.0" class="cl-gh-link" target="_blank" rel="noopener">View full release on GitHub</a>
+        </article>
+
+        <article class="cl-entry" id="v1-0-0">
+          <div class="cl-dot"><div class="cl-dot-inner"></div></div>
+          <div class="cl-meta"><span class="cl-version">v1.0.0</span><span class="cl-tag cl-tag-major">Launch</span><span class="cl-date">February 1, 2026</span></div>
+          <h2 class="cl-title">Initial Public Release 🎉</h2>
+          <p class="cl-summary">Claude Power UI is live. A local-first, open-source AI workspace — bring your own API key, zero data collection, runs entirely in your browser.</p>
+          <div class="cl-changes">
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Core chat interface with streaming responses and markdown rendering.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Claude API integration with full model selector.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Conversation history stored locally in IndexedDB.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> System prompt editor with live preview.</span></div>
+            <div class="cl-change cl-new"><div class="cl-change-icon">✦</div><span><strong>New:</strong> Dark mode with OLED variant. MIT Licensed, open source.</span></div>
+          </div>
+          <a href="https://github.com/codyforbes/claude-power-ui/releases/tag/v1.0.0" class="cl-gh-link" target="_blank" rel="noopener">View full release on GitHub</a>
+        </article>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="nav-logo" style="margin-bottom:0;"><div class="nav-logo-icon">✦</div>Claude Power UI</a>
+        <p>A premium, privacy-first AI workspace. Multi-model. Local-first. Built for power users.</p>
+        <div class="footer-socials">
+          <a href="https://github.com/codyforbes/claude-power-ui" class="footer-social-link" title="GitHub" target="_blank" rel="noopener">⌘</a>
+          <a href="#" class="footer-social-link" title="Twitter / X">𝕏</a>
+          <a href="#" class="footer-social-link" title="Discord">◈</a>
+        </div>
+      </div>
+      <div class="footer-col"><h4>Product</h4><ul><li><a href="features.html">Features</a></li><li><a href="image-generation.html">Image Generation</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="getting-started.html">Documentation</a></li><li><a href="changelog.html">Changelog</a></li></ul></div>
+      <div class="footer-col"><h4>Company</h4><ul><li><a href="about.html">About</a></li><li><a href="privacy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li></ul></div>
+      <div class="footer-col"><h4>Community</h4><ul><li><a href="https://github.com/codyforbes/claude-power-ui" target="_blank" rel="noopener">GitHub</a></li><li><a href="#">Discord</a></li><li><a href="#">Twitter / X</a></li><li><a href="feature-requests.html">Feature Requests</a></li></ul></div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Claude Power UI. Open source under MIT License.</p>
+      <p>Not affiliated with Anthropic PBC.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => { nav.style.background = window.scrollY > 40 ? 'rgba(3,7,18,.92)' : 'rgba(3,7,18,.70)'; });
+  document.getElementById('hamburger').addEventListener('click', () => {
+    const links = document.querySelector('.nav-links'), acts = document.querySelector('.nav-actions');
+    const open = links.style.display === 'flex';
+    [links, acts].forEach(el => { el.style.display = open ? '' : 'flex'; el.style.flexDirection = 'column'; el.style.position = 'absolute'; el.style.top = '64px'; el.style.left = '0'; el.style.right = '0'; el.style.background = 'rgba(3,7,18,.98)'; el.style.padding = '16px 24px'; el.style.borderBottom = '1px solid rgba(255,255,255,.06)'; });
+    if (open) { links.style.display = ''; acts.style.display = ''; }
+  });
+  const tocLinks = document.querySelectorAll('.cl-sidebar-link');
+  const obs = new IntersectionObserver(es => { es.forEach(e => { if (e.isIntersecting) tocLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id)); }); }, { rootMargin: '-80px 0px -60% 0px' });
+  document.querySelectorAll('.cl-entry[id]').forEach(el => obs.observe(el));
+  function handleSubscribe(e) {
+    e.preventDefault();
+    const btn = document.getElementById('subscribe-btn');
+    btn.textContent = "✓ You're on the list!"; btn.disabled = true; btn.style.background = 'var(--success)';
+    document.getElementById('subscribe-email').disabled = true;
+  }
+</script>
+</body>
+</html>
