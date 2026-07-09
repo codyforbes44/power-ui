@@ -25,6 +25,12 @@ const PROVIDER_BASE = {
   groq:      'https://api.groq.com/openai',
   mistral:   'https://api.mistral.ai',
   google:    'https://generativelanguage.googleapis.com',
+  // Image generation providers
+  bfl:       'https://api.bfl.ml',
+  fal:       'https://fal.run',
+  replicate: 'https://api.replicate.com',
+  // Web search
+  ddg:       'https://api.duckduckgo.com',
 };
 
 const CORS = {
@@ -41,27 +47,31 @@ function response(statusCode, body, extra = {}) {
   };
 }
 
-async function fetchProvider(url, upstreamHeaders, payload) {
+async function fetchProvider(url, upstreamHeaders, payload, method = 'POST') {
   // Use Node's built-in https module (always available in Lambda/Netlify runtime)
   return new Promise((resolve, reject) => {
     const https   = require('https');
     const http    = require('http');
     const urlMod  = require('url');
 
-    const parsed  = urlMod.parse(url);
-    const isHttps = parsed.protocol === 'https:';
-    const client  = isHttps ? https : http;
-    const bodyStr = JSON.stringify(payload);
+    const parsed   = urlMod.parse(url);
+    const isHttps  = parsed.protocol === 'https:';
+    const client   = isHttps ? https : http;
+    const hasBody  = method !== 'GET' && payload !== undefined;
+    const bodyStr  = hasBody ? JSON.stringify(payload) : null;
+    const headers  = { ...upstreamHeaders };
+    if (hasBody) {
+      headers['Content-Length'] = Buffer.byteLength(bodyStr);
+    } else {
+      delete headers['Content-Type'];
+    }
 
     const options = {
       hostname: parsed.hostname,
       port:     parsed.port || (isHttps ? 443 : 80),
       path:     parsed.path,
-      method:   'POST',
-      headers:  {
-        ...upstreamHeaders,
-        'Content-Length': Buffer.byteLength(bodyStr),
-      },
+      method,
+      headers,
     };
 
     const chunks = [];
@@ -72,7 +82,7 @@ async function fetchProvider(url, upstreamHeaders, payload) {
 
     req.on('error', reject);
     req.setTimeout(29000, () => { req.destroy(); reject(new Error('Upstream timeout')); });
-    req.write(bodyStr);
+    if (hasBody) req.write(bodyStr);
     req.end();
   });
 }
@@ -95,15 +105,39 @@ exports.handler = async function(event) {
     return response(400, { error: 'Invalid JSON' });
   }
 
-  const { provider, path: apiPath, apiKey, payload, queryParams } = req;
+  const { provider, path: apiPath, apiKey, payload, queryParams, method } = req;
+  const upstreamMethod = (method || 'POST').toUpperCase();
 
-  if (!provider || !apiPath || !payload) {
-    return response(400, { error: 'Missing: provider, path, payload' });
+  if (!provider || !apiPath) {
+    return response(400, { error: 'Missing: provider, path' });
+  }
+  if (upstreamMethod !== 'GET' && !payload) {
+    return response(400, { error: 'Missing: payload' });
   }
 
   const base = PROVIDER_BASE[provider];
   if (!base) {
     return response(400, { error: `Unknown provider: ${provider}` });
+  }
+
+  // ── DuckDuckGo instant answers (GET, no auth) ────────────
+  if (provider === 'ddg') {
+    const https = require('https');
+    const q     = encodeURIComponent((payload.query || '').slice(0, 200));
+    const ddgUrl = `https://api.duckduckgo.com/?q=${q}&format=json&no_html=1&t=claudepowerui`;
+    return new Promise((resolve) => {
+      https.get(ddgUrl, { headers: { 'User-Agent': 'ClaudePowerUI/2' } }, (res) => {
+        const chunks = [];
+        res.on('data', c => chunks.push(c));
+        res.on('end', () => {
+          resolve({
+            statusCode: res.statusCode,
+            headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' },
+            body: Buffer.concat(chunks).toString('utf8'),
+          });
+        });
+      }).on('error', (e) => resolve(response(502, { error: e.message })));
+    });
   }
 
   // Build upstream URL
@@ -120,6 +154,12 @@ exports.handler = async function(event) {
   if (provider === 'anthropic') {
     upstreamHeaders['x-api-key']         = apiKey || '';
     upstreamHeaders['anthropic-version'] = '2023-06-01';
+  } else if (provider === 'bfl') {
+    upstreamHeaders['x-key'] = apiKey || '';
+  } else if (provider === 'fal') {
+    upstreamHeaders['Authorization'] = `Key ${apiKey || ''}`;
+  } else if (provider === 'replicate') {
+    upstreamHeaders['Authorization'] = `Token ${apiKey || ''}`;
   } else if (provider !== 'google') {
     // openai, groq, mistral — Bearer token
     upstreamHeaders['Authorization'] = `Bearer ${apiKey || ''}`;
@@ -129,7 +169,7 @@ exports.handler = async function(event) {
   // Forward request
   let upstream;
   try {
-    upstream = await fetchProvider(url, upstreamHeaders, payload);
+    upstream = await fetchProvider(url, upstreamHeaders, payload, upstreamMethod);
   } catch (e) {
     return response(502, { error: `Upstream error: ${e.message}` });
   }
