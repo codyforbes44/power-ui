@@ -56,7 +56,7 @@ const ImageRouter = (() => {
       "class_type": "VAEDecode"
     },
     "9": {
-      "inputs": { "filename_prefix": "claude-power-ui", "images": ["8", 0] },
+      "inputs": { "filename_prefix": "async-ai", "images": ["8", 0] },
       "class_type": "SaveImage"
     }
   };

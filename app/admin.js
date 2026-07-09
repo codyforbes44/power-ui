@@ -136,7 +136,7 @@ const AdminApp = (() => {
   function renderSettings() {
     let settings = { maxTokens: 4096, defaultSystemPrompt: '', skillAutoSuggest: true };
     try {
-      const raw = localStorage.getItem('claude_power_ui_v2') || '{}';
+      const raw = localStorage.getItem('async_ai_v2') || '{}';
       const state = JSON.parse(raw);
       if (state.settings) {
         Object.assign(settings, state.settings);
@@ -162,13 +162,13 @@ const AdminApp = (() => {
     const skillAutoSuggest = autoSuggestEl ? autoSuggestEl.checked : true;
 
     try {
-      const raw = localStorage.getItem('claude_power_ui_v2') || '{}';
+      const raw = localStorage.getItem('async_ai_v2') || '{}';
       const state = JSON.parse(raw);
       if (!state.settings) state.settings = {};
       state.settings.maxTokens = maxTokens;
       state.settings.defaultSystemPrompt = defaultSystemPrompt;
       state.settings.skillAutoSuggest = skillAutoSuggest;
-      localStorage.setItem('claude_power_ui_v2', JSON.stringify(state));
+      localStorage.setItem('async_ai_v2', JSON.stringify(state));
       toast('Settings saved successfully.', 'success');
     } catch (e) {
       toast('Failed to save settings: ' + e.message, 'error');
@@ -696,7 +696,7 @@ const AdminApp = (() => {
 
       // Count sessions
       let sessionCount = 0;
-      try { sessionCount = (JSON.parse(localStorage.getItem('claude_power_ui_v2') || '{}').sessions || []).length; } catch {}
+      try { sessionCount = (JSON.parse(localStorage.getItem('async_ai_v2') || '{}').sessions || []).length; } catch {}
 
       // M3: analytics buffer capacity warning + M6: CLI card
       const bufferPct = Math.min(100, (summary.totalEvents / 100));
@@ -811,7 +811,7 @@ python3 cli.py export --format json</pre>
       exportedAt:  new Date().toISOString(),
       version:     'cpu_v2',
       analytics:   JSON.parse(Analytics.exportJSON()),
-      appState:    JSON.parse(localStorage.getItem('claude_power_ui_v2') || '{}'),
+      appState:    JSON.parse(localStorage.getItem('async_ai_v2') || '{}'),
       workspaces:  JSON.parse(localStorage.getItem('cpu_workspaces') || '[]'),
       memories:    JSON.parse(localStorage.getItem('cpu_memories')   || '[]'),
       apiKeysVault: JSON.parse(localStorage.getItem('cpu_apikeys_v2') || 'null'),
@@ -840,7 +840,7 @@ python3 cli.py export --format json</pre>
         const backup = JSON.parse(e.target.result);
         if (!backup.version || !backup.exportedAt) { toast('Invalid backup file.', 'error'); return; }
         if (!confirm(`Import backup from ${backup.exportedAt}? This will overwrite current data.`)) return;
-        if (backup.appState)  localStorage.setItem('claude_power_ui_v2', JSON.stringify(backup.appState));
+        if (backup.appState)  localStorage.setItem('async_ai_v2', JSON.stringify(backup.appState));
         if (backup.workspaces)localStorage.setItem('cpu_workspaces', JSON.stringify(backup.workspaces));
         if (backup.memories)  localStorage.setItem('cpu_memories',   JSON.stringify(backup.memories));
         if (backup.apiKeysVault) localStorage.setItem('cpu_apikeys_v2', JSON.stringify(backup.apiKeysVault));
@@ -862,7 +862,7 @@ python3 cli.py export --format json</pre>
     if (!confirm('⚠ This will delete ALL app data including sessions, memory, and analytics. Type YES to continue.')) return;
     const confirm2 = prompt('Type YES to confirm full reset:');
     if (confirm2 !== 'YES') { toast('Reset cancelled.', 'info'); return; }
-    ['claude_power_ui_v2','claude_power_ui_v1','cpu_workspaces','cpu_memories','cpu_analytics','cpu_apikeys_v2'].forEach(k => localStorage.removeItem(k));
+    ['async_ai_v2','async_ai_v1','cpu_workspaces','cpu_memories','cpu_analytics','cpu_apikeys_v2'].forEach(k => localStorage.removeItem(k));
     toast('All data reset. Returning to app…', 'success');
     setTimeout(() => { window.location.href = 'index.html'; }, 2000);
   }
@@ -1205,7 +1205,7 @@ python3 cli.py export --format json</pre>
 
   function _getImageSetting(key) {
     try {
-      const raw = localStorage.getItem('claude_power_ui_v2');
+      const raw = localStorage.getItem('async_ai_v2');
       const s = JSON.parse(raw);
       return s?.settings?.imageGen?.[key] ?? null;
     } catch { return null; }
@@ -1375,12 +1375,12 @@ python3 cli.py export --format json</pre>
   // Helper: write one key into STATE.settings.imageGen in localStorage
   function _patchImageSetting(key, value) {
     try {
-      const raw = localStorage.getItem('claude_power_ui_v2');
+      const raw = localStorage.getItem('async_ai_v2');
       const s = raw ? JSON.parse(raw) : {};
       if (!s.settings) s.settings = {};
       if (!s.settings.imageGen) s.settings.imageGen = {};
       s.settings.imageGen[key] = value;
-      localStorage.setItem('claude_power_ui_v2', JSON.stringify(s));
+      localStorage.setItem('async_ai_v2', JSON.stringify(s));
     } catch (e) { console.warn('_patchImageSetting:', e); }
   }
 

@@ -1,4 +1,4 @@
-# Claude Power UI — Netlify Deploy Configuration
+# Async — Netlify Deploy Configuration
 # ────────────────────────────────────────────────────────────────
 # No build step — pure static HTML/CSS/JS.
 # Both /public/ (marketing site) and /app/ (AI workspace) are served.

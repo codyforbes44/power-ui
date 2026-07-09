@@ -1,4 +1,4 @@
-# Claude Power UI v2
+# Async v2
 
 A premium, local-first AI workspace — BYOK multi-model routing, 72 skills, encrypted memory, persistent history, team workspaces, and a full admin dashboard. Zero build step. No dependencies.
 

@@ -181,7 +181,7 @@ const SKILLS_DATA = {
         {
           name: 'ComfyUI — Workflow Setup',
           slug: 'comfyui-workflow',
-          desc: 'Configure ComfyUI locally: install nodes, set up API mode, connect to Claude Power UI at 127.0.0.1:8188.',
+          desc: 'Configure ComfyUI locally: install nodes, set up API mode, connect to Async at 127.0.0.1:8188.',
           useWhen: 'setting up or debugging ComfyUI local instance',
           source: 'user',
           tags: ['comfyui', 'local', 'setup', 'workflow'],

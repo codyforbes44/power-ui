@@ -703,7 +703,7 @@ const AuthSystem = (() => {
           <div class="auth-logo-wrap">
             <div class="auth-logo">✦</div>
           </div>
-          <h1 class="auth-title">Claude Power UI</h1>
+          <h1 class="auth-title">Async</h1>
           <p class="auth-subtitle">Sign in to your workspace</p>
 
           ${error ? `<div class="auth-error-banner">${esc(error)}</div>` : ''}

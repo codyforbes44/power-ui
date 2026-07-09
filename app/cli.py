@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Claude Power UI — CLI
+Async — CLI
 A standalone command-line interface for your 72-skill Claude ecosystem.
 
 Usage:
@@ -15,7 +15,7 @@ Usage:
   python cli.py config set --key sk-ant-...
   python cli.py config show
 
-Config file: ~/.claude-power-ui/config.json
+Config file: ~/.async-ai/config.json
 """
 
 import json
@@ -34,7 +34,7 @@ from datetime import datetime
 # Config
 # ─────────────────────────────────────────────────────────────
 
-CONFIG_DIR  = Path.home() / ".claude-power-ui"
+CONFIG_DIR  = Path.home() / ".async-ai"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 DATA_FILE   = CONFIG_DIR / "sessions.json"
 MEMORY_FILE = CONFIG_DIR / "memory.json"
@@ -551,7 +551,7 @@ def cmd_config_show(args, cfg):
 def build_parser():
     p = argparse.ArgumentParser(
         prog="claude-cli",
-        description="Claude Power UI — Command Line Interface",
+        description="Async — Command Line Interface",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=textwrap.dedent("""
         Examples:

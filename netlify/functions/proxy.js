@@ -1,10 +1,10 @@
 /**
- * Claude Power UI — AI Proxy Function (Netlify Functions v1 / CommonJS)
+ * Async — AI Proxy Function (Netlify Functions v1 / CommonJS)
  * ─────────────────────────────────────────────────────────────────────
  * Routes all AI provider calls through this serverless function to
  * avoid browser CORS restrictions on production deployments.
  *
- * BYOK proxy: the user's API key is forwarded per-request over HTTPS.
+ * subscription proxy: the user's API key is forwarded per-request over HTTPS.
  * Keys are never stored — only relayed in-flight.
  *
  * Supports: Anthropic, OpenAI, Groq, Mistral, Google Gemini
@@ -139,7 +139,7 @@ exports.handler = async function(event) {
   const upstreamMethod = (method || 'POST').toUpperCase();
 
   // Structured, single-line JSON logs — queryable in the Netlify Functions
-  // log viewer/CLI. Never logs apiKey or payload contents (BYOK keys must
+  // log viewer/CLI. Never logs apiKey or payload contents (subscription keys must
   // never end up in logs), only routing metadata needed to see which
   // provider/endpoint is failing or slow in production.
   const log = (fields) => console.log(JSON.stringify({ fn: 'proxy', provider, path: apiPath, method: upstreamMethod, ...fields }));

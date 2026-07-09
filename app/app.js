@@ -1,6 +1,6 @@
 /* ============================================================
    CLAUDE POWER UI v2 — Core Application
-   BYOK · Multi-model · Workspaces · Memory · Cost · Branching
+   subscription · Multi-model · Workspaces · Memory · Cost · Branching
    Skill auto-suggest · Streaming · 4 providers
    ============================================================ */
 
@@ -17,7 +17,7 @@ const STATE = {
     model:              'claude-sonnet-4-5',
     maxTokens:          4096,
     defaultSystemPrompt:
-      'You are Claude, a highly capable AI assistant. You are working with a sophisticated developer who manages a curated library of 72+ skills and workflows. Be precise, direct, and structured.',
+      'You are a helpful AI assistant powered by Async — a premium AI platform. Be precise, knowledgeable, and deliver exceptional value to every member. Provide structured, high-quality responses that justify the premium experience.',
     skillAutoSuggest: true,
   },
 
@@ -102,7 +102,7 @@ function autoResize(el) {
 // IndexedDB Image Store (Resolves QuotaExceededError)
 // ============================================================
 const ImageDb = (() => {
-  const DB_NAME = 'claude_power_ui_images';
+  const DB_NAME = 'async_ai_images';
   const DB_VERSION = 1;
   const STORE_NAME = 'images';
   let dbPromise = null;
@@ -291,8 +291,8 @@ const ServerSync = (() => {
 // ============================================================
 // Persistence
 // ============================================================
-const STORAGE_KEY = 'claude_power_ui_v2';
-const LEGACY_KEY  = 'claude_power_ui_v1';
+const STORAGE_KEY = 'async_ai_v2';
+const LEGACY_KEY  = 'async_ai_v1';
 
 function saveState() {
   // apiKeys are NOT stored in the main blob — they live in ApiKeyVault (encrypted)
@@ -323,6 +323,19 @@ function saveState() {
 }
 
 function loadState() {
+  // ── Migrate from legacy brand key (claude_power_ui → async_ai) ──────────
+  // Runs once on first boot after the rebrand. Reads old state blob from
+  // the previous storage key, saves it under the new key, then deletes old.
+  const OLD_KEY = 'claude_power_ui_v2';
+  if (!localStorage.getItem(STORAGE_KEY) && localStorage.getItem(OLD_KEY)) {
+    try {
+      localStorage.setItem(STORAGE_KEY, localStorage.getItem(OLD_KEY));
+      localStorage.removeItem(OLD_KEY);
+      localStorage.removeItem('claude_power_ui_v1');
+      console.log('✦ Async: migrated storage from claude_power_ui_v2 → async_ai_v2');
+    } catch(e) { console.warn('Async: storage migration error', e); }
+  }
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -2544,7 +2557,7 @@ function buildHTML() {
         <div class="sidebar-header">
           <div class="brand">
             <div class="brand-logo">✦</div>
-            <span class="brand-name sidebar-text">Claude Power</span>
+            <span class="brand-name sidebar-text">Async</span>
           </div>
           <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar" aria-label="Toggle sidebar">◀</button>
         </div>
@@ -2867,7 +2880,7 @@ async function boot() {
         <div style="font-size:48px">⚠️</div>
         <h1 style="font-size:24px;font-weight:700;margin:0;color:#f8fafc">Open via Server, Not File</h1>
         <p style="max-width:480px;color:#94a3b8;line-height:1.6;margin:0">
-          Claude Power UI must be served over HTTP — not opened as a local file.
+          Async must be served over HTTP — not opened as a local file.
           API calls, fonts, and sync are all blocked by the browser when using <code>file://</code>.
         </p>
         <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;
@@ -2954,7 +2967,7 @@ async function boot() {
 
   // 7. Ensure at least one session
   if (!STATE.sessions.length) {
-    createSession('Getting Started — Claude Power UI v2');
+    createSession('New Conversation — Async');
   }
 
   // 8. Restore sidebar collapsed state
@@ -2962,6 +2975,16 @@ async function boot() {
     document.getElementById('sidebar')?.classList.add('collapsed');
     const toggle = document.getElementById('sidebar-toggle');
     if (toggle) toggle.textContent = '▶';
+  }
+  // 8b. Sync skills panel open/closed state to DOM (ensures mobile-closed
+  // state is reflected even if the HTML was rendered from a stale value).
+  const skillsPanel = document.getElementById('skills-panel');
+  const skillsToggle = document.getElementById('skills-toggle');
+  if (skillsPanel) {
+    skillsPanel.classList.toggle('open', STATE.ui.skillsPanelOpen);
+  }
+  if (skillsToggle) {
+    skillsToggle.classList.toggle('active', STATE.ui.skillsPanelOpen);
   }
   syncDrawerState();
 
@@ -3038,7 +3061,7 @@ async function boot() {
 
   const syncMode = serverUp ? 'server+SSE' : 'localStorage';
   const apiMode  = (typeof ApiRouter !== 'undefined' && ApiRouter.isProxied) ? 'proxy' : 'direct';
-  console.log(`✦ Claude Power UI v2 ready — ${SKILLS_DATA.totalCount} skills · ${Object.keys(MODELS_DATA.providers).length} providers · ${STATE.sessions.length} sessions · sync:${syncMode} · api:${apiMode}`);
+  console.log(`✦ Async v2 ready — ${SKILLS_DATA.totalCount} skills · ${Object.keys(MODELS_DATA.providers).length} providers · ${STATE.sessions.length} sessions · sync:${syncMode} · api:${apiMode}`);
 }
 
 /** Inject a small sync status dot into the header (◉ = server, ◦ = local). */

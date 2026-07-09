@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Claude Power UI — Netlify Deploy Script
+Async — Netlify Deploy Script
 Uses the Netlify CLI (bundled Node.js) for reliable deploys of
 both static files AND serverless functions in one command.
 

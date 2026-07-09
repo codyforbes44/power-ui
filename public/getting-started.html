@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Getting Started — Claude Power UI</title>
-  <meta name="description" content="Complete quickstart guide for Claude Power UI. Learn how to install, configure API keys, use Skills, Memory, Workspaces, and Server Mode." />
-  <meta property="og:title" content="Getting Started — Claude Power UI" />
-  <meta property="og:description" content="Complete quickstart guide for Claude Power UI. Learn how to install, configure API keys, use Skills, Memory, Workspaces, and Server Mode." />
+  <title>Getting Started — Async</title>
+  <meta name="description" content="Complete quickstart guide for Async. Learn how to install, configure API keys, use Skills, Memory, Workspaces, and Server Mode." />
+  <meta property="og:title" content="Getting Started — Async" />
+  <meta property="og:description" content="Complete quickstart guide for Async. Learn how to install, configure API keys, use Skills, Memory, Workspaces, and Server Mode." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="images/og-image.png" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -625,9 +625,9 @@
   <!-- ─── Navigation ──────────────────────────────────────────── -->
   <nav class="nav" id="nav">
     <div class="nav-inner">
-      <a href="index.html" class="nav-logo" aria-label="Claude Power UI Home">
+      <a href="index.html" class="nav-logo" aria-label="Async Home">
         <div class="nav-logo-icon">✦</div>
-        Claude Power UI
+        Async
       </a>
       <div class="nav-links">
         <a href="index.html" class="nav-link">Home</a>
@@ -734,7 +734,7 @@
         <div class="section-eyebrow">Getting Started</div>
         <h1 class="section-title">Quick Start</h1>
         <p class="section-lead">
-          Claude Power UI is a zero-dependency, browser-native AI chat interface. No build step, no Node.js, no npm. Just open a file and start chatting.
+          Async is a zero-dependency, browser-native AI chat interface. No build step, no Node.js, no npm. Just open a file and start chatting.
         </p>
 
         <div class="callout callout-tip">
@@ -782,8 +782,8 @@
             <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
           <pre><code><span class="tok-comment"># Clone the repository</span>
-git clone https://github.com/your-org/claude-power-ui.git
-cd claude-power-ui
+git clone https://github.com/your-org/async-ai.git
+cd async-ai
 
 <span class="tok-comment"># Open directly in browser (macOS)</span>
 open app/index.html
@@ -811,7 +811,7 @@ start app/index.html</code></pre>
         <div class="section-eyebrow">Prerequisites</div>
         <h2 class="section-title">Requirements</h2>
         <p class="section-lead">
-          Claude Power UI runs entirely in the browser. The only hard requirement is a modern browser and at least one AI provider API key.
+          Async runs entirely in the browser. The only hard requirement is a modern browser and at least one AI provider API key.
         </p>
 
         <div class="doc-prose">
@@ -903,7 +903,7 @@ start app/index.html</code></pre>
             <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
           <pre><code><span class="tok-comment"># Navigate to the project folder</span>
-cd claude-power-ui
+cd async-ai
 
 <span class="tok-comment"># Open in default browser</span>
 open app/index.html   <span class="tok-comment"># macOS</span>
@@ -946,7 +946,7 @@ python3 server.py <span class="tok-flag">--port</span> 9000</code></pre>
         <div class="section-eyebrow">Configuration</div>
         <h2 class="section-title">API Keys</h2>
         <p class="section-lead">
-          Claude Power UI supports four AI providers. Your keys are stored locally, encrypted with AES-GCM — they never touch our servers.
+          Async supports four AI providers. Your keys are stored locally, encrypted with AES-GCM — they never touch our servers.
         </p>
 
         <div class="provider-grid">
@@ -1035,7 +1035,7 @@ localStorage.<span class="tok-fn">setItem</span>(<span class="tok-string">'enc_k
 
         <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Auto-detection</h3>
         <div class="doc-prose">
-          <p>Claude Power UI can automatically detect which skill to apply based on the content of your first message. Auto-detection uses a lightweight keyword and pattern matching engine:</p>
+          <p>Async can automatically detect which skill to apply based on the content of your first message. Auto-detection uses a lightweight keyword and pattern matching engine:</p>
           <ul>
             <li>Messages containing code fences (`` ``` ``) → suggests <em>Code</em> skills</li>
             <li>Messages mentioning "translate", "Spanish", "French", etc. → suggests <em>Translation</em> skills</li>
@@ -1091,7 +1091,7 @@ localStorage.<span class="tok-fn">setItem</span>(<span class="tok-string">'enc_k
         </p>
 
         <div class="doc-prose">
-          <p>Memories are short, factual statements stored in a searchable index. When you start a new conversation, Claude Power UI performs a semantic similarity search and injects the most relevant memories as context before your first message.</p>
+          <p>Memories are short, factual statements stored in a searchable index. When you start a new conversation, Async performs a semantic similarity search and injects the most relevant memories as context before your first message.</p>
         </div>
 
         <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Adding memories</h3>
@@ -1133,7 +1133,7 @@ localStorage.<span class="tok-fn">setItem</span>(<span class="tok-string">'enc_k
         </p>
 
         <div class="doc-prose">
-          <p>When you first launch Claude Power UI, a <strong>Default</strong> workspace is created automatically. Everything you do lives inside a workspace. Switching workspaces is instant and data never bleeds between them.</p>
+          <p>When you first launch Async, a <strong>Default</strong> workspace is created automatically. Everything you do lives inside a workspace. Switching workspaces is instant and data never bleeds between them.</p>
         </div>
 
         <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;margin:32px 0 16px;">Creating a workspace</h3>
@@ -1336,7 +1336,7 @@ python3 server.py <span class="tok-flag">--verbose</span></code></pre>
             </button>
             <div class="faq-a" id="faq-1" role="region" aria-labelledby="faq-1-btn">
               <div class="faq-a-inner">
-                No. Claude Power UI is entirely client-side. Your conversations, memories, skills, and settings are stored in your browser's <code>localStorage</code> (or on your own Python server in Server Mode). The only outbound network traffic is the direct API call to your chosen AI provider — Anthropic, OpenAI, Google, or Groq — using the key you provided. We never see your data.
+                No. Async is entirely client-side. Your conversations, memories, skills, and settings are stored in your browser's <code>localStorage</code> (or on your own Python server in Server Mode). The only outbound network traffic is the direct API call to your chosen AI provider — Anthropic, OpenAI, Google, or Groq — using the key you provided. We never see your data.
               </div>
             </div>
           </div>
@@ -1413,20 +1413,20 @@ python3 server.py <span class="tok-flag">--verbose</span></code></pre>
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <a href="index.html" class="nav-logo" style="margin-bottom:0;"><div class="nav-logo-icon">✦</div>Claude Power UI</a>
+          <a href="index.html" class="nav-logo" style="margin-bottom:0;"><div class="nav-logo-icon">✦</div>Async</a>
           <p>A premium, privacy-first AI workspace. Multi-model. Local-first. Built for power users.</p>
           <div class="footer-socials">
-            <a href="https://github.com/codyforbes/claude-power-ui" class="footer-social-link" title="GitHub" target="_blank" rel="noopener noreferrer">⌘</a>
+            <a href="https://github.com/codyforbes/async-ai" class="footer-social-link" title="GitHub" target="_blank" rel="noopener noreferrer">⌘</a>
             <a href="#" class="footer-social-link" title="Twitter / X">𝕏</a>
-            <a href="https://discord.gg/claude-power-ui" class="footer-social-link" title="Discord" target="_blank" rel="noopener noreferrer">◈</a>
+            <a href="https://discord.gg/async-ai" class="footer-social-link" title="Discord" target="_blank" rel="noopener noreferrer">◈</a>
           </div>
         </div>
         <div class="footer-col"><h4>Product</h4><ul><li><a href="features.html">Features</a></li><li><a href="image-generation.html">Image Generation</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="getting-started.html">Documentation</a></li><li><a href="changelog.html">Changelog</a></li></ul></div>
         <div class="footer-col"><h4>Company</h4><ul><li><a href="about.html">About</a></li><li><a href="privacy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li></ul></div>
-        <div class="footer-col"><h4>Community</h4><ul><li><a href="https://github.com/codyforbes/claude-power-ui" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://discord.gg/claude-power-ui" target="_blank" rel="noopener noreferrer">Discord</a></li><li><a href="#">Twitter / X</a></li><li><a href="feature-requests.html">Feature Requests</a></li></ul></div>
+        <div class="footer-col"><h4>Community</h4><ul><li><a href="https://github.com/codyforbes/async-ai" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://discord.gg/async-ai" target="_blank" rel="noopener noreferrer">Discord</a></li><li><a href="#">Twitter / X</a></li><li><a href="feature-requests.html">Feature Requests</a></li></ul></div>
       </div>
       <div class="footer-bottom">
-        <p>© 2026 Claude Power UI. Open source under MIT License.</p>
+        <p>© 2026 Async. Open source under MIT License.</p>
         <p>Not affiliated with Anthropic PBC.</p>
       </div>
     </div>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Claude Power UI v2 — Local Server
+Async v2 — Local Server
 Stdlib only · Python 3.8+ · No external dependencies
 
   • Serves app/ as static files (enables crypto.subtle on localhost)
@@ -324,7 +324,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             init_result = _mcp_rpc(proc, 'initialize', {
                 'protocolVersion': '2024-11-05',
                 'capabilities':    {},
-                'clientInfo':      {'name': 'claude-power-ui', 'version': '2.0'},
+                'clientInfo':      {'name': 'async-ai', 'version': '2.0'},
             }, timeout=6)
 
             if init_result is None:
@@ -449,7 +449,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Claude Power UI v2 — Local Server',
+        description='Async v2 — Local Server',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -470,7 +470,7 @@ Examples:
     # Use ThreadingHTTPServer so SSE streams don't block other requests
     server = http.server.ThreadingHTTPServer((args.host, args.port), Handler)
 
-    print(f'\n  ✦  Claude Power UI v2  —  Local Server\n')
+    print(f'\n  ✦  Async v2  —  Local Server\n')
     print(f'  → App:        http://{args.host}:{args.port}')
     print(f'  → Admin:      http://{args.host}:{args.port}/admin.html')
     print(f'  → Data dir:   {DATA_DIR}')
