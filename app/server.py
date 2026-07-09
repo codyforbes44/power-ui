@@ -139,7 +139,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             "font-src 'self' https://fonts.gstatic.com data:; "
             "connect-src 'self' https://api.anthropic.com https://api.openai.com "
             "https://generativelanguage.googleapis.com https://api.groq.com "
-            "https://api.mistral.ai https://unpkg.com; "
+            "https://api.mistral.ai https://api.bfl.ml https://fal.run "
+            "https://api.replicate.com http://127.0.0.1:8188 http://localhost:8188 "
+            "https://unpkg.com; "
             "frame-src blob:; "
             "img-src 'self' data: blob:;"
         )

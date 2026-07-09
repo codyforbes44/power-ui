@@ -1604,8 +1604,12 @@ button { font-family: var(--font-ui); }
 .image-popover-generate:hover  { opacity: 0.9; }
 .image-popover-generate:active { transform: scale(0.98); }
 
-/* Ensure composer has position:relative for popover anchoring */
-.composer { position: relative; }
+/* Ensure composer has position:relative for popover anchoring.
+   overflow must be un-hidden too — the base .composer rule sets
+   overflow:hidden to clip the textarea to its rounded corners, which
+   also clipped (and made unclickable) this popover positioned above it
+   via bottom:calc(100% + 10px). */
+.composer { position: relative; overflow: visible; }
 
 /* ============================================================
    Tool Calling — Call blocks, results, spinners

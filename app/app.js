@@ -2011,7 +2011,7 @@ async function handleImageGeneration(session, prompt, opts = {}) {
   const comfyUrl = imgSettings.comfyUrl || 'http://127.0.0.1:8188';
 
   if (provider !== 'comfyui' && !apiKey) {
-    showToast(`🎨 No API key for “${provider}” — add it in Settings → Image Generation`, 'warning');
+    toast(`🎨 No API key for “${provider}” — add it in Settings → Image Generation`, 'warning');
     return;
   }
 
@@ -2069,7 +2069,7 @@ async function handleImageGeneration(session, prompt, opts = {}) {
     saveState();
     renderMessages();
     scrollToBottom();
-    showToast(`🎨 Generation failed: ${err.message}`, 'error');
+    toast(`🎨 Generation failed: ${err.message}`, 'error');
   }
 }
 
@@ -2766,7 +2766,7 @@ function generateFromPopover() {
   const [width, height] = sizeVal.split('x').map(Number);
 
   if (!prompt) {
-    showToast('\ud83c\udfa8 Please enter an image description', 'warning');
+    toast('\ud83c\udfa8 Please enter an image description', 'warning');
     return;
   }
 
