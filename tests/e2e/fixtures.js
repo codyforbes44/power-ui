@@ -1,8 +1,26 @@
 'use strict';
 
 const base = require('@playwright/test');
+const { spawn } = require('node:child_process');
+const path = require('node:path');
 
 const TEST_PASSWORD = 'TestPass123!';
+const PORT = 8934;
+const REPO_ROOT = path.join(__dirname, '..', '..');
+
+async function waitForServer(baseURL, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(`${baseURL}/api/ping`);
+      if (res.ok) return;
+    } catch {
+      // not up yet
+    }
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  throw new Error(`server.py did not respond on ${baseURL}/api/ping within ${timeoutMs}ms`);
+}
 
 /**
  * Drives the real first-login UI flow (default admin/admin123, then the
@@ -37,7 +55,45 @@ async function saveApiKey(page, providerId, fakeKey) {
 }
 
 const test = base.test.extend({
-  loggedInPage: async ({ page }, use) => {
+  // Test-scoped (not worker-scoped) auto-fixture: spawns a brand new
+  // app/server.py instance — fresh temp copy of app/+public/, empty data/
+  // dir — for every single test, and fully tears it down afterward.
+  //
+  // Earlier this suite shared ONE server for the whole run and reset its
+  // state.json between tests, but server.py's ServerSync is real
+  // multi-device sync and saveState()'s ServerSync.push() is fire-and-
+  // forget: a test's trailing push could still be in flight when the next
+  // test's reset ran, and that straggler would then get pulled into the
+  // next test's fresh browser context by one of its own page navigations.
+  // That raced intermittently no matter how the reset was timed. A fresh
+  // server per test has no prior state to leak in the first place.
+  // Playwright statically parses this destructuring pattern to know the
+  // fixture has no dependencies; a renamed plain parameter breaks its
+  // introspection, so the empty pattern below is required, not a typo.
+  // eslint-disable-next-line no-empty-pattern
+  isolatedServer: [async ({}, use) => {
+    const baseURL = `http://127.0.0.1:${PORT}`;
+    const child = spawn('bash', ['tests/e2e/isolated-server.sh', String(PORT)], {
+      cwd: REPO_ROOT,
+      stdio: 'ignore',
+    });
+    const exited = new Promise((resolve) => child.once('exit', resolve));
+
+    try {
+      await waitForServer(baseURL);
+    } catch (err) {
+      child.kill('SIGTERM');
+      await exited;
+      throw err;
+    }
+
+    await use(baseURL);
+
+    child.kill('SIGTERM');
+    await exited; // isolated-server.sh's own trap kills python + removes the temp dir before exiting
+  }, { auto: true, scope: 'test' }],
+
+  loggedInPage: async ({ page, isolatedServer }, use) => {
     await loginAsAdmin(page);
     await use(page);
   },
