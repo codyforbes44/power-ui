@@ -163,6 +163,7 @@ npm test           # all three
 | Lint | ESLint (`eslint.config.js`) | Structural bugs — `no-redeclare` catches a top-level `function` silently shadowing another, the exact failure mode of a past regression |
 | Unit | Node's built-in test runner (`node:test`) | Pure logic: the Netlify proxy's request validation/method handling, model registry, TF-IDF memory scoring |
 | E2E | Playwright, real Chromium | Full user flows — login, chat + tool-calling, image generation, Admin settings persistence, ServerSync — against `app/server.py` running from a throwaway temp copy (`tests/e2e/isolated-server.sh`), never your real `data/` directory |
+| E2E (mobile) | Playwright, `devices['Pixel 5']` (`tests/e2e/mobile/`) | The flows that are actually different on a real mobile viewport — off-canvas sidebar/admin-nav drawers, touch taps landing where CSS says they should — each test scoped to its own isolated server the same way as the desktop suite |
 
 CI (`.github/workflows/test.yml`) runs all three on every push and PR to `main`.
 

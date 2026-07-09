@@ -46,6 +46,12 @@ async function loginAsAdmin(page) {
 /** Saves a fake API key for `providerId` via the real Admin UI (encrypts through the vault, same as a real user would). */
 async function saveApiKey(page, providerId, fakeKey) {
   await page.goto('/app/admin.html');
+  // Below 1024px the nav lives in an off-canvas drawer (see admin.css) —
+  // .mobile-sidebar-btn only exists in the DOM at all under that
+  // breakpoint, so isVisible() alone (no CSS assertion needed) tells us
+  // whether it needs opening first.
+  const hamburger = page.locator('button[onclick="AdminApp.toggleSidebar()"]');
+  if (await hamburger.isVisible()) await hamburger.click();
   await page.click('#nav-item-connections');
   const input = page.locator(`#key-input-${providerId}`);
   await input.waitFor({ state: 'visible', timeout: 10_000 });

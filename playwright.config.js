@@ -21,7 +21,15 @@ module.exports = defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: '**/mobile/**' },
+    // A focused subset of flows (not the whole suite duplicated) run under
+    // real mobile device emulation — viewport, touch, UA — to catch the
+    // class of bug device-width alone doesn't: hit-testing on touch
+    // targets, drawer/backdrop interaction, etc. Pixel 5 (Chromium-based)
+    // rather than an iPhone preset (WebKit-based) so this only needs the
+    // one browser already installed for the desktop project — CI installs
+    // just `chromium` (see .github/workflows/test.yml).
+    { name: 'mobile', use: { ...devices['Pixel 5'] }, testMatch: '**/mobile/**' },
   ],
   // No global webServer: server.py's disk-backed ServerSync is real
   // multi-device sync, so one shared instance across all tests meant one
