@@ -44,8 +44,14 @@ Claude/
 │   ├── about.html           About & philosophy
 │   ├── privacy.html         Privacy Policy
 │   ├── terms.html           Terms of Service
+│   ├── images/
+│   │   └── og-image.png     Social share card (generated — see tools/og-image/)
 │   └── css/
 │       └── public.css       Shared marketing stylesheet
+│
+├── tools/
+│   └── og-image/            Regenerates the OG/Twitter share card from the
+│                             real brand tokens (`node tools/og-image/generate.js`)
 │
 ├── app/                     ← The actual application
 │   ├── index.html           Main app entry point

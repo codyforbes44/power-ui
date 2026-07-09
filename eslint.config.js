@@ -102,4 +102,18 @@ module.exports = [
       'no-undef': 'off',
     },
   },
+  {
+    // Node-side scripts (asset generators, one-off tooling), same treatment
+    // as netlify/functions — plus browser globals, since these also pass a
+    // closure to Playwright's page.evaluate() that runs client-side.
+    files: ['tools/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: { ...globals.node, ...globals.browser },
+    },
+    rules: {
+      'no-unused-vars': ['warn', { args: 'none', varsIgnorePattern: '^_' }],
+    },
+  },
 ];
