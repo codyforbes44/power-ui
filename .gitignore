@@ -21,3 +21,6 @@ __pycache__/
 .netlify/
 .netlify-token
 .netlify-site
+
+# Dependencies — installed via package.json, not committed
+node_modules/
