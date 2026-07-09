@@ -2459,6 +2459,11 @@ async function boot() {
     return;
   }
 
+  // 0c. A logged-in session can still be carrying a not-yet-changed default
+  // password (see checkPasswordChangeRequired() in auth.js) — block booting
+  // the app until that's resolved, not just on the initial login submit.
+  if (AuthSystem.checkPasswordChangeRequired()) return;
+
   // Track login session
   Analytics.track('login', { username: AuthSystem.getCurrentSession()?.username });
 

@@ -245,6 +245,23 @@ const AuthSystem = (() => {
   // ──────────────────────────────────────────────────────────
   // Route guards
   // ──────────────────────────────────────────────────────────
+  // login() creates a valid session immediately, before the caller has
+  // acted on user.mustChangePassword — that flag was previously only
+  // enforced by the login form's own submit handler choosing to render
+  // renderForcePasswordChange(). Any other navigation to an authenticated
+  // page (back button, new tab, direct URL, a reload after login) skipped
+  // it entirely: the session was already valid, so isLoggedIn() passed and
+  // the app just booted normally on the untouched default password. This
+  // re-checks the flag at every auth gate, not just the one code path.
+  function checkPasswordChangeRequired() {
+    const user = getCurrentUser();
+    if (user?.mustChangePassword) {
+      renderForcePasswordChange(user);
+      return true;
+    }
+    return false;
+  }
+
   function requireAuth(redirectTo = 'index.html') {
     if (!isLoggedIn()) {
       if (window.location.href.indexOf(redirectTo) === -1) {
@@ -253,6 +270,7 @@ const AuthSystem = (() => {
       }
       return false;
     }
+    if (checkPasswordChangeRequired()) return false;
     return true;
   }
 
@@ -489,6 +507,7 @@ const AuthSystem = (() => {
     isAdmin,
     requireAuth,
     requireAdmin,
+    checkPasswordChangeRequired,
     recordMessageSent,
     renderLoginScreen,
     refreshVaultKey,   // for re-deriving vault key after external password change

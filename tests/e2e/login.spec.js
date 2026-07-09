@@ -32,3 +32,27 @@ test('wrong password is rejected with an error, not a silent login', async ({ pa
 test('loggedInPage fixture reaches the chat shell (used by other specs)', async ({ loggedInPage }) => {
   await expect(loggedInPage.locator('#message-input')).toBeVisible();
 });
+
+// Regression test: login() creates a fully valid session *before* the caller
+// acts on mustChangePassword — that flag was previously enforced only by the
+// login form's own submit handler choosing to render the force-change
+// screen. Navigating away instead (direct URL, new tab, a reload) skipped it
+// entirely, since isLoggedIn() was already true. Covers both entry points:
+// index.html's boot() and admin.html's requireAuth().
+test('navigating away instead of completing the forced password change still blocks the app', async ({ page }) => {
+  await page.goto('/app/');
+  await page.fill('#auth-username', 'admin');
+  await page.fill('#auth-password', 'admin123');
+  await page.click('#auth-submit-btn');
+  await expect(page.locator('#new-pw')).toBeVisible({ timeout: 10_000 });
+
+  // Instead of completing the change-password form, reload straight into
+  // the main app — the session is already valid at this point.
+  await page.goto('/app/');
+  await expect(page.locator('#new-pw')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('#message-input')).toHaveCount(0);
+
+  // Same for admin.html directly.
+  await page.goto('/app/admin.html');
+  await expect(page.locator('#new-pw')).toBeVisible({ timeout: 10_000 });
+});
