@@ -24,3 +24,9 @@ __pycache__/
 
 # Dependencies — installed via package.json, not committed
 node_modules/
+.dev-tools/
+
+# Test artifacts
+test-results/
+playwright-report/
+tests/e2e/.auth/

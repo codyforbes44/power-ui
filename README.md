@@ -146,6 +146,28 @@ Navigate to `app/admin.html` or press **⌘⇧A** when logged in as admin.
 
 ---
 
+## Testing
+
+```bash
+npm install
+npx playwright install chromium   # first time only
+
+npm run lint       # ESLint — no-redeclare is the important one (see eslint.config.js)
+npm run test:unit  # node --test — proxy.js, ping.js, models-data.js, memory.js
+npm run test:e2e   # Playwright — real Chromium against an isolated app/server.py copy
+npm test           # all three
+```
+
+| Layer | Tool | What it covers |
+|-------|------|-----------------|
+| Lint | ESLint (`eslint.config.js`) | Structural bugs — `no-redeclare` catches a top-level `function` silently shadowing another, the exact failure mode of a past regression |
+| Unit | Node's built-in test runner (`node:test`) | Pure logic: the Netlify proxy's request validation/method handling, model registry, TF-IDF memory scoring |
+| E2E | Playwright, real Chromium | Full user flows — login, chat + tool-calling, image generation, Admin settings persistence, ServerSync — against `app/server.py` running from a throwaway temp copy (`tests/e2e/isolated-server.sh`), never your real `data/` directory |
+
+CI (`.github/workflows/test.yml`) runs all three on every push and PR to `main`.
+
+---
+
 ## Security
 
 | Aspect | Implementation |
