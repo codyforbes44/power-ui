@@ -401,8 +401,8 @@ async function boot() {
         let bgUrl = state.settings.agentBackground;
         if (bgUrl.startsWith('db:')) {
           try {
-            const data = await ImageDb.get(bgUrl.slice(3));
-            if (data) bgUrl = data;
+            const row = await ImageDb.get(bgUrl.slice(3));
+            if (row && row.data) bgUrl = row.data;
           } catch(e) { console.warn('Failed to load bg from ImageDb', e); }
         }
         if (bgUrl && !bgUrl.startsWith('db:')) {
@@ -410,6 +410,8 @@ async function boot() {
           document.body.style.backgroundSize = 'cover';
           document.body.style.backgroundPosition = 'center';
           document.body.style.backgroundAttachment = 'fixed';
+          const mainEl = document.querySelector('main');
+          if (mainEl) mainEl.style.background = 'transparent';
         }
       }
     }
