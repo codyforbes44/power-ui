@@ -30,9 +30,12 @@ const PROVIDER_BASE = {
   fal:          'https://fal.run',
   replicate:    'https://api.replicate.com',
   // Web search
-  ddg:       'https://api.duckduckgo.com',
+  ddg:          'https://api.duckduckgo.com',
   // Developer platforms
-  github:    'https://api.github.com',
+  github:       'https://api.github.com',
+  // Super-Agent tools
+  fetch_url:    '__DYNAMIC__',  // URL is provided in payload.url
+  wikipedia:    'https://en.wikipedia.org',
 };
 
 const CORS = {
@@ -156,6 +159,56 @@ exports.handler = async function(event) {
   if (!base) {
     log({ event: 'unknown_provider' });
     return response(400, { error: `Unknown provider: ${provider}` });
+  }
+
+  // ── fetch_url — proxy-CORS-bypass for KB URL ingestion ────────
+  if (provider === 'fetch_url') {
+    const targetUrl = payload?.url;
+    if (!targetUrl || !targetUrl.startsWith('http')) {
+      return response(400, { error: 'fetch_url requires payload.url to be a valid http/https URL' });
+    }
+    const https = require('https');
+    const http  = require('http');
+    const urlMod = require('url');
+    const parsed = urlMod.parse(targetUrl);
+    const client = parsed.protocol === 'https:' ? https : http;
+    return new Promise((resolve) => {
+      const req2 = client.get(targetUrl, {
+        headers: {
+          'User-Agent': 'AsyncAI-KnowledgeBase/1.0 (document ingestion)',
+          'Accept': 'text/html,text/plain,application/json,*/*',
+        },
+        timeout: 20000,
+      }, (res) => {
+        const chunks = [];
+        res.on('data', c => chunks.push(c));
+        res.on('end', () => {
+          let text = Buffer.concat(chunks).toString('utf8');
+          // Strip HTML tags for cleaner text
+          text = text
+            .replace(/<script[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[\s\S]*?<\/style>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 100000);
+          log({ event: 'fetch_url_done', targetUrl: targetUrl.slice(0, 80), bytes: text.length, status: res.statusCode });
+          resolve({
+            statusCode: 200,
+            headers: { ...CORS, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, url: targetUrl, status: res.statusCode }),
+          });
+        });
+      });
+      req2.on('error', (e) => {
+        resolve(response(502, { error: `fetch_url failed: ${e.message}` }));
+      });
+      req2.on('timeout', () => {
+        req2.destroy();
+        resolve(response(504, { error: 'fetch_url timed out' }));
+      });
+    });
   }
 
   // ── DuckDuckGo instant answers (GET, no auth) ────────────
