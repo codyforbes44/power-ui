@@ -1450,6 +1450,11 @@ function renderMessages() {
                 <span class="image-gen-timing">${imgData.timingS}s</span>
               </div>
             ` : ''}
+            <div class="image-gen-suggestions" style="margin-top: 10px;">
+              <button class="image-gen-remix-btn" onclick="remixImagePrompt(this.dataset.prompt)" data-prompt="${esc(imgData.prompt).replace(/"/g, '&quot;')}" style="background: transparent; border: 1px solid var(--border-color); border-radius: 12px; padding: 6px 12px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--text-main); transition: all 0.2s;" onmouseover="this.style.background='var(--bg-card)';" onmouseout="this.style.background='transparent';">
+                <span style="font-size: 14px;">🎲</span> Remix & Randomize
+              </button>
+            </div>
           </div>
         `;
         inner.appendChild(div);
@@ -4588,4 +4593,48 @@ window._wireImg2ImgUpload = function() {
     if (urlInput) urlInput.value = '';
     dropzone.classList.remove('img2img-loaded');
   });
+};
+
+// ── Image Remix & Randomize ─────────────────────────────────────
+window.remixImagePrompt = function(originalPrompt) {
+  // Strip "/imagine " if it exists
+  let base = originalPrompt.replace(/^\/imagine\s+/i, '').trim();
+  
+  // Strip common parameter flags (e.g., --ar 16:9, --seed 123)
+  base = base.replace(/--\w+\s+[^\s]+/g, '').replace(/--\w+/g, '').replace(/,/g, '').trim();
+
+  // Expanded list of rich, highly attractive styles
+  const styles = [
+    "cinematic lighting, Unreal Engine 5 render, epic composition, masterpiece, 8k resolution, photorealistic",
+    "neon cyberpunk style, glowing neon lights, high contrast, bustling futuristic city aesthetic, hyper-detailed",
+    "dreamy watercolor painting, ethereal, pastel colors, soft edges, studio ghibli inspired, magical",
+    "vintage 35mm film photography, Kodak Portra 400, beautiful grain, light leaks, nostalgic and moody",
+    "hyper-realistic macro photography, incredibly detailed, 85mm lens, f/1.8, shallow depth of field, sharp focus",
+    "retro pop-art style, vibrant contrasting colors, comic book halftone patterns, bold outlines",
+    "dark fantasy, gothic, moody atmospheric lighting, masterpiece, intricate details, trending on ArtStation",
+    "anime illustration style, lush landscapes, vibrant colors, expressive details, Makoto Shinkai aesthetic, 4K",
+    "oil painting by old masters, chiaroscuro lighting, rich textures, museum quality, classic composition",
+    "isometric 3D render, claymation style, cute and colorful, clean background, soft studio lighting",
+    "synthwave aesthetic, retro-futuristic, neon grid, 1980s outrun style, vivid magenta and cyan, VHS effect",
+    "bioluminescent glowing details, ethereal alien flora, deep sea vibes, magical lighting, fantasy concept art",
+    "award-winning National Geographic wildlife photography, dramatic natural lighting, breathtaking details",
+    "minimalist vector art, flat colors, clean geometric shapes, modern corporate illustration, sharp edges",
+    "steampunk aesthetic, brass and copper gears, Victorian architecture, sepia tones, intricate mechanical details"
+  ];
+  
+  const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+  const newPrompt = `/imagine ${base}, ${randomStyle} --ar 16:9`;
+  
+  const input = document.getElementById('chat-input');
+  if (input) {
+    input.value = newPrompt;
+    input.style.height = 'auto';
+    input.style.height = input.scrollHeight + 'px';
+    input.focus();
+    
+    // Automatically submit the remixed prompt
+    if (typeof window.handleSend === 'function') {
+      window.handleSend();
+    }
+  }
 };
