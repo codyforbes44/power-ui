@@ -1816,7 +1816,6 @@ python3 cli.py export --format json</pre>
     // Agent panel (loaded from agent-panel.js)
     toast,
   };
-  };
 
 
 })();
