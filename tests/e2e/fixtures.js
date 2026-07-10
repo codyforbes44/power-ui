@@ -41,6 +41,8 @@ async function loginAsAdmin(page) {
   await page.locator('#change-pw-form button[type=submit]').click();
 
   await base.expect(page.locator('#message-input')).toBeVisible({ timeout: 15_000 });
+
+  await page.addStyleTag({ content: '#onboarding-overlay { display: none !important; pointer-events: none !important; }' });
 }
 
 /** Saves a fake API key for `providerId` via the real Admin UI (encrypts through the vault, same as a real user would). */
