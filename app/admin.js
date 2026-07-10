@@ -910,6 +910,21 @@ python3 cli.py export --format json</pre>
     },
   ];
 
+  // ── Developer / Platform tokens ──────────────────────────
+  const DEV_TOKEN_DEFS = [
+    {
+      id: 'github',
+      name: 'GitHub',
+      icon: '🐙',
+      color: '#6e40c9',
+      placeholder: 'ghp_…',
+      baseUrl: 'https://api.github.com',
+      docsUrl: 'https://github.com/settings/tokens',
+      desc: 'Personal Access Token with repo scope. Used to push the FHDR Uncensored model to your private GitHub repository.',
+      testPath: '/user',
+      testHeaders: (k) => ({ 'Authorization': `Bearer ${k}`, 'User-Agent': 'Async-App' }),
+    },
+  ];
 
   // ── ComfyUI local URL (not a key — a URL setting) ────────
   const COMFYUI_SETTING = {
@@ -1101,6 +1116,10 @@ python3 cli.py export --format json</pre>
     sectionHeading('🎨 Image Generation APIs', 'Flux Pro/Dev/Schnell — BFL, fal.ai, Replicate');
     IMAGE_PROVIDER_DEFS.forEach(p => renderKeyCard(p, !!(storedKeys[p.id]?.trim())));
 
+    // Developer / platform tokens
+    sectionHeading('🐙 Developer Tokens', 'GitHub and other platform credentials');
+    DEV_TOKEN_DEFS.forEach(p => renderKeyCard(p, !!(storedKeys[p.id]?.trim())));
+
     // ComfyUI URL (not a key — a URL setting)
     const comfyUrlVal = _getImageSetting('comfyUrl') || 'http://127.0.0.1:8188';
     const comfyCard = document.createElement('div');
@@ -1236,7 +1255,8 @@ python3 cli.py export --format json</pre>
   }
 
   async function testApiKey(providerId) {
-    const pDef  = PROVIDER_DEFS.find(p => p.id === providerId);
+    const pDef  = PROVIDER_DEFS.find(p => p.id === providerId)
+                  || DEV_TOKEN_DEFS.find(p => p.id === providerId);
     if (!pDef) return;
     const input = document.getElementById(`key-input-${providerId}`);
     const key   = input?.value.trim();

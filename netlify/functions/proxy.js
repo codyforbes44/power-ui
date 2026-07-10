@@ -31,6 +31,8 @@ const PROVIDER_BASE = {
   replicate:    'https://api.replicate.com',
   // Web search
   ddg:       'https://api.duckduckgo.com',
+  // Developer platforms
+  github:    'https://api.github.com',
 };
 
 const CORS = {
@@ -202,6 +204,11 @@ exports.handler = async function(event) {
     upstreamHeaders['Authorization'] = `Token ${apiKey || ''}`;
   } else if (provider === 'huggingface') {
     upstreamHeaders['Authorization'] = `Bearer ${apiKey || ''}`;
+  } else if (provider === 'github') {
+    upstreamHeaders['Authorization'] = `Bearer ${apiKey || ''}`;
+    upstreamHeaders['User-Agent']    = 'Async-App/1.0';
+    upstreamHeaders['Accept']        = 'application/vnd.github+json';
+    upstreamHeaders['X-GitHub-Api-Version'] = '2022-11-28';
   } else if (provider !== 'google') {
     // openai, groq, mistral — Bearer token
     upstreamHeaders['Authorization'] = `Bearer ${apiKey || ''}`;

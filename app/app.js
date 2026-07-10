@@ -11,7 +11,7 @@ const STATE = {
   sessions:        [],
   activeSessionId: null,
 
-  apiKeys: { anthropic: '', openai: '', google: '', groq: '', mistral: '', bfl: '', fal: '', replicate: '' },
+  apiKeys: { anthropic: '', openai: '', google: '', groq: '', mistral: '', bfl: '', fal: '', replicate: '', github: '' },
 
   settings: {
     model:              'claude-sonnet-4-5',
