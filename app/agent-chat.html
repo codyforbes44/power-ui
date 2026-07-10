@@ -401,7 +401,7 @@ async function boot() {
         let bgUrl = state.settings.agentBackground;
         if (bgUrl.startsWith('db:')) {
           try {
-            const data = await ImageDb.get(bgUrl);
+            const data = await ImageDb.get(bgUrl.slice(3));
             if (data) bgUrl = data;
           } catch(e) { console.warn('Failed to load bg from ImageDb', e); }
         }
