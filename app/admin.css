@@ -1,5 +1,5 @@
 /* ============================================================
-   CLAUDE POWER UI v2 — Admin Dashboard Styles
+   Async AI — Admin Dashboard Styles
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -198,6 +198,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
+  padding-top: max(0px, env(safe-area-inset-top, 0px));
   border-bottom: 1px solid var(--border);
   background: rgba(10,15,30,0.7);
   backdrop-filter: blur(8px);
@@ -488,6 +489,7 @@ table.admin-table {
 /* ── Buttons ───────────────────────────────────────────────── */
 .btn-sm {
   padding: 5px 12px;
+  min-height: 32px;
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 500;
@@ -495,6 +497,9 @@ table.admin-table {
   border: none;
   font-family: var(--font-ui);
   transition: all var(--t-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .btn-sm.primary { background: var(--indigo-500); color: white; }
 .btn-sm.primary:hover { opacity: 0.85; }
@@ -1383,6 +1388,38 @@ table.admin-table {
   .charts-grid { grid-template-columns: 1fr; }
   .create-user-form { grid-template-columns: 1fr; align-items: stretch; }
   .api-keys-grid { grid-template-columns: 1fr; }
+
+  /* 44px nav tap targets on touch devices */
+  .admin-nav-item { padding: 12px 10px; min-height: 44px; font-size: 13px; }
+  .admin-back-btn  { min-height: 44px; }
+  .btn-sm { min-height: 44px; padding: 0 16px; font-size: 12px; }
+}
+
+/* ── Tablet / large phone (≤768px) ──────────────────────────── */
+@media (max-width: 768px) {
+  .admin-content { padding: 16px; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .admin-topbar { padding: 0 16px; }
+  .admin-topbar-meta  { display: none; }
+  .admin-topbar-badge { display: none; }
+  .panel-title { font-size: 15px; }
+  .admin-table th, .admin-table td { padding: 8px 12px; }
+  .health-grid { grid-template-columns: 1fr; }
+  .api-keys-grid { grid-template-columns: 1fr; }
+  /* Ensure ALL tables are horizontally scrollable on phones */
+  .admin-panel table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+/* ── Small phone (≤480px) ───────────────────────────────────── */
+@media (max-width: 480px) {
+  .admin-content { padding: 12px; }
+  .kpi-grid { grid-template-columns: 1fr; }
+  .admin-topbar { height: 48px; }
+  .panel-title { font-size: 14px; }
+  .kpi-value { font-size: 22px; }
+  .kpi-card { padding: 14px 16px; }
+  .chart-card { padding: 14px 16px; }
 }
 
 /* ── Memory Manager Panel ── */

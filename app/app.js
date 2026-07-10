@@ -2823,7 +2823,20 @@ function syncDrawerState() {
   if (!backdrop) return;
   const anyOpen = isMobileViewport() && (!STATE.ui.sidebarCollapsed || STATE.ui.skillsPanelOpen);
   backdrop.classList.toggle('visible', anyOpen);
-  document.body.style.overflow = anyOpen ? 'hidden' : '';
+  if (anyOpen) {
+    // iOS Safari fix: overflow:hidden on body does NOT prevent scroll.
+    // Store current scroll position and use position:fixed instead.
+    const scrollY = window.scrollY;
+    document.documentElement.style.setProperty('--scroll-y', `${scrollY}px`);
+    document.body.classList.add('drawer-open');
+  } else {
+    // Restore scroll position when drawer closes.
+    const scrollY = parseFloat(
+      document.documentElement.style.getPropertyValue('--scroll-y') || '0'
+    );
+    document.body.classList.remove('drawer-open');
+    if (scrollY) window.scrollTo(0, scrollY);
+  }
 }
 
 function closeMobileDrawers() {
@@ -2916,11 +2929,75 @@ function attachEventListeners() {
     document.getElementById('sidebar-toggle')?.click();
   });
 
+  // ── Swipe-to-close gestures for off-canvas drawers ──────────
+  // Swipe left on the sidebar closes it. Swipe right on the skills panel
+  // closes it. Only active on mobile viewport and only when the panel is open.
+  (() => {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const SWIPE_THRESHOLD = 60;   // px horizontal travel needed
+    const DIRECTION_LOCK = 30;    // px vertical travel that cancels swipe
+
+    function onTouchStart(e) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+
+    function onSidebarTouchEnd(e) {
+      if (!isMobileViewport() || STATE.ui.sidebarCollapsed) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+      // Swipe left (negative dx) with small vertical movement → close sidebar
+      if (dx < -SWIPE_THRESHOLD && dy < DIRECTION_LOCK) {
+        document.getElementById('sidebar-toggle')?.click();
+      }
+    }
+
+    function onSkillsTouchEnd(e) {
+      if (!isMobileViewport() || !STATE.ui.skillsPanelOpen) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+      // Swipe right (positive dx) with small vertical movement → close panel
+      if (dx > SWIPE_THRESHOLD && dy < DIRECTION_LOCK) {
+        document.getElementById('skills-toggle')?.click();
+      }
+    }
+
+    const sidebar = document.getElementById('sidebar');
+    const skillsPanel = document.getElementById('skills-panel');
+    if (sidebar) {
+      sidebar.addEventListener('touchstart', onTouchStart, { passive: true });
+      sidebar.addEventListener('touchend', onSidebarTouchEnd, { passive: true });
+    }
+    if (skillsPanel) {
+      skillsPanel.addEventListener('touchstart', onTouchStart, { passive: true });
+      skillsPanel.addEventListener('touchend', onSkillsTouchEnd, { passive: true });
+    }
+  })();
+
   let _resizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(_resizeTimer);
     _resizeTimer = setTimeout(syncDrawerState, 150);
   });
+
+  // ── visualViewport resize → detect virtual keyboard on mobile ──
+  // When the virtual keyboard appears, the viewport height shrinks.
+  // Compress the composer max-height so it doesn't steal all space.
+  if (window.visualViewport) {
+    const composerInput = document.getElementById('message-input');
+    const baseHeight = window.visualViewport.height;
+    window.visualViewport.addEventListener('resize', () => {
+      if (!composerInput) return;
+      const shrinkRatio = window.visualViewport.height / baseHeight;
+      // If height dropped by more than 30%, keyboard is up
+      if (shrinkRatio < 0.7) {
+        composerInput.style.maxHeight = '80px';
+      } else {
+        composerInput.style.maxHeight = '';
+      }
+    });
+  }
 
   document.getElementById('skills-tab-btn')?.addEventListener('click', () => {
     STATE.ui.skillsTab = 'skills';
@@ -2953,7 +3030,15 @@ function attachEventListeners() {
     const dd = document.getElementById('model-dropdown');
     if (dd) {
       dd.style.display = STATE.ui.modelDropdownOpen ? 'block' : 'none';
-      if (STATE.ui.modelDropdownOpen) renderModelDropdown();
+      if (STATE.ui.modelDropdownOpen) {
+        renderModelDropdown();
+        // On phones (<480px), turn the dropdown into a bottom-sheet
+        if (window.matchMedia('(max-width: 480px)').matches) {
+          dd.classList.add('bottom-sheet');
+        } else {
+          dd.classList.remove('bottom-sheet');
+        }
+      }
     }
   });
 
@@ -3150,8 +3235,10 @@ function buildHTML() {
                 <textarea
                   class="composer-input"
                   id="message-input"
-                  placeholder="Ask anything, or pick a starter above… (⌘⏎ to send)"
+                  placeholder="Ask anything…"
                   rows="1"
+                  inputmode="text"
+                  enterkeyhint="send"
                 ></textarea>
               </div>
               <div class="composer-toolbar">

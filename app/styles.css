@@ -1,6 +1,6 @@
 /* ============================================================
-   CLAUDE POWER UI v2 — Design System
-   Deep navy · Electric indigo · Glassmorphism · Premium
+   Async AI — Design System
+   Mobile-first · Deep navy · Electric indigo · Glassmorphism
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -53,13 +53,32 @@
   --glow-purple: 0 0 40px rgba(139,92,246,0.15);
 
   /* Sizing */
-  --sidebar-w:     280px;
-  --skills-panel-w:340px;
+  --sidebar-w:     260px;
+  --skills-panel-w:320px;
   --header-h:       52px;
   --radius-sm:  6px;
   --radius-md: 10px;
   --radius-lg: 16px;
   --radius-xl: 24px;
+  /* Tap target minimum (Apple HIG / WCAG 2.5.5) */
+  --tap-target: 44px;
+
+  /* Z-index scale — documented to avoid conflicts */
+  --z-base:      1;
+  --z-sticky:    10;
+  --z-header:    20;
+  --z-backdrop:  150;
+  --z-drawer:    200;
+  --z-modal:     300;
+  --z-artifact:  500;
+  --z-toast:     999;
+  --z-overlay:   10000;
+
+  /* Safe-area helpers (iOS notch / Dynamic Island / home indicator) */
+  --safe-top:    env(safe-area-inset-top,    0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left,   0px);
+  --safe-right:  env(safe-area-inset-right,  0px);
 
   /* Transitions */
   --t-fast: 120ms ease;
@@ -76,38 +95,70 @@
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* touch-action: manipulation removes the 300ms tap delay on all interactive
+   elements without disabling pinch-zoom (unlike touch-action:none). */
+button, a, [role="button"], input, select, textarea { touch-action: manipulation; }
+
 html {
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* svh = small viewport height — excludes browser chrome on iOS Safari.
+     Falls back to 100vh on unsupported browsers (Safari < 15.4). */
+  height: 100svh;
 }
 
 body {
   font-family: var(--font-ui);
   background: var(--bg-base);
   color: var(--text-primary);
-  height: 100vh;
+  height: 100svh;
+  height: 100vh; /* fallback for very old browsers */
   overflow: hidden;
   background-image:
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.08) 0%, transparent 60%),
     radial-gradient(ellipse 50% 80% at 100% 50%, rgba(139,92,246,0.05) 0%, transparent 60%);
 }
 
+/* When a drawer is open on mobile, body gets .drawer-open class to lock
+   scroll. We use the position:fixed trick because overflow:hidden on body
+   does NOT prevent scroll on iOS Safari. */
+body.drawer-open {
+  position: fixed;
+  width: 100%;
+  /* scrollY is stored in a CSS var by JS so we can restore scroll position */
+  top: calc(-1 * var(--scroll-y, 0px));
+}
+
 button { font-family: var(--font-ui); }
 
 ::selection { background: rgba(99,102,241,0.3); color: var(--text-primary); }
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+/* Custom scrollbars only on pointer devices (mouse/trackpad).
+   Touch devices use native momentum scrolling with no custom styling. */
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* ============================================================
    Layout: 3-column (sidebar | main | skills-panel)
    Below 1024px, sidebar/skills-panel become off-canvas drawers —
    see the mobile block near the end of this file.
    ============================================================ */
-#app { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+#app { display: flex; height: 100svh; height: 100vh; width: 100vw; overflow: hidden; }
 
 /* ── Drawer backdrop (mobile off-canvas sidebar/skills-panel) ── */
 .drawer-backdrop {
@@ -206,7 +257,7 @@ button { font-family: var(--font-ui); }
 }
 
 .sidebar-toggle {
-  width: 32px; height: 32px;
+  width: 36px; height: 36px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -218,6 +269,9 @@ button { font-family: var(--font-ui); }
   flex-shrink: 0;
 }
 .sidebar-toggle:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+/* On mobile, the sidebar is off-canvas — the collapse toggle is irrelevant
+   and clutters the header. Hide it; the mobile-sidebar-btn handles opening. */
+@media (max-width: 1024px) { .sidebar-toggle { display: none; } }
 
 /* Workspace bar */
 .workspace-bar {
@@ -253,7 +307,7 @@ button { font-family: var(--font-ui); }
 .workspace-select:hover { border-color: var(--border-active); }
 
 .workspace-new-btn {
-  width: 32px; height: 32px;
+  width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
   background: rgba(99,102,241,0.12);
   border: 1px solid var(--border);
@@ -265,6 +319,7 @@ button { font-family: var(--font-ui); }
   flex-shrink: 0;
 }
 .workspace-new-btn:hover { background: rgba(99,102,241,0.25); border-color: var(--indigo-500); }
+@media (max-width: 1024px) { .workspace-new-btn { width: var(--tap-target); height: var(--tap-target); } }
 
 /* New chat button */
 .btn-new-chat {
@@ -351,15 +406,17 @@ button { font-family: var(--font-ui); }
 .session-item:hover .session-delete { opacity: 1; }
 .session-delete:hover { color: var(--rose-500); }
 
-/* Sidebar footer */
+/* Sidebar footer — safe-area for iPhone home indicator */
 .sidebar-footer {
   border-top: 1px solid var(--border);
   padding: 8px;
+  padding-bottom: max(8px, var(--safe-bottom));
   flex-shrink: 0;
 }
 
 .sidebar-footer-btn {
   width: 100%; padding: 7px 10px;
+  min-height: 36px;
   border: none; background: transparent;
   color: var(--text-secondary);
   font-size: 12px; cursor: pointer;
@@ -370,6 +427,9 @@ button { font-family: var(--font-ui); }
   white-space: nowrap; overflow: hidden;
 }
 .sidebar-footer-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+@media (max-width: 1024px) {
+  .sidebar-footer-btn { min-height: var(--tap-target); font-size: 13px; }
+}
 
 .status-cost { display: flex; align-items: center; gap: 4px; font-size: 10px; font-family: var(--font-mono); padding: 4px 10px; }
 .status-cost-label { color: var(--text-muted); }
@@ -397,13 +457,13 @@ button { font-family: var(--font-ui); }
    always in normal flow and its own toggle is reachable directly. */
 .mobile-sidebar-btn {
   display: none;
-  width: 36px; height: 36px;
+  width: var(--tap-target); height: var(--tap-target);
   align-items: center; justify-content: center;
   background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
   flex-shrink: 0;
   transition: color var(--t-fast), background var(--t-fast);
@@ -989,27 +1049,32 @@ button { font-family: var(--font-ui); }
 
 .composer-toolbar {
   display:flex; align-items:center; gap:4px;
-  padding: 6px 10px 8px;
+  padding: 4px 8px 6px;
   border-top: 1px solid rgba(255,255,255,0.04);
+  flex-wrap: wrap;
 }
 
 .composer-system-btn {
-  padding: 5px 8px; background:transparent; border:none;
-  color:var(--text-muted); font-size:13px; cursor:pointer;
+  padding: 8px 10px; background:transparent; border:none;
+  color:var(--text-muted); font-size:12px; cursor:pointer;
   border-radius: 5px; display:flex; align-items:center; gap:4px;
-  font-size: 11px;
+  min-height: 36px;
   transition: color var(--t-fast), background var(--t-fast);
 }
 .composer-system-btn:hover { color:var(--text-secondary); background:rgba(255,255,255,0.05); }
 .composer-system-btn.active { color:var(--indigo-400); background:rgba(99,102,241,0.1); }
+@media (max-width: 1024px) {
+  .composer-system-btn { min-height: var(--tap-target); padding: 10px 12px; }
+}
 
 .composer-spacer { flex:1; }
 
 .send-btn {
-  padding: 7px 16px;
+  padding: 0 18px;
+  min-height: var(--tap-target);
   background: linear-gradient(135deg,var(--indigo-500),var(--purple-500));
   border: none; border-radius:var(--radius-md);
-  color: white; font-size:12px; font-weight:600;
+  color: white; font-size:13px; font-weight:600;
   cursor: pointer;
   display: flex; align-items:center; gap:5px;
   transition: opacity var(--t-fast), transform var(--t-fast);
@@ -1019,11 +1084,12 @@ button { font-family: var(--font-ui); }
 .send-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
 
 .stop-btn {
-  padding: 7px 12px;
+  padding: 0 14px;
+  min-height: var(--tap-target);
   background: rgba(225,29,72,0.15);
   border: 1px solid rgba(225,29,72,0.3);
   border-radius: var(--radius-md);
-  color: var(--rose-500); font-size:12px; font-weight:600;
+  color: var(--rose-500); font-size:13px; font-weight:600;
   cursor: pointer; display:flex; align-items:center; gap:5px;
   transition: all var(--t-fast);
 }
@@ -1155,10 +1221,11 @@ button { font-family: var(--font-ui); }
    Settings Modal
    ============================================================ */
 .modal-overlay {
-  position:fixed; inset:0;
-  background:rgba(3,7,18,0.8);
-  backdrop-filter:blur(8px);
-  z-index:100;
+  position: fixed; inset:0;
+  background: rgba(3,7,18,0.8);
+  backdrop-filter: blur(8px);
+  /* z-index MUST be above drawer (200) so a modal can open over an open drawer */
+  z-index: var(--z-modal);
   display:flex; align-items:center; justify-content:center;
   animation:fadeIn 0.15s ease;
 }
@@ -1220,7 +1287,8 @@ button { font-family: var(--font-ui); }
 .memory-panel-overlay {
   position:fixed; inset:0;
   background:rgba(0,0,0,0.55);
-  z-index:200;
+  /* 250 = above drawer (200) but below modal (300) */
+  z-index:250;
   display:flex; align-items:stretch; justify-content:flex-start;
   backdrop-filter:blur(4px);
 }
@@ -1230,7 +1298,7 @@ button { font-family: var(--font-ui); }
   background:var(--bg-surface);
   border-right:1px solid var(--border);
   display:flex; flex-direction:column;
-  height:100vh;
+  height:100svh;
   animation:slideInLeft 0.22s ease;
 }
 
@@ -1276,7 +1344,17 @@ button { font-family: var(--font-ui); }
 /* ============================================================
    Toast
    ============================================================ */
-#toast-container { position:fixed; bottom:24px; right:24px; display:flex; flex-direction:column; gap:8px; z-index:300; pointer-events:none; }
+#toast-container {
+  position: fixed;
+  bottom: max(24px, var(--safe-bottom));
+  right: max(24px, var(--safe-right));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: var(--z-toast);
+  pointer-events: none;
+  max-width: min(300px, calc(100vw - 32px));
+}
 
 .toast {
   padding:10px 16px;
@@ -1314,60 +1392,153 @@ button { font-family: var(--font-ui); }
 /* ============================================================
    Mobile off-canvas drawers (sidebar + skills-panel)
    Below 1024px both side panels leave normal flex flow and become
-   fixed, full-height, slide-in drawers over a shared backdrop
-   (.drawer-backdrop, see top of file) instead of squeezing into a
-   viewport too narrow for a 3-column layout. .sidebar reuses its
-   existing .collapsed class (meaning "off-screen" here instead of
-   "narrow icon rail"); .skills-panel reuses its .open class.
+   fixed, full-height, slide-in drawers over a shared backdrop.
+   Uses 100svh (small viewport height) to avoid the iOS Safari
+   browser-chrome-overlap bug that 100vh causes.
    ============================================================ */
 @media (max-width: 1024px) {
   .sidebar,
   .sidebar.collapsed {
     position: fixed;
     top: 0; left: 0; bottom: 0;
-    height: 100vh;
+    height: 100svh;
     width: min(var(--sidebar-w), 85vw);
     min-width: 0;
-    z-index: 200;
+    z-index: var(--z-drawer);
     transform: translateX(-100%);
     transition: transform var(--t-slow);
     box-shadow: 12px 0 40px rgba(0,0,0,0.45);
+    /* Swipe-to-close target area: whole panel is a swipe zone */
+    overscroll-behavior: contain;
   }
   .sidebar:not(.collapsed) { transform: translateX(0); }
 
   .skills-panel {
     position: fixed;
     top: 0; right: 0; bottom: 0;
-    height: 100vh;
+    height: 100svh;
     width: min(var(--skills-panel-w), 85vw);
     min-width: 0;
     max-width: 85vw;
-    z-index: 200;
+    z-index: var(--z-drawer);
     display: flex;
     transform: translateX(100%);
     transition: transform var(--t-slow);
     box-shadow: -12px 0 40px rgba(0,0,0,0.45);
+    overscroll-behavior: contain;
   }
   .skills-panel.open { transform: translateX(0); }
+
+  /* Session items need bigger tap targets on touch screens */
+  .session-item { padding: 10px 8px; min-height: var(--tap-target); }
+
+  /* Session list — enable momentum scrolling on iOS */
+  .session-list { -webkit-overflow-scrolling: touch; }
 }
 
-/* Phone-width header density — drop lower-priority header content
-   (context bar, session cost, and text labels next to icons) rather
-   than letting the header overflow; session title, model icon,
-   and the drawer toggles stay reachable. */
+/* ── Tablet intermediate (768–1024px) ─────────────────────── */
+@media (max-width: 1024px) and (min-width: 769px) {
+  /* Topbar can still show a condensed title and model selector */
+  .header-center { display: none; }
+}
+
+/* ── Phone-width header density ───────────────────────────── */
 @media (max-width: 768px) {
   .header-center,
   .header-cost-display,
   #current-model-name { display: none; }
-  .session-title-input { max-width: 90px; }
-  #skills-toggle span:last-child { display: none; } /* keep the icon, drop the "Tools" label */
+  /* Keep a reasonable title width — 90px is too narrow to read */
+  .session-title-input { max-width: 150px; font-size: 14px; }
+  #skills-toggle span:last-child { display: none; } /* icon only */
 
-  /* .model-dropdown is right:0-anchored with a fixed 340px width — on a
-     narrow phone, wherever .model-selector actually sits in the squeezed
-     header, that can push the dropdown's left edge off-screen. Anchor to
-     the viewport instead of a fixed width so it can't overflow either
-     edge regardless of where the button ends up. */
-  .model-dropdown { left: 12px; right: 12px; width: auto; }
+  /* Anchor model dropdown to viewport edges instead of the button */
+  .model-dropdown { left: 8px; right: 8px; width: auto; }
+
+  /* Composer: tighter max-height when keyboard is up */
+  .composer-input { max-height: 140px; }
+
+  /* Image popover becomes a bottom-sheet on small screens */
+  .image-popover {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border-bottom: none;
+    padding-bottom: max(20px, var(--safe-bottom));
+    max-height: 80svh;
+    overflow-y: auto;
+    z-index: var(--z-drawer);
+  }
+
+  /* Toast safe-area for home indicator */
+  #toast-container {
+    bottom: max(20px, var(--safe-bottom));
+    right: max(16px, var(--safe-right));
+  }
+
+  /* Chat header safe-area for notch */
+  .chat-header {
+    padding-top: max(0px, var(--safe-top));
+  }
+}
+
+/* ── Small phone (≤480px) ─────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Sidebar/panel widths at very narrow phones */
+  .sidebar,
+  .sidebar.collapsed { width: min(var(--sidebar-w), 92vw); }
+  .skills-panel { width: min(var(--skills-panel-w), 92vw); }
+
+  /* Model dropdown: full bottom-sheet */
+  .model-dropdown.bottom-sheet {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    width: 100%;
+    max-height: 70svh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border: none;
+    border-top: 1px solid var(--glass-border);
+    padding-bottom: max(16px, var(--safe-bottom));
+    overflow-y: auto;
+    z-index: var(--z-drawer);
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Drag handle for bottom-sheets */
+  .model-dropdown.bottom-sheet::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    margin: 10px auto 4px;
+    flex-shrink: 0;
+  }
+
+  /* Follow-up chips: scroll horizontally instead of wrapping */
+  .follow-ups {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .follow-ups::-webkit-scrollbar { display: none; }
+
+  /* Message bubbles fill more width */
+  .message-bubble { max-width: 96vw; }
+  .message-bubble.assistant { max-width: 98vw; }
+
+  /* Slim the composer toolbar even more on tiny screens */
+  .composer-toolbar { gap: 2px; }
+
+  /* Composer wrap safe-area */
+  .composer-wrap { padding-bottom: max(16px, var(--safe-bottom)); }
+}
+
+/* ── Very small phone (≤360px) ───────────────────────────── */
+@media (max-width: 360px) {
+  .session-title-input { max-width: 100px; font-size: 13px; }
+  .composer-input { font-size: 15px; }
+  .send-btn { padding: 0 12px; font-size: 12px; }
 }
 
 /* ============================================================
@@ -1423,7 +1594,7 @@ button { font-family: var(--font-ui); }
   position: fixed; inset:0;
   background: rgba(3,7,18,0.85);
   backdrop-filter: blur(12px);
-  z-index: 500;
+  z-index: var(--z-artifact);
   display: flex; align-items:center; justify-content:center;
   animation: fadeIn 0.15s ease;
 }
@@ -1784,12 +1955,6 @@ button { font-family: var(--font-ui); }
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
   border-color: rgba(99,102,241,0.4) !important;
 }
-/* Ensure composer has position:relative for popover anchoring.
-   overflow must be un-hidden too — the base .composer rule sets
-   overflow:hidden to clip the textarea to its rounded corners, which
-   also clipped (and made unclickable) this popover positioned above it
-   via bottom:calc(100% + 10px). */
-.composer { position: relative; overflow: visible; }
 
 /* ============================================================
    Tool Calling — Call blocks, results, spinners
@@ -2379,25 +2544,26 @@ button { font-family: var(--font-ui); }
 
 /* ── Voice Input Button ── */
 .composer-voice-btn {
-  padding: 5px 9px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  padding: 8px 10px;
+  min-height: 36px;
   background: transparent;
+  border: none;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
-  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
-  flex-shrink: 0;
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color var(--t-fast), background var(--t-fast);
 }
+
 .composer-voice-btn:hover {
-  background: rgba(99,102,241,0.08);
-  border-color: rgba(99,102,241,0.3);
-  color: var(--text-primary);
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.05);
 }
+
 .composer-voice-btn.voice-listening {
-  background: rgba(239,68,68,0.12);
-  border-color: rgba(239,68,68,0.4);
-  color: #f87171;
+  color: #ef4444;
+  background: rgba(239,68,68,0.1);
   animation: voicePulse 1.2s ease-in-out infinite;
 }
 @keyframes voicePulse {
