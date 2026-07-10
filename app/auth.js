@@ -251,6 +251,10 @@ const AuthSystem = (() => {
   const SESSION_KEY = 'cpu_auth_session';
   const TOKEN_KEY   = 'cpu_auth_token'; // sessionStorage — auto-clears on tab close
 
+  // Usernames that are always granted admin role regardless of how they sign up.
+  // Add the app owner's username here to guarantee permanent admin access.
+  const SUPER_ADMINS = new Set(['cody', 'admin']);
+
   // ──────────────────────────────────────────────────────────
   // Storage helpers
   // ──────────────────────────────────────────────────────────
@@ -354,6 +358,9 @@ const AuthSystem = (() => {
     if (users.find(u => u.username === uname)) throw new Error(`Username "${uname}" is already taken.`);
     if (!password || password.length < 6) throw new Error('Password must be at least 6 characters.');
 
+    // Super-admins always get admin role, regardless of what was passed
+    const assignedRole = SUPER_ADMINS.has(uname) ? 'admin' : role;
+
     const salt = randomHex(16);
     const passwordHash = await hashPassword(password, salt); // always pbkdf2
 
@@ -361,7 +368,7 @@ const AuthSystem = (() => {
       id:          randomHex(8),
       username:    uname,
       displayName: displayName.trim() || uname,
-      role,
+      role:        assignedRole,
       salt,
       passwordHash,
       hashAlgo:    'pbkdf2',
@@ -629,18 +636,32 @@ const AuthSystem = (() => {
       sessionStorage.removeItem('cpu_signup_intent');
       try {
         const { username, displayName, password } = JSON.parse(suRaw);
+        // Ensure first-run admin exists before we add the new user
         const existing = loadUsers();
-        // Only create if users already exist (not a first-run)
-        if (existing.length > 0) {
-          await createUser({ username, displayName, password, role: 'user' });
-          const user = await login(username, password);
-          const url = new URL(location.href);
-          url.searchParams.delete('signup');
-          history.replaceState({}, '', url);
-          console.log(`✦ AuthSystem: signup + login → ${username}`);
-          return;
+        if (existing.length === 0) {
+          // No admin yet — run first-run init first, then create the user below
+          const salt = randomHex(16);
+          const passwordHash = await hashPassword('admin123', salt, 'pbkdf2');
+          const admin = {
+            id: randomHex(8), username: 'admin', displayName: 'Admin',
+            role: 'admin', salt, passwordHash, hashAlgo: 'pbkdf2',
+            createdAt: Date.now(), lastLogin: null, active: true,
+            messageCount: 0, totalCost: 0, mustChangePassword: true,
+          };
+          saveUsers([admin]);
+          console.log('✦ AuthSystem: auto-created admin on first signup');
         }
-      } catch(e) { console.warn('AuthSystem: signup intent error', e); }
+        await createUser({ username, displayName, password, role: 'user' });
+        const user = await login(username, password);
+        const url = new URL(location.href);
+        url.searchParams.delete('signup');
+        history.replaceState({}, '', url);
+        console.log(`✦ AuthSystem: signup + login → ${username}`);
+        return;
+      } catch(e) {
+        console.warn('AuthSystem: signup intent error', e);
+        sessionStorage.setItem('cpu_auth_error', e.message || 'Failed to create account. Please try again.');
+      }
     }
 
     // 3. Login intent (credential-based login from login page)
@@ -659,6 +680,27 @@ const AuthSystem = (() => {
         sessionStorage.setItem('cpu_auth_error', e.message || 'Invalid username or password.');
         console.warn('AuthSystem: login intent error', e);
       }
+    }
+
+    // ── One-time role migration: promote super-admins ─────
+    // Ensures any existing SUPER_ADMINS user has the admin role,
+    // e.g. if they registered before this code was deployed.
+    const allUsers = loadUsers();
+    let changed = false;
+    allUsers.forEach(u => {
+      if (SUPER_ADMINS.has(u.username) && u.role !== 'admin') {
+        u.role = 'admin';
+        changed = true;
+        console.log(`✦ AuthSystem: promoted ${u.username} → admin (super-admin rule)`);
+      }
+    });
+    if (changed) saveUsers(allUsers);
+
+    // Also update any active session for a just-promoted user
+    const sess = loadSession();
+    if (sess && SUPER_ADMINS.has(sess.username) && sess.role !== 'admin') {
+      sess.role = 'admin';
+      saveSession(sess);
     }
 
     // ── First-run: create default admin ───────────────────
