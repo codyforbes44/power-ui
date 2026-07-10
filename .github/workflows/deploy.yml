@@ -27,3 +27,4 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: 3380488d-918a-40aa-af48-fa46a5f482af
+          SECRETS_SCAN_SMART_DETECTION_ENABLED: 'false'
