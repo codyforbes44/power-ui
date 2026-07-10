@@ -100,6 +100,10 @@ async function renderAgentPanel() {
             <option value="none"     ${cfg.memory?.scope==='none'     ?'selected':''}>Disabled — no cross-session memory</option>
           </select>
         </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;color:var(--admin-text-dim);display:block;margin-bottom:5px">ElevenLabs Agent ID (for Voice AI)</label>
+          <input id="agent-elevenlabs-id" type="text" value="${_escAP(cfg.voice?.elevenlabsAgentId || '')}" class="admin-input" style="width:100%" placeholder="agent_xyz..." />
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="admin-btn admin-btn-primary" onclick="AgentPanel.save()">💾 Save Config</button>
           <button class="admin-btn" onclick="AgentPanel.resetConfig()" style="background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);color:#f87171">↺ Reset Defaults</button>
@@ -507,6 +511,8 @@ window.AgentPanel = {
     cfg.systemPrompt = _ap_el('agent-system-prompt')?.value   || cfg.systemPrompt;
     cfg.temperature  = parseFloat(_ap_el('agent-temperature')?.value ?? cfg.temperature);
     cfg.maxTokens    = parseInt(_ap_el('agent-max-tokens')?.value   ?? cfg.maxTokens);
+    if (!cfg.voice) cfg.voice = {};
+    cfg.voice.elevenlabsAgentId = _ap_el('agent-elevenlabs-id')?.value.trim() || '';
     SuperAgent.config.save(cfg);
     AdminApp?.toast?.('Agent config saved ✓', 'success', 1500);
   },

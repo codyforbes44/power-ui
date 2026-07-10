@@ -3523,6 +3523,11 @@ async function boot() {
     setTimeout(_showVaultUnlockModal, 600);
   } else if (vaultResult && typeof vaultResult === 'object') {
     Object.assign(STATE.apiKeys, vaultResult);
+    // Seed ElevenLabs API key as requested by user
+    if (!STATE.apiKeys.elevenlabs) {
+      STATE.apiKeys.elevenlabs = 'f3b71efdc4a68e21d54a96443af9466d76af06a8c01afd6cb8a6f4a951b52848';
+      ApiKeyVault.save(STATE.apiKeys).catch(e => console.error('Failed to seed ElevenLabs key', e));
+    }
   }
 
   // 4b. On a narrow viewport, force both drawers closed for this session

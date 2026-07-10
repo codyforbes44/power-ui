@@ -1148,6 +1148,10 @@ python3 cli.py export --format json</pre>
     sectionHeading('🎨 Image Generation APIs', 'Flux Pro/Dev/Schnell — BFL, fal.ai, Replicate');
     IMAGE_PROVIDER_DEFS.forEach(p => renderKeyCard(p, !!(storedKeys[p.id]?.trim())));
 
+    // Voice / Agent providers
+    sectionHeading('🎙️ Voice & Conversational AI', 'ElevenLabs Conversational Agents');
+    VOICE_PROVIDER_DEFS.forEach(p => renderKeyCard(p, !!(storedKeys[p.id]?.trim())));
+
     // Developer / platform tokens
     sectionHeading('🐙 Developer Tokens', 'GitHub and other platform credentials');
     DEV_TOKEN_DEFS.forEach(p => renderKeyCard(p, !!(storedKeys[p.id]?.trim())));
@@ -1288,6 +1292,8 @@ python3 cli.py export --format json</pre>
 
   async function testApiKey(providerId) {
     const pDef  = PROVIDER_DEFS.find(p => p.id === providerId)
+                  || IMAGE_PROVIDER_DEFS.find(p => p.id === providerId)
+                  || VOICE_PROVIDER_DEFS.find(p => p.id === providerId)
                   || DEV_TOKEN_DEFS.find(p => p.id === providerId);
     if (!pDef) return;
     const input = document.getElementById(`key-input-${providerId}`);

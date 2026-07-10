@@ -308,6 +308,7 @@
             <span class="hp" onclick="injectCmd('/weather ')">/weather</span>
           </div>
           <div class="cacts">
+            <button id="call-btn" onclick="startElevenLabsCall()" title="Start Voice Call" aria-label="Start Voice Call" style="display:none; background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.3); color:var(--indigo-l); width:36px; height:36px; border-radius:10px; cursor:pointer; font-size:14px; margin-right:6px">📞</button>
             <button id="stp" onclick="stopStream()" title="Stop" aria-label="Stop">■</button>
             <button id="snd" onclick="sendMsg()" title="Send (Enter)" aria-label="Send">↑</button>
           </div>
@@ -379,6 +380,23 @@ async function boot() {
     if (sbnm) sbnm.textContent = name;
     const hname = document.getElementById('hname');
     if (hname) hname.textContent = name;
+
+    // 8. Inject ElevenLabs Conversational AI if configured
+    if (c.voice?.elevenlabsAgentId) {
+      const script = document.createElement('script');
+      script.src = 'https://elevenlabs.io/convai-widget/index.js';
+      script.async = true;
+      script.type = 'text/javascript';
+      document.head.appendChild(script);
+
+      const widget = document.createElement('elevenlabs-convai');
+      widget.setAttribute('agent-id', c.voice.elevenlabsAgentId);
+      document.body.appendChild(widget);
+
+      // Show the Call button now that the widget is active
+      const callBtn = document.getElementById('call-btn');
+      if (callBtn) callBtn.style.display = 'flex';
+    }
   }
 
   setupComp();
@@ -843,6 +861,18 @@ function md(txt) {
 
 // ── Actions ────────────────────────────────────────────────
 function stopStream() { if (S.abort) S.abort.abort(); }
+
+function startElevenLabsCall() {
+  const widget = document.querySelector('elevenlabs-convai');
+  if (widget && widget.shadowRoot) {
+    const btn = widget.shadowRoot.querySelector('button');
+    if (btn) {
+      btn.click();
+      return;
+    }
+  }
+  awMsg('ElevenLabs widget is still loading or unavailable.');
+}
 
 function clearChat() {
   if (S.streaming) stopStream();

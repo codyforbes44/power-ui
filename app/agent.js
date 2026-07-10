@@ -94,6 +94,11 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
     // Each: { id, name, endpoint, apiKey, authType, description, enabled, lastUsed }
     apiIntegrations: [],
 
+    // ── Voice / Agent ──────────────────────────────────────
+    voice: {
+      elevenlabsAgentId: 'agent_4501kx66fjttf7gvkdh772xm3vcf',
+    },
+
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -114,6 +119,7 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
         cfg.memory          = { ...DEFAULT_CONFIG.memory,          ...(saved.memory          || {}) };
         cfg.knowledgeBase   = { ...DEFAULT_CONFIG.knowledgeBase,   ...(saved.knowledgeBase   || {}) };
         cfg.webSearch       = { ...DEFAULT_CONFIG.webSearch,       ...(saved.webSearch       || {}) };
+        cfg.voice           = { ...DEFAULT_CONFIG.voice,           ...(saved.voice           || {}) };
         cfg.apiIntegrations = saved.apiIntegrations || [];
         return cfg;
       } catch { return JSON.parse(JSON.stringify(DEFAULT_CONFIG)); }
