@@ -2324,7 +2324,7 @@ async function executeTool(toolName, input, session) {
           .replace(/pi/gi,  'Math.PI')
           .replace(/e(?![a-zA-Z])/g, 'Math.E')
           .replace(/[^0-9+\-*/().,%\s^Math.A-Z_]/g, '');
-        // eslint-disable-next-line no-new-func
+         
         const result = Function('"use strict"; return (' + safe + ')')();
         return `${input.expression} = ${result}`;
       } catch (e) {

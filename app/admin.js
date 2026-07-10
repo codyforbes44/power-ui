@@ -915,6 +915,22 @@ python3 cli.py export --format json</pre>
     },
   ];
 
+  // ── Voice / Conversational AI providers ───────────────────
+  const VOICE_PROVIDER_DEFS = [
+    {
+      id: 'elevenlabs',
+      name: 'ElevenLabs',
+      icon: '🎙️',
+      color: '#10b981',
+      placeholder: 'sk_…',
+      baseUrl: 'https://api.elevenlabs.io',
+      docsUrl: 'https://elevenlabs.io/docs/api-reference/getting-started',
+      desc: 'API Key for ElevenLabs Conversational Agents. Must have sufficient quota.',
+      testPath: '/v1/user',
+      testHeaders: (k) => ({ 'xi-api-key': k }),
+    },
+  ];
+
   // ── Developer / Platform tokens ──────────────────────────
   const DEV_TOKEN_DEFS = [
     {
