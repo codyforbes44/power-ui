@@ -29,8 +29,10 @@ const PROVIDER_BASE = {
   bfl:          'https://api.bfl.ml',
   fal:          'https://fal.run',
   replicate:    'https://api.replicate.com',
-  // Web search
+  // Web search providers
   ddg:          'https://api.duckduckgo.com',
+  brave:        'https://api.search.brave.com',
+  serpapi:      'https://serpapi.com',
   // Developer platforms
   github:       'https://api.github.com',
   // Super-Agent tools
@@ -262,10 +264,18 @@ exports.handler = async function(event) {
     upstreamHeaders['User-Agent']    = 'Async-App/1.0';
     upstreamHeaders['Accept']        = 'application/vnd.github+json';
     upstreamHeaders['X-GitHub-Api-Version'] = '2022-11-28';
-  } else if (provider !== 'google') {
+  } else if (provider === 'brave') {
+    // Brave Search API — key in X-Subscription-Token header
+    upstreamHeaders['Accept']                = 'application/json';
+    upstreamHeaders['Accept-Encoding']       = 'gzip';
+    upstreamHeaders['X-Subscription-Token'] = apiKey || '';
+  } else if (provider === 'serpapi') {
+    // SerpAPI — key goes in query param (handled by caller via queryParams)
+    // No auth header needed; key is passed as api_key query param
+  } else if (provider !== 'google' && provider !== 'ddg') {
     // openai, groq, mistral — Bearer token
     upstreamHeaders['Authorization'] = `Bearer ${apiKey || ''}`;
-    // Google uses ?key= query param set in queryParams above
+    // Google uses ?key= query param; DDG uses no auth
   }
 
   // Forward request
