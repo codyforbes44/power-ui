@@ -4662,8 +4662,8 @@ window.setAgentBackground = function(url) {
        window.db.collection('users').doc(AuthSystem.getCurrentSession().userId)
          .collection('state').doc('current').set({ settings: state.settings }, { merge: true });
     }
-    showToast('Agent background set! Open Aria to see it.', 'success');
+    toast('Agent background set! Open Aria to see it.', 'success');
   } catch(e) {
-    showToast('Error setting background: ' + e.message, 'error');
+    toast('Error setting background: ' + e.message, 'error');
   }
 };
