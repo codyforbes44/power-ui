@@ -22,7 +22,8 @@
         https://en.wikipedia.org
         https://wttr.in
         https://api.github.com
-        https://gnews.io;
+        https://gnews.io
+        https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com;
       frame-src blob:;
       img-src 'self' data: blob: https://*.fal.run https://*.fal.media;" />
 
@@ -59,6 +60,10 @@
        8. app.js           → boots app after DOMContentLoaded
        Performance: defer prevents render-blocking
   -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="firebase-config.js"></script>
+
   <script src="models-data.js" defer></script>
   <script src="api-router.js" defer></script>
   <script src="image-router.js" defer></script>

@@ -164,21 +164,28 @@ const ImageDb = (() => {
 // ============================================================
 const ServerSync = (() => {
   let _available   = false;
+  let _mcpAvailable = false;
   let _evtSource   = null;
   let _indicator   = null;
+  let _firebaseUnsub = null;
 
   async function probe() {
+    // 1. Probe local server for MCP features
     try {
       const r = await fetch('/api/ping', { signal: AbortSignal.timeout(800) });
       if (r.ok) {
         const body = await r.json().catch(() => ({}));
-        // Only mark available if server explicitly reports sync capability.
-        // Netlify static deploy returns { sync: false } — no EventSource needed.
-        _available = body.sync === true;
+        _mcpAvailable = body.sync === true;
       } else {
-        _available = false;
+        _mcpAvailable = false;
       }
-    } catch { _available = false; }
+    } catch { _mcpAvailable = false; }
+
+    // 2. Check Firebase availability
+    const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
+    const hasFirebase = typeof window.db !== 'undefined' && session && session.userId;
+    _available = hasFirebase || _mcpAvailable;
+
     _updateIndicator();
     return _available;
   }
@@ -187,29 +194,75 @@ const ServerSync = (() => {
 
   async function push(data) {
     if (!_available) return false;
-    try {
-      const r = await fetch('/api/state', {
-        method:  'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(data),
-        signal:  AbortSignal.timeout(3000),
-      });
-      return r.ok;
-    } catch { return false; }
+
+    // Use Firebase if available
+    const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
+    if (typeof window.db !== 'undefined' && session && session.userId) {
+      try {
+        await window.db.collection('users').doc(session.userId).collection('state').doc('current').set({
+          data: JSON.stringify(data),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return true;
+      } catch(e) { console.error('Firebase sync push error', e); }
+    }
+
+    // Fallback to local server
+    if (_mcpAvailable) {
+      try {
+        const r = await fetch('/api/state', {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(data),
+          signal:  AbortSignal.timeout(3000),
+        });
+        return r.ok;
+      } catch { return false; }
+    }
+    return false;
   }
 
   async function pull() {
     if (!_available) return null;
-    try {
-      const r = await fetch('/api/state', { signal: AbortSignal.timeout(3000) });
-      if (r.ok) return r.json();
-    } catch {}
+
+    const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
+    if (typeof window.db !== 'undefined' && session && session.userId) {
+      try {
+        const doc = await window.db.collection('users').doc(session.userId).collection('state').doc('current').get();
+        if (doc.exists) {
+          const d = doc.data();
+          if (d && d.data) return JSON.parse(d.data);
+        }
+      } catch(e) { console.error('Firebase sync pull error', e); }
+    }
+
+    if (_mcpAvailable) {
+      try {
+        const r = await fetch('/api/state', { signal: AbortSignal.timeout(3000) });
+        if (r.ok) return r.json();
+      } catch {}
+    }
     return null;
   }
 
   function subscribe(onStateChange) {
-    if (!_available || _evtSource) return;
-    _connect(onStateChange);
+    if (!_available) return;
+
+    const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
+    if (typeof window.db !== 'undefined' && session && session.userId) {
+      if (_firebaseUnsub) return;
+      _firebaseUnsub = window.db.collection('users').doc(session.userId).collection('state').doc('current')
+        .onSnapshot((doc) => {
+          if (doc.exists && !doc.metadata.hasPendingWrites) {
+            onStateChange();
+          }
+        });
+      return;
+    }
+
+    if (_mcpAvailable && !_evtSource) {
+      _connect(onStateChange);
+    }
   }
 
   function _connect(cb) {
@@ -233,13 +286,15 @@ const ServerSync = (() => {
       _indicator = document.getElementById('sync-indicator');
     }
     if (!_indicator) return;
-    _indicator.title   = _available ? 'Server sync active' : 'localStorage only';
+    const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
+    const hasFirebase = typeof window.db !== 'undefined' && session && session.userId;
+    _indicator.title   = hasFirebase ? 'Cloud sync active (Firebase)' : (_mcpAvailable ? 'Server sync active' : 'localStorage only');
     _indicator.dataset.synced = _available ? '1' : '0';
   }
 
   /** Start an MCP stdio process via the server bridge. */
   async function startMcpStdio({ name, command, args, env }) {
-    if (!_available) return null;
+    if (!_mcpAvailable) return null;
     try {
       const r = await fetch('/api/mcp/start', {
         method:  'POST',
@@ -254,7 +309,7 @@ const ServerSync = (() => {
 
   /** Fetch tool list from a running stdio MCP process. */
   async function getMcpTools(processId) {
-    if (!_available) return null;
+    if (!_mcpAvailable) return null;
     try {
       const r = await fetch(`/api/mcp/${processId}/tools`, { signal: AbortSignal.timeout(8000) });
       if (r.ok) return r.json();
@@ -264,7 +319,7 @@ const ServerSync = (() => {
 
   /** Call a tool on a running stdio MCP process. */
   async function callMcpTool(processId, tool, params) {
-    if (!_available) return null;
+    if (!_mcpAvailable) return null;
     try {
       const r = await fetch(`/api/mcp/${processId}/call`, {
         method:  'POST',
@@ -279,7 +334,7 @@ const ServerSync = (() => {
 
   /** Kill a running stdio MCP process. */
   async function stopMcpProcess(processId) {
-    if (!_available) return;
+    if (!_mcpAvailable) return;
     try {
       await fetch(`/api/mcp/${processId}`, { method: 'DELETE', signal: AbortSignal.timeout(3000) });
     } catch {}
