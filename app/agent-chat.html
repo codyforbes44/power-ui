@@ -329,6 +329,38 @@
 const S = { msgs: [], streaming: false, abort: null, tc: 0, mc: 0, keys: {} };
 let _booted = false;
 
+// ── ImageDb (IndexedDB for locally generated images) ───────
+const ImageDb = (() => {
+  const DB_NAME = 'async_ai_images';
+  const DB_VERSION = 1;
+  const STORE_NAME = 'images';
+  let dbPromise = null;
+  function getDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = (e) => {
+        if (!e.target.result.objectStoreNames.contains(STORE_NAME)) {
+          e.target.result.createObjectStore(STORE_NAME);
+        }
+      };
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+    return dbPromise;
+  }
+  return {
+    async get(key) {
+      const db = await getDB();
+      return new Promise((resolve, reject) => {
+        const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+  };
+})();
+
 // ── Boot ───────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => setTimeout(boot, 0));
 
@@ -367,11 +399,13 @@ async function boot() {
       const state = JSON.parse(raw);
       if (state.settings?.agentBackground) {
         let bgUrl = state.settings.agentBackground;
-        if (bgUrl.startsWith('db:') && typeof window.MemorySystem !== 'undefined') {
-          const data = await MemorySystem.getImageData(bgUrl.slice(3));
-          if (data) bgUrl = data;
+        if (bgUrl.startsWith('db:')) {
+          try {
+            const data = await ImageDb.get(bgUrl);
+            if (data) bgUrl = data;
+          } catch(e) { console.warn('Failed to load bg from ImageDb', e); }
         }
-        if (bgUrl && bgUrl !== 'db:') {
+        if (bgUrl && !bgUrl.startsWith('db:')) {
           document.body.style.backgroundImage = `linear-gradient(rgba(3,7,18,0.75), rgba(3,7,18,0.92)), url('${bgUrl}')`;
           document.body.style.backgroundSize = 'cover';
           document.body.style.backgroundPosition = 'center';
