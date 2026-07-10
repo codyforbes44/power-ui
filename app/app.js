@@ -2241,6 +2241,14 @@ const BUILT_IN_TOOLS = [
 // Tool Executor — runs a named tool and returns string result
 // ============================================================
 async function executeTool(toolName, input, session) {
+  // Delegate super-agent tools to SuperAgent runtime (isSuperAdmin only)
+  if (typeof AuthSystem !== 'undefined' && AuthSystem.isSuperAdmin?.() &&
+      typeof SuperAgent !== 'undefined' && SuperAgent.config.isEnabled()) {
+    const superToolNames = new Set(SuperAgent.tools.map(t => t.name));
+    if (superToolNames.has(toolName)) {
+      return await SuperAgent.executeSuperTool(toolName, input);
+    }
+  }
   switch (toolName) {
 
     case 'generate_image': {
@@ -2372,6 +2380,15 @@ async function sendMessageDirect(session, userText, messageContent = null) {
   const spEl = document.getElementById('system-prompt');
   systemPrompt += spEl?.value || session.systemPrompt || STATE.settings.defaultSystemPrompt;
 
+  // Super-admin agent: prepend persona + KB + cross-session memory context
+  if (typeof AuthSystem !== 'undefined' && AuthSystem.isSuperAdmin?.() &&
+      typeof SuperAgent !== 'undefined' && SuperAgent.config.isEnabled()) {
+    try {
+      const superPrompt = await SuperAgent.buildSuperAgentSystemPrompt(userText);
+      if (superPrompt) systemPrompt = superPrompt + '\n\n---\n\n' + systemPrompt;
+    } catch (e) { console.warn('SuperAgent prompt build failed:', e); }
+  }
+
   // Inject skill prefix if queued
   let finalText = userText;
   if (STATE.ui.injectedSkill) {
@@ -2434,7 +2451,16 @@ async function sendMessageDirect(session, userText, messageContent = null) {
 
   // Determine which tools to send (only for models that support function calling)
   const supportsTools = modelDef?.toolCalling !== false; // default true unless explicitly disabled
-  const tools = supportsTools ? BUILT_IN_TOOLS : [];
+  let tools = supportsTools ? [...BUILT_IN_TOOLS] : [];
+
+  // Super-admin: merge additional super-agent tools into the tool list
+  if (supportsTools && typeof AuthSystem !== 'undefined' && AuthSystem.isSuperAdmin?.() &&
+      typeof SuperAgent !== 'undefined' && SuperAgent.config.isEnabled()) {
+    try {
+      const superTools = SuperAgent.getSuperTools();
+      if (superTools.length) tools = [...tools, ...superTools];
+    } catch (e) { console.warn('SuperAgent getSuperTools failed:', e); }
+  }
 
   let totalInputTokens  = 0;
   let totalOutputTokens = 0;
