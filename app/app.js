@@ -3162,6 +3162,9 @@ function renderUserBadge() {
       ${isAdmin ? `<button class="user-menu-item" onclick="window.open('admin.html','_blank')">
         <span>◈</span> Admin Dashboard
       </button>` : ''}
+      <button class="user-menu-item" onclick="window.location.href='gallery.html'">
+        <span>🖼</span> Media Gallery
+      </button>
       <button class="user-menu-item" onclick="window.location.href='admin.html'">
         <span>⚙</span> Settings
       </button>
