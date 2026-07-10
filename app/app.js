@@ -4289,16 +4289,18 @@ async function optimizeCurrentPrompt() {
     const apiKey = STATE.apiKeys[provider] || STATE.apiKeys.anthropic || '';
     if (!apiKey) { toast('✨ No key for this provider — try adding one in Settings', 'warning'); return; }
 
-    const result = await ApiRouter.chat({
+    let improved = '';
+    const gen = ApiRouter.stream(
       provider,
       model,
-      messages: [{ role: 'user', content: improvePrompt }],
       apiKey,
-      maxTokens: 300,
-      stream: false,
-    });
-
-    const improved = result?.content?.[0]?.text || result?.choices?.[0]?.message?.content || '';
+      [{ role: 'user', content: improvePrompt }],
+      '',
+      { maxTokens: 300 }
+    );
+    for await (const chunk of gen) {
+      if (chunk.delta) improved += chunk.delta;
+    }
     if (improved) {
       input.value = improved.trim();
       autoResize(input);
