@@ -29,7 +29,7 @@ const PROVIDER_BASE = {
   bfl:          'https://api.bfl.ml',
   fal:          'https://fal.run',
   replicate:    'https://api.replicate.com',
-  huggingface:  'https://api-inference.huggingface.co',
+  huggingface:  'https://router.huggingface.co/hf-inference',
   // Web search
   ddg:       'https://api.duckduckgo.com',
 };
@@ -82,7 +82,7 @@ async function fetchProvider(url, upstreamHeaders, payload, method = 'POST') {
     });
 
     req.on('error', reject);
-    req.setTimeout(29000, () => { req.destroy(); reject(new Error('Upstream timeout')); });
+    req.setTimeout(25000, () => { req.destroy(); reject(new Error('Upstream timeout (25s)')); });
     if (hasBody) req.write(bodyStr);
     req.end();
   });

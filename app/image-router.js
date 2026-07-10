@@ -95,7 +95,6 @@ const ImageRouter = (() => {
       { id: 'black-forest-labs/flux-dev',     name: 'Flux Dev' }
     ],
     huggingface: [
-      { id: 'kpsss34/FHDR_Uncensored',              name: 'FHDR Uncensored (Flux)' },
       { id: 'black-forest-labs/FLUX.1-schnell',     name: 'Flux Schnell (HF)' },
       { id: 'black-forest-labs/FLUX.1-dev',         name: 'Flux Dev (HF)' },
       { id: 'stabilityai/stable-diffusion-xl-base-1.0', name: 'SDXL Base 1.0' },
@@ -616,7 +615,10 @@ const ImageRouter = (() => {
   async function generateHuggingFace({ prompt, model, width, height, steps, seed, apiKey, signal }) {
     if (!apiKey) throw new Error('API key required for huggingface');
 
-    const HF_BASE = 'https://api-inference.huggingface.co';
+    // HF Inference API v3 — uses the router endpoint which supports
+    // text-to-image as a proper JSON POST (no raw binary responses).
+    // Falls back gracefully via the proxy's huggingface base URL.
+    const HF_BASE = 'https://router.huggingface.co/hf-inference';
     const headers = { 'Authorization': `Bearer ${apiKey}` };
 
     const body = {
@@ -640,7 +642,7 @@ const ImageRouter = (() => {
       const resp = await cloudFetch({
         provider: 'huggingface',
         baseUrl: HF_BASE,
-        path: `/models/${model}`,
+        path: `/models/${model}/v1/text-to-image`,
         headers,
         body,
         method: 'POST',
@@ -648,6 +650,7 @@ const ImageRouter = (() => {
       });
 
       // Proxy wraps successful binary as { base64, contentType }
+      // The v3 router can return either binary image or JSON depending on model.
       if (resp.ok) {
         let envelope;
         try { envelope = await resp.json(); } catch (e) {
@@ -655,7 +658,7 @@ const ImageRouter = (() => {
         }
 
         if (envelope.base64) {
-          // Decode base64 → binary string → Uint8Array → Blob → data URL
+          // Proxy base64-encoded binary image
           const byteChars = atob(envelope.base64);
           const bytes = new Uint8Array(byteChars.length);
           for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
@@ -666,6 +669,14 @@ const ImageRouter = (() => {
             reader.onerror = rej;
             reader.readAsDataURL(blob);
           });
+          return { url: null, dataUrl, seed };
+        }
+
+        // v3 router returns JSON with an image URL or data
+        if (envelope.url) return { url: envelope.url, dataUrl: null, seed };
+        if (envelope.image) {
+          // Some models return { image: '<base64>' }
+          const dataUrl = `data:image/jpeg;base64,${envelope.image}`;
           return { url: null, dataUrl, seed };
         }
 
