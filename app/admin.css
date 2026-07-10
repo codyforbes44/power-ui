@@ -1384,3 +1384,79 @@ table.admin-table {
   .create-user-form { grid-template-columns: 1fr; align-items: stretch; }
   .api-keys-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Memory Manager Panel ── */
+.memory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.memory-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.02);
+  transition: background 0.15s;
+}
+.memory-row:hover { background: rgba(255,255,255,0.04); }
+
+.memory-row-main { flex: 1; min-width: 0; }
+
+.memory-row-key {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--admin-accent, #818cf8);
+  margin-bottom: 3px;
+}
+
+.memory-row-value {
+  font-size: 13px;
+  color: var(--admin-text);
+  line-height: 1.5;
+  border-radius: 4px;
+  padding: 2px 4px;
+  min-height: 20px;
+  transition: background 0.15s;
+}
+.memory-row-value:focus {
+  background: rgba(99,102,241,0.1);
+  outline: none;
+}
+
+.memory-row-meta {
+  font-size: 10.5px;
+  color: var(--admin-text-dim);
+  margin-top: 4px;
+}
+
+.memory-row-delete {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--admin-text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+  align-self: center;
+}
+.memory-row-delete:hover {
+  background: rgba(239,68,68,0.12);
+  color: #f87171;
+}
+
+.admin-btn-danger {
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.25);
+  color: #f87171;
+}
+.admin-btn-danger:hover {
+  background: rgba(239,68,68,0.2);
+}

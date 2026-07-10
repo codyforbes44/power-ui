@@ -1148,35 +1148,89 @@ function renderSessionList() {
     return;
   }
 
-  STATE.sessions.forEach(session => {
+  // Sort: pinned first, then by updatedAt desc
+  const sorted = [...STATE.sessions].sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return  1;
+    return (b.updatedAt || 0) - (a.updatedAt || 0);
+  });
+
+  sorted.forEach(session => {
     const isActive = session.id === STATE.activeSessionId;
     const isBranch = !!session.branchedFrom;
     const hasCost  = session.totalCost > 0;
     const count    = session.messages.length;
+    const isPinned = !!session.pinned;
 
     const div = document.createElement('div');
-    div.className = `session-item${isActive ? ' active' : ''}`;
+    div.className = `session-item${isActive ? ' active' : ''}${isPinned ? ' pinned' : ''}`;
 
     div.innerHTML = `
-      <span class="session-icon">${isBranch ? '🔀' : '💬'}</span>
+      <span class="session-icon">${isBranch ? '🔀' : (isPinned ? '📌' : '💬')}</span>
       <div class="session-info">
-        <div class="session-title" title="${esc(session.title)}">${esc(session.title)}</div>
+        <div class="session-title" title="Double-click to rename" data-sid="${esc(session.id)}">${esc(session.title)}</div>
         <div class="session-meta">
           ${count} msg${count !== 1?'s':''} · ${formatRelative(session.updatedAt)}
           ${hasCost ? ` · ${formatCost(session.totalCost)}` : ''}
         </div>
         ${isBranch ? `<div class="session-branch-hint">↳ from ${esc(session.branchedFrom.parentTitle?.slice(0,30)||'')}</div>` : ''}
       </div>
-      <button class="session-delete" title="Delete conversation" aria-label="Delete conversation">✕</button>
+      <div class="session-actions">
+        <button class="session-pin" title="${isPinned ? 'Unpin' : 'Pin conversation'}" aria-label="${isPinned ? 'Unpin' : 'Pin'}">${isPinned ? '📌' : '⊕'}</button>
+        <button class="session-delete" title="Delete conversation" aria-label="Delete conversation">✕</button>
+      </div>
     `;
 
+    // Click → activate
     div.addEventListener('click', e => {
       if (e.target.classList.contains('session-delete')) return;
+      if (e.target.classList.contains('session-pin')) return;
+      if (e.target.classList.contains('session-title') && e.detail === 2) return; // handled by dblclick
       STATE.activeSessionId = session.id;
       saveState();
       renderAll();
     });
 
+    // Double-click title → inline rename
+    div.querySelector('.session-title').addEventListener('dblclick', e => {
+      e.stopPropagation();
+      const titleEl = e.currentTarget;
+      const oldTitle = session.title;
+      titleEl.setAttribute('contenteditable', 'true');
+      titleEl.style.cssText = 'outline:none;background:rgba(99,102,241,0.1);border-radius:4px;padding:0 2px;';
+      titleEl.focus();
+      // Select all
+      const range = document.createRange();
+      range.selectNodeContents(titleEl);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+
+      function commitRename() {
+        const newTitle = titleEl.textContent.trim() || oldTitle;
+        titleEl.removeAttribute('contenteditable');
+        titleEl.style.cssText = '';
+        session.title = newTitle;
+        titleEl.textContent = newTitle;
+        saveState();
+        renderSessionList();
+      }
+      titleEl.addEventListener('keydown', e2 => {
+        if (e2.key === 'Enter') { e2.preventDefault(); commitRename(); }
+        if (e2.key === 'Escape') { titleEl.textContent = oldTitle; commitRename(); }
+      }, { once: false });
+      titleEl.addEventListener('blur', commitRename, { once: true });
+    });
+
+    // Pin button
+    div.querySelector('.session-pin').addEventListener('click', e => {
+      e.stopPropagation();
+      session.pinned = !session.pinned;
+      saveState();
+      renderSessionList();
+      toast(session.pinned ? '📌 Conversation pinned' : 'Unpinned', 'info', 1500);
+    });
+
+    // Delete button
     div.querySelector('.session-delete').addEventListener('click', e => {
       e.stopPropagation();
       if (confirm(`Delete "${session.title}"?`)) deleteSession(session.id);

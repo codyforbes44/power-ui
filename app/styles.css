@@ -2465,3 +2465,40 @@ button { font-family: var(--font-ui); }
   transition: color var(--t-fast);
 }
 .followup-dismiss:hover { color: var(--text-primary); }
+
+/* ── Session Pin + Actions ── */
+.session-item.pinned {
+  border-left: 2px solid rgba(99,102,241,0.5);
+}
+
+.session-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity var(--t-fast);
+}
+.session-item:hover .session-actions,
+.session-item.active .session-actions { opacity: 1; }
+
+.session-pin {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.session-pin:hover {
+  background: rgba(99,102,241,0.1);
+  color: var(--text-primary);
+}
+
+/* Double-click-to-rename indicator */
+.session-title[contenteditable="true"] {
+  cursor: text;
+  border-radius: 3px;
+}

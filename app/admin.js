@@ -119,6 +119,7 @@ const AdminApp = (() => {
       case 'settings':    renderSettings();     break;
       case 'connections': await renderConnections();  break;
       case 'health':      await renderHealth();       break;
+      case 'memory':      renderMemory();       break;
     }
   }
 
@@ -1633,6 +1634,134 @@ python3 cli.py export --format json</pre>
   // ──────────────────────────────────────────────────────────
   // Public API
   // ──────────────────────────────────────────────────────────
+
+  // ============================================================
+  // Memory Manager Panel
+  // ============================================================
+  function renderMemory() {
+    const panel = getPanel('memory');
+    if (!panel) return;
+
+    // Load all memories from all workspaces
+    let allMems = [];
+    try {
+      const raw = localStorage.getItem('cpu_memories');
+      allMems = raw ? JSON.parse(raw) : [];
+    } catch { allMems = []; }
+
+    let workspaces = [];
+    try {
+      const raw = localStorage.getItem('cpu_workspaces');
+      workspaces = raw ? JSON.parse(raw) : [];
+    } catch { workspaces = []; }
+
+    const wsMap = {};
+    workspaces.forEach(ws => { wsMap[ws.id] = ws.name || 'Workspace'; });
+
+    const totalSize = JSON.stringify(allMems).length;
+    const sizeLabel = totalSize > 1024 ? `${(totalSize/1024).toFixed(1)} KB` : `${totalSize} B`;
+
+    panel.innerHTML = `
+      <div class="admin-panel-header">
+        <h2 class="admin-panel-title">🧠 Memory Manager</h2>
+        <p class="admin-panel-subtitle">View, edit, or delete AI memory facts stored across all workspaces.</p>
+      </div>
+
+      <div class="admin-card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;gap:20px">
+            <div>
+              <div class="stat-label">Total Facts</div>
+              <div class="stat-value" style="font-size:1.6rem">${allMems.length}</div>
+            </div>
+            <div>
+              <div class="stat-label">Storage Used</div>
+              <div class="stat-value" style="font-size:1.6rem">${sizeLabel}</div>
+            </div>
+            <div>
+              <div class="stat-label">Workspaces</div>
+              <div class="stat-value" style="font-size:1.6rem">${workspaces.length || 1}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="admin-btn admin-btn-danger" onclick="AdminApp.clearAllMemory()">🗑 Clear All Memory</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div style="margin-bottom:12px">
+          <input type="search" id="memory-search" placeholder="🔍 Search facts…"
+            style="width:100%;box-sizing:border-box;padding:8px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--admin-border);border-radius:8px;color:var(--admin-text);font-size:13px;outline:none"
+            oninput="document.querySelectorAll('.memory-row').forEach(r => { r.style.display = (r.dataset.text||'').toLowerCase().includes(this.value.toLowerCase()) ? '' : 'none'; })" />
+        </div>
+
+        ${allMems.length === 0 ? `
+          <div style="text-align:center;padding:40px 20px;color:var(--admin-text-dim)">
+            <div style="font-size:32px;margin-bottom:12px">🧠</div>
+            <div style="font-size:14px">No memory facts saved yet.</div>
+            <div style="font-size:12px;margin-top:6px">Use <code>/remember</code> in the chat to save facts.</div>
+          </div>
+        ` : `
+          <div class="memory-list">
+            ${allMems.map((mem, idx) => `
+              <div class="memory-row" data-idx="${idx}" data-text="${esc((mem.key||'') + ' ' + (mem.value||''))}">
+                <div class="memory-row-main">
+                  <div class="memory-row-key">${esc(mem.key || 'fact')}</div>
+                  <div class="memory-row-value" id="mem-val-${idx}" contenteditable="true"
+                    onblur="AdminApp.updateMemoryFact(${idx}, this.textContent)"
+                    style="cursor:text">${esc(mem.value || '')}</div>
+                  <div class="memory-row-meta">
+                    ${wsMap[mem.workspaceId] ? `<span>${esc(wsMap[mem.workspaceId])}</span> · ` : ''}
+                    ${mem.source ? `<span>${esc(mem.source)}</span> · ` : ''}
+                    ${mem.timestamp ? `<span>${new Date(mem.timestamp).toLocaleDateString()}</span>` : ''}
+                  </div>
+                </div>
+                <button class="memory-row-delete" onclick="AdminApp.deleteMemoryFact(${idx})" title="Delete this fact" aria-label="Delete fact">✕</button>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+    `;
+  }
+
+  function deleteMemoryFact(idx) {
+    try {
+      const raw = localStorage.getItem('cpu_memories');
+      let mems = raw ? JSON.parse(raw) : [];
+      mems.splice(idx, 1);
+      localStorage.setItem('cpu_memories', JSON.stringify(mems));
+      toast('Memory fact deleted', 'success', 1500);
+      renderMemory();
+    } catch (e) {
+      toast('Failed to delete: ' + e.message, 'error');
+    }
+  }
+
+  function updateMemoryFact(idx, newValue) {
+    try {
+      const raw = localStorage.getItem('cpu_memories');
+      let mems = raw ? JSON.parse(raw) : [];
+      if (mems[idx]) {
+        mems[idx].value = newValue.trim();
+        localStorage.setItem('cpu_memories', JSON.stringify(mems));
+      }
+    } catch (e) {
+      console.warn('Failed to update memory fact:', e);
+    }
+  }
+
+  function clearAllMemory() {
+    if (!confirm('⚠ This will permanently delete ALL saved memory facts. This cannot be undone. Continue?')) return;
+    localStorage.removeItem('cpu_memories');
+    toast('All memory cleared', 'success');
+    renderMemory();
+  }
+
+  // ── end Memory Manager ──
+
+
   return {
     boot,
     switchPanel,
@@ -1667,6 +1796,12 @@ python3 cli.py export --format json</pre>
     toggleMcpCard,
     showMcpTools,
     closeMcpDrawer,
+    // Memory panel
+    renderMemory,
+    deleteMemoryFact,
+    updateMemoryFact,
+    clearAllMemory,
+  };
   };
 
 

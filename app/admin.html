@@ -93,6 +93,9 @@
         <button class="admin-nav-item" id="nav-item-connections" data-panel="connections" onclick="AdminApp.switchPanel('connections', this)">
           <span class="admin-nav-icon">🔌</span> API Keys &amp; MCP
         </button>
+        <button class="admin-nav-item" id="nav-item-memory" data-panel="memory" onclick="AdminApp.switchPanel('memory', this)">
+          <span class="admin-nav-icon">🧠</span> Memory Manager
+        </button>
       </nav>
 
       <div class="admin-sidebar-footer">
@@ -473,8 +476,14 @@
           </div>
         </section>
 
+        <!-- ── Memory Manager Panel ──────────────────── -->
+        <section id="panel-memory" class="admin-panel">
+          <!-- Rendered entirely by renderMemory() in admin.js -->
+        </section>
+
       </div><!-- /admin-content -->
     </main>
+
   </div><!-- /admin-app -->
 
   <div id="admin-toast-container"></div>
