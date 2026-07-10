@@ -1454,6 +1454,11 @@ function renderMessages() {
               <button class="image-gen-remix-btn" onclick="remixImagePrompt(this.dataset.prompt)" data-prompt="${esc(imgData.prompt).replace(/"/g, '&quot;')}" style="background: transparent; border: 1px solid var(--border-color); border-radius: 12px; padding: 6px 12px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--text-main); transition: all 0.2s;" onmouseover="this.style.background='var(--bg-card)';" onmouseout="this.style.background='transparent';">
                 <span style="font-size: 14px;">🎲</span> Remix & Randomize
               </button>
+              ${AuthSystem.isAdmin && AuthSystem.isAdmin() ? `
+              <button class="image-gen-bg-btn" onclick="setAgentBackground('${imgData.src || (imgData.images && imgData.images[0] ? imgData.images[0].src : '')}')" style="background: transparent; border: 1px solid var(--border-color); border-radius: 12px; padding: 6px 12px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--text-main); transition: all 0.2s; margin-left: 8px;" onmouseover="this.style.background='var(--bg-card)';" onmouseout="this.style.background='transparent';">
+                <span style="font-size: 14px;">🖼️</span> Set Agent Background
+              </button>
+              ` : ''}
             </div>
           </div>
         `;
@@ -4640,5 +4645,25 @@ window.remixImagePrompt = function(originalPrompt) {
   if (popPrompt) {
     popPrompt.value = newPrompt;
     popPrompt.focus();
+  }
+};
+
+window.setAgentBackground = function(url) {
+  if (!url) return;
+  try {
+    const raw = localStorage.getItem('async_ai_v2') || '{}';
+    const state = JSON.parse(raw);
+    if (!state.settings) state.settings = {};
+    state.settings.agentBackground = url;
+    localStorage.setItem('async_ai_v2', JSON.stringify(state));
+    
+    // Also save to firebase if we have it open in app.js
+    if (window.db && window.AuthSystem && AuthSystem.getCurrentSession()?.userId) {
+       window.db.collection('users').doc(AuthSystem.getCurrentSession().userId)
+         .collection('state').doc('current').set({ settings: state.settings }, { merge: true });
+    }
+    showToast('Agent background set! Open Aria to see it.', 'success');
+  } catch(e) {
+    showToast('Error setting background: ' + e.message, 'error');
   }
 };

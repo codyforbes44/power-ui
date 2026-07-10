@@ -360,6 +360,27 @@ async function boot() {
     if (keys && typeof keys === 'object') Object.assign(S.keys, keys);
   } catch (e) { console.warn('[Aria] Vault load failed:', e); }
 
+  // 5.5 Load Agent Background
+  try {
+    const raw = localStorage.getItem('async_ai_v2');
+    if (raw) {
+      const state = JSON.parse(raw);
+      if (state.settings?.agentBackground) {
+        let bgUrl = state.settings.agentBackground;
+        if (bgUrl.startsWith('db:') && typeof window.MemorySystem !== 'undefined') {
+          const data = await MemorySystem.getImageData(bgUrl.slice(3));
+          if (data) bgUrl = data;
+        }
+        if (bgUrl && bgUrl !== 'db:') {
+          document.body.style.backgroundImage = `linear-gradient(rgba(3,7,18,0.75), rgba(3,7,18,0.92)), url('${bgUrl}')`;
+          document.body.style.backgroundSize = 'cover';
+          document.body.style.backgroundPosition = 'center';
+          document.body.style.backgroundAttachment = 'fixed';
+        }
+      }
+    }
+  } catch (e) { console.warn('[Aria] Background load failed:', e); }
+
   // 6. Wait for SuperAgent — optional, degrade gracefully
   for (let t = 0; typeof SuperAgent === 'undefined' && t < 30; t++) await sleep(100);
 
