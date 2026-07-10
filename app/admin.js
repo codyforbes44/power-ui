@@ -951,7 +951,7 @@ python3 cli.py export --format json</pre>
     await AuthSystem.init();
 
     // Auth guard — all authenticated users allowed
-    if (!AuthSystem.requireAuth('index.html')) return;
+    if (!AuthSystem.requireAdmin('index.html')) return;
 
     // Show dashboard
     document.getElementById('admin-loading').style.display = 'none';
@@ -1663,7 +1663,7 @@ python3 cli.py export --format json</pre>
 
 document.addEventListener('DOMContentLoaded', () => AdminApp.boot?.() || (async () => {
   await AuthSystem.init();
-  if (!AuthSystem.requireAuth('index.html')) return;
+  if (!AuthSystem.requireAdmin('index.html')) return;
   document.getElementById('admin-loading').style.display = 'none';
   document.getElementById('admin-app').style.display     = 'flex';
   const user = AuthSystem.getCurrentUser();

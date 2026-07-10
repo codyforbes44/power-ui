@@ -799,8 +799,8 @@ const AuthSystem = (() => {
           </form>
 
           <div style="display:flex;justify-content:space-between;margin-top:16px;flex-wrap:wrap;gap:8px">
-            <p class="auth-footer-note" style="margin:0">
-              First time? <strong>admin</strong> / <strong>admin123</strong>
+            <p class="auth-footer-note" style="margin:0;color:#64748b;font-size:.75rem">
+              Need help? <a href="mailto:support@asyncai.app" style="color:#6366f1;text-decoration:none;">Contact support</a>
             </p>
             <a class="auth-footer-note" style="margin:0;color:#6366f1;text-decoration:none" href="/public/login.html?tab=signup">Create account →</a>
           </div>

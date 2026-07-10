@@ -329,11 +329,13 @@ function loadState() {
   const OLD_KEY = 'claude_power_ui_v2';
   if (!localStorage.getItem(STORAGE_KEY) && localStorage.getItem(OLD_KEY)) {
     try {
-      localStorage.setItem(STORAGE_KEY, localStorage.getItem(OLD_KEY));
+      const oldData = localStorage.getItem(OLD_KEY);
+      // Remove old keys FIRST to free quota before writing under new key
       localStorage.removeItem(OLD_KEY);
       localStorage.removeItem('claude_power_ui_v1');
+      localStorage.setItem(STORAGE_KEY, oldData);
       console.log('✦ Async: migrated storage from claude_power_ui_v2 → async_ai_v2');
-    } catch(e) { console.warn('Async: storage migration error', e); }
+    } catch(e) { console.warn('Async: storage migration error (quota full — starting fresh)', e); }
   }
 
   try {
@@ -3153,7 +3155,8 @@ function renderUserBadge() {
   if (!user) return;
 
   const initials = (user.displayName || user.username).slice(0, 2).toUpperCase();
-  const isAdmin  = session?.role === 'admin';
+  const userObj  = AuthSystem.getCurrentUser();
+  const isAdmin  = session?.role === 'admin' || userObj?.role === 'admin';
 
   // Find or create badge container in header
   const header = document.querySelector('.chat-header');
@@ -3170,7 +3173,7 @@ function renderUserBadge() {
     <div class="user-badge" id="user-badge-btn" title="${esc(user.displayName || user.username)}">
       <div class="user-avatar">${initials}</div>
       <span class="user-badge-name">${esc(user.displayName || user.username)}</span>
-      <span class="user-badge-role ${isAdmin ? 'admin' : 'user'}">${session?.role}</span>
+      <span class="user-badge-role ${isAdmin ? 'admin' : 'user'}">${isAdmin ? 'ADMIN' : 'USER'}</span>
     </div>
     <div class="user-menu-dropdown" id="user-menu" style="display:none">
       <div style="padding:8px 12px 6px;font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.06em">
