@@ -381,21 +381,13 @@ async function boot() {
     const hname = document.getElementById('hname');
     if (hname) hname.textContent = name;
 
-    // 8. Inject ElevenLabs Conversational AI if configured
+    // 8. Enable Voice Call Button if configured
     if (c.voice?.elevenlabsAgentId) {
-      const script = document.createElement('script');
-      script.src = 'https://elevenlabs.io/convai-widget/index.js';
-      script.async = true;
-      script.type = 'text/javascript';
-      document.head.appendChild(script);
-
-      const widget = document.createElement('elevenlabs-convai');
-      widget.setAttribute('agent-id', c.voice.elevenlabsAgentId);
-      document.body.appendChild(widget);
-
-      // Show the Call button now that the widget is active
       const callBtn = document.getElementById('call-btn');
-      if (callBtn) callBtn.style.display = 'flex';
+      if (callBtn) {
+        callBtn.style.display = 'flex';
+        callBtn.innerHTML = '📞';
+      }
     }
   }
 
@@ -862,16 +854,103 @@ function md(txt) {
 // ── Actions ────────────────────────────────────────────────
 function stopStream() { if (S.abort) S.abort.abort(); }
 
-function startElevenLabsCall() {
-  const widget = document.querySelector('elevenlabs-convai');
-  if (widget && widget.shadowRoot) {
-    const btn = widget.shadowRoot.querySelector('button');
-    if (btn) {
-      btn.click();
-      return;
-    }
+let _elConversation = null;
+
+async function startElevenLabsCall() {
+  const cfg = typeof SuperAgent !== 'undefined' ? SuperAgent.config.get() : null;
+  const agentId = cfg?.voice?.elevenlabsAgentId;
+  const btn = document.getElementById('call-btn');
+
+  if (!agentId) {
+    toast('No ElevenLabs Agent ID configured.', 'error');
+    return;
   }
-  awMsg('ElevenLabs widget is still loading or unavailable.');
+
+  // Toggle Off
+  if (_elConversation) {
+    try {
+      await _elConversation.endSession();
+    } catch(e) { console.warn(e); }
+    _elConversation = null;
+    if (btn) {
+      btn.innerHTML = '📞';
+      btn.style.background = 'rgba(99,102,241,.15)';
+      btn.title = 'Start Voice Call';
+      btn.style.boxShadow = 'none';
+    }
+    toast('Voice call ended', 'info');
+    return;
+  }
+
+  // Toggle On
+  if (btn) {
+    btn.innerHTML = '⏳';
+    btn.style.background = 'rgba(234,179,8,.15)';
+    btn.title = 'Connecting...';
+  }
+
+  try {
+    const elSdk = await import('https://esm.sh/@elevenlabs/client');
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    _elConversation = await elSdk.Conversation.startSession({
+      agentId: agentId,
+      onConnect: () => {
+        if (btn) {
+          btn.innerHTML = '🛑';
+          btn.style.background = 'rgba(239,68,68,.15)';
+          btn.title = 'Active Voice Call (Click to stop)';
+        }
+        toast('Voice connected to Aria', 'success');
+      },
+      onDisconnect: () => {
+        _elConversation = null;
+        if (btn) {
+          btn.innerHTML = '📞';
+          btn.style.background = 'rgba(99,102,241,.15)';
+          btn.title = 'Start Voice Call';
+          btn.style.boxShadow = 'none';
+        }
+        toast('Voice disconnected', 'info');
+      },
+      onError: (err) => {
+        console.error('ElevenLabs Error:', err);
+        _elConversation = null;
+        if (btn) {
+          btn.innerHTML = '📞';
+          btn.style.background = 'rgba(99,102,241,.15)';
+          btn.title = 'Start Voice Call';
+          btn.style.boxShadow = 'none';
+        }
+        toast('Voice connection failed', 'error');
+      },
+      onModeChange: (mode) => {
+        if (btn && _elConversation) {
+          if (mode === 'listening') {
+             btn.style.boxShadow = '0 0 10px rgba(99,102,241,0.7)';
+             btn.title = 'Aria is listening...';
+          } else if (mode === 'speaking') {
+             btn.style.boxShadow = '0 0 15px rgba(34,197,94,0.7)';
+             btn.title = 'Aria is speaking...';
+          } else {
+             btn.style.boxShadow = 'none';
+             btn.title = 'Active Voice Call';
+          }
+        }
+      }
+    });
+
+  } catch (err) {
+    console.error('Failed to start ElevenLabs call', err);
+    _elConversation = null;
+    if (btn) {
+      btn.innerHTML = '📞';
+      btn.style.background = 'rgba(99,102,241,.15)';
+      btn.title = 'Start Voice Call';
+      btn.style.boxShadow = 'none';
+    }
+    toast('Failed to start voice call: ' + (err.message || err), 'error');
+  }
 }
 
 function clearChat() {
