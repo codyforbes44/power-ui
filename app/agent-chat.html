@@ -255,7 +255,7 @@
       <div style="display:flex;flex-direction:column;gap:6px">
         <button class="sbbtn" onclick="qi('What do you remember about me and our past conversations?')">🧠 Recall all memory</button>
         <button class="sbbtn" onclick="qi('Search the knowledge base and give me a full summary.')">📚 Search knowledge base</button>
-        <button class="sbbtn" onclick="qi('Get the latest tech and AI headlines for today.')">📰 Today\\'s news</button>
+        <button class="sbbtn" onclick="qi('Get the latest tech and AI headlines for today.')">📰 Today\'s news</button>
         <button class="sbbtn" onclick="qi('What is the weather in Austin, TX right now?')">🌤 Austin weather</button>
         <a class="sbbtn" href="admin.html" style="color:inherit">⚙ Admin dashboard</a>
       </div>
@@ -282,7 +282,7 @@
           <button class="qp" onclick="qi('Search GitHub for trending JavaScript repos this week.')">🐙 GitHub trending</button>
           <button class="qp" onclick="qi('What is the current weather in Austin, TX?')">🌤 Austin weather</button>
           <button class="qp" onclick="qi('Search my knowledge base and summarize everything you know.')">📚 Knowledge base</button>
-          <button class="qp" onclick="qi('What tasks do I have in progress? What should I prioritize?')">✅ What\\'s next?</button>
+          <button class="qp" onclick="qi('What tasks do I have in progress? What should I prioritize?')">✅ What\'s next?</button>
         </div>
       </div>
     </div>
@@ -300,12 +300,12 @@
         <textarea id="inp" rows="1" aria-label="Message Aria" placeholder="Ask Aria anything — live tools, memory, and your knowledge base…"></textarea>
         <div class="cfoot">
           <div class="hints">
-            <span class="hp" onclick="qi('/web ')">/web</span>
-            <span class="hp" onclick="qi('/remember ')">/remember</span>
-            <span class="hp" onclick="qi('/recall ')">/recall</span>
-            <span class="hp" onclick="qi('/kb ')">/kb</span>
-            <span class="hp" onclick="qi('/news ')">/news</span>
-            <span class="hp" onclick="qi('/weather ')">/weather</span>
+            <span class="hp" onclick="injectCmd('/web ')">/web</span>
+            <span class="hp" onclick="injectCmd('/remember ')">/remember</span>
+            <span class="hp" onclick="injectCmd('/recall ')">/recall</span>
+            <span class="hp" onclick="injectCmd('/kb ')">/kb</span>
+            <span class="hp" onclick="injectCmd('/news ')">/news</span>
+            <span class="hp" onclick="injectCmd('/weather ')">/weather</span>
           </div>
           <div class="cacts">
             <button id="stp" onclick="stopStream()" title="Stop" aria-label="Stop">■</button>
@@ -323,266 +323,570 @@
 <script src="agent.js" defer></script>
 <script>
 'use strict';
-const S={msgs:[],streaming:false,abort:null,tc:0,mc:0};
-let _b=false;
-window.addEventListener('DOMContentLoaded',()=>setTimeout(boot,0));
-async function boot(){
-  if(_b)return;_b=true;
-  let t=0;
-  while(typeof AuthSystem==='undefined'&&t++<50)await p(100);
-  if(typeof AuthSystem==='undefined'){aw('AuthSystem failed to load');return;}
-  await AuthSystem.init();
-  if(!AuthSystem.isSuperAdmin?.()){aw('Access denied — super-admin only.');setTimeout(()=>{location.href='index.html';},2000);return;}
-  t=0;while(typeof SuperAgent==='undefined'&&t++<30)await p(100);
-  document.getElementById('auth-wall').style.display='none';
+
+// ── State ──────────────────────────────────────────────────
+const S = { msgs: [], streaming: false, abort: null, tc: 0, mc: 0, keys: {} };
+let _booted = false;
+
+// ── Boot ───────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => setTimeout(boot, 0));
+
+async function boot() {
+  if (_booted) return;
+  _booted = true;
+
+  // 1. Wait for AuthSystem (loaded by auth.js defer)
+  for (let t = 0; typeof AuthSystem === 'undefined' && t < 60; t++) await sleep(100);
+  if (typeof AuthSystem === 'undefined') { awMsg('AuthSystem failed to load.'); return; }
+
+  // 2. Init auth
+  try { await AuthSystem.init(); } catch (e) { awMsg('Auth init failed: ' + e.message); return; }
+
+  // 3. Guard: super-admin only
+  if (!AuthSystem.isSuperAdmin?.()) {
+    awMsg('Access denied — super-admin only.');
+    setTimeout(() => { location.href = 'index.html'; }, 2000);
+    return;
+  }
+
+  // 4. Load API keys from vault (ApiKeyVault is defined in auth.js)
+  try {
+    const keys = await ApiKeyVault.load();
+    if (keys && typeof keys === 'object') Object.assign(S.keys, keys);
+  } catch (e) { console.warn('[Aria] Vault load failed:', e); }
+
+  // 5. Wait for SuperAgent (agent.js defer) — optional, degrade gracefully
+  for (let t = 0; typeof SuperAgent === 'undefined' && t < 30; t++) await sleep(100);
+
+  // 6. Show app
+  document.getElementById('auth-wall').style.display = 'none';
   document.getElementById('app').classList.add('ready');
-  setupComp();renderSb();refreshSb();loadModel();
-  // Populate agent avatar/name from config
-  if(typeof SuperAgent!=='undefined'){
-    const c=SuperAgent.config.get();
-    ['horb','wav','tav','sbav'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=c.avatarEmoji||'✦';});
-    const nm=document.getElementById('sbnm');if(nm)nm.textContent=c.persona||'Aria';
-    const hn=document.getElementById('hname');if(hn)hn.textContent=c.persona||'Aria';
-    const wd=document.getElementById('welc');
-    if(wd){const wt=wd.querySelector('.wtit');if(wt)wt.textContent='Hello, Cody.';}
+
+  // 7. Populate agent persona from config
+  if (typeof SuperAgent !== 'undefined') {
+    const c = SuperAgent.config.get();
+    const emoji = c.avatarEmoji || '✦';
+    const name  = c.persona || 'Aria';
+    ['horb', 'wav', 'tav', 'sbav'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = emoji;
+    });
+    const sbnm = document.getElementById('sbnm');
+    if (sbnm) sbnm.textContent = name;
+    const hname = document.getElementById('hname');
+    if (hname) hname.textContent = name;
+  }
+
+  setupComp();
+  renderSb();
+  await refreshSb();
+  loadModel();
+}
+
+function awMsg(msg) {
+  const el = document.getElementById('auth-wall');
+  if (el) { const p = el.querySelector('p'); if (p) p.textContent = msg; }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Sidebar ────────────────────────────────────────────────
+function renderSb() {
+  if (typeof SuperAgent === 'undefined') return;
+  const c = SuperAgent.config.get();
+  const tools = [
+    { k: 'webSearch',    i: '🔍', l: 'Web Search' },
+    { k: 'wikipedia',    i: '📖', l: 'Wikipedia' },
+    { k: 'weather',      i: '🌤', l: 'Live Weather' },
+    { k: 'githubSearch', i: '🐙', l: 'GitHub Search' },
+    { k: 'news',         i: '📰', l: 'News Headlines' },
+    { k: 'knowledgeBase',i: '📚', l: 'Knowledge Base' },
+    { k: 'crossMemory',  i: '🧠', l: 'Cross-Session Memory' },
+  ];
+  const tg = document.getElementById('tgrid');
+  if (tg) tg.innerHTML = tools.map(t =>
+    `<div class="trow ${c.tools[t.k] ? 'on' : ''}">` +
+    `<span class="tico">${t.i}</span>` +
+    `<span class="tname">${t.l}</span>` +
+    `<div class="tdot"></div></div>`
+  ).join('');
+  const stm = document.getElementById('stm'); if (stm) stm.textContent = S.mc;
+  const stt = document.getElementById('stt'); if (stt) stt.textContent = S.tc;
+}
+
+async function refreshSb() {
+  // KB count — method is listAll() not list()
+  if (typeof SuperAgent !== 'undefined') {
+    try {
+      const docs = await SuperAgent.kb.listAll();
+      const stk = document.getElementById('stk');
+      if (stk) stk.textContent = docs.length;
+    } catch { const stk = document.getElementById('stk'); if (stk) stk.textContent = '?'; }
+
+    // Memory count — method is getAll() not list()
+    const mems = SuperAgent.memory.getAll();
+    const stme = document.getElementById('stme');
+    if (stme) stme.textContent = mems.length;
+
+    const ml = document.getElementById('mlist');
+    if (ml) {
+      ml.innerHTML = !mems.length
+        ? '<div class="nd">No memories yet.</div>'
+        : mems.slice(-8).reverse().map(m =>
+            `<div class="mi"><div class="mk">${esc(m.key)}</div><div class="mv">${esc(m.value)}</div></div>`
+          ).join('');
+    }
   }
 }
-function aw(msg){document.getElementById('auth-wall').querySelector('p').textContent=msg;}
-function p(ms){return new Promise(r=>setTimeout(r,ms));}
-function renderSb(){
-  if(typeof SuperAgent==='undefined')return;
-  const c=SuperAgent.config.get();
-  const tools=[
-    {k:'webSearch',i:'🔍',l:'Web Search'},{k:'wikipedia',i:'📖',l:'Wikipedia'},
-    {k:'weather',i:'🌤',l:'Live Weather'},{k:'githubSearch',i:'🐙',l:'GitHub Search'},
-    {k:'news',i:'📰',l:'News Headlines'},{k:'knowledgeBase',i:'📚',l:'Knowledge Base'},
-    {k:'crossMemory',i:'🧠',l:'Cross-Session Memory'},
-  ];
-  document.getElementById('tgrid').innerHTML=tools.map(t=>`<div class="trow ${c.tools[t.k]?'on':''}"><span class="tico">${t.i}</span><span class="tname">${t.l}</span><div class="tdot"></div></div>`).join('');
-  document.getElementById('stm').textContent=S.mc;
-  document.getElementById('stt').textContent=S.tc;
+
+// ── Model selector ─────────────────────────────────────────
+function loadModel() {
+  try {
+    const sv = localStorage.getItem('async_agent_model');
+    if (sv) {
+      const sel = document.getElementById('msel');
+      for (const o of sel.options) { if (o.value === sv) { sel.value = sv; break; } }
+    }
+  } catch {}
+  document.getElementById('msel').addEventListener('change', ev => {
+    try { localStorage.setItem('async_agent_model', ev.target.value); } catch {}
+  });
 }
-async function refreshSb(){
-  if(typeof SuperAgent==='undefined')return;
-  try{const d=await SuperAgent.kb.list();document.getElementById('stk').textContent=d.length;}catch{document.getElementById('stk').textContent='?';}
-  const ms=SuperAgent.memory.list();
-  document.getElementById('stme').textContent=ms.length;
-  const ml=document.getElementById('mlist');
-  ml.innerHTML=!ms.length?'<div class="nd">No memories yet.</div>':ms.slice(0,8).map(m=>`<div class="mi"><div class="mk">${e(m.key)}</div><div class="mv">${e(m.value)}</div></div>`).join('');
-}
-function loadModel(){
-  try{const sv=localStorage.getItem('async_agent_model');if(sv){const s=document.getElementById('msel');for(const o of s.options){if(o.value===sv){s.value=sv;break;}}}}catch{}
-  document.getElementById('msel').addEventListener('change',ev=>{try{localStorage.setItem('async_agent_model',ev.target.value);}catch{}});
-}
-function setupComp(){
-  const ta=document.getElementById('inp');
-  ta.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();sendMsg();}});
-  ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,200)+'px';});
+
+// ── Composer setup ─────────────────────────────────────────
+function setupComp() {
+  const ta = document.getElementById('inp');
+  ta.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); sendMsg(); }
+  });
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+  });
   ta.focus();
 }
-function qi(txt){
-  const ta=document.getElementById('inp');ta.value=txt;ta.focus();ta.dispatchEvent(new Event('input'));
-  if(!txt.endsWith(' '))sendMsg();
+
+// qi: inject a quick prompt and optionally auto-send
+function qi(txt) {
+  const ta = document.getElementById('inp');
+  ta.value = txt;
+  ta.focus();
+  ta.dispatchEvent(new Event('input'));
+  // Auto-send only when text doesn't end with a space (space = needs user to complete)
+  if (!txt.endsWith(' ')) sendMsg();
 }
-function exc(t){
-  if(t.startsWith('/web ')||t.startsWith('/search '))return'Search the web for: '+t.replace(/^\/(web|search)\s+/,'');
-  if(t.startsWith('/remember ')||t.startsWith('/mem '))return'Save this to your memory: '+t.replace(/^\/(remember|mem)\s+/,'');
-  if(t.startsWith('/recall ')||t.startsWith('/memory '))return'Recall from memory: '+t.replace(/^\/(recall|memory)\s+/,'');
-  if(t.startsWith('/kb '))return'Search knowledge base for: '+t.replace(/^\/kb\s+/,'');
-  if(t.startsWith('/news '))return'Get the latest news about: '+t.replace(/^\/news\s+/,'');
-  if(t.startsWith('/weather '))return'What is the current weather in: '+t.replace(/^\/weather\s+/,'');
-  if(t.startsWith('/github '))return'Search GitHub for: '+t.replace(/^\/github\s+/,'');
+
+// injectCmd: inject slash command prefix and focus (don't send)
+function injectCmd(cmd) {
+  const ta = document.getElementById('inp');
+  ta.value = cmd;
+  ta.focus();
+  ta.dispatchEvent(new Event('input'));
+}
+
+// exc: expand slash commands to natural-language instruction
+function exc(t) {
+  if (/^\/(web|search)\s+/.test(t))      return 'Search the web for: ' + t.replace(/^\/(web|search)\s+/, '');
+  if (/^\/(remember|mem)\s+/.test(t))    return 'Save this to your memory: ' + t.replace(/^\/(remember|mem)\s+/, '');
+  if (/^\/(recall|memory)\s+/.test(t))   return 'Recall from memory: ' + t.replace(/^\/(recall|memory)\s+/, '');
+  if (/^\/kb\s+/.test(t))                return 'Search knowledge base for: ' + t.replace(/^\/kb\s+/, '');
+  if (/^\/news\s+/.test(t))              return 'Get the latest news about: ' + t.replace(/^\/news\s+/, '');
+  if (/^\/weather\s+/.test(t))           return 'What is the current weather in: ' + t.replace(/^\/weather\s+/, '');
+  if (/^\/github\s+/.test(t))            return 'Search GitHub for: ' + t.replace(/^\/github\s+/, '');
   return t;
 }
-async function sendMsg(){
-  if(S.streaming)return;
-  const ta=document.getElementById('inp');
-  const raw=ta.value.trim();if(!raw)return;
-  const txt=exc(raw);
-  const w=document.getElementById('welc');if(w)w.classList.add('hid');
-  ta.value='';ta.style.height='auto';
-  S.msgs.push({role:'user',content:txt});S.mc++;
-  addU(txt);scroll2b();
-  const mid=document.getElementById('msel').value;
-  const prov=rProv(mid);
-  const key=getKey(prov);
-  if(!key){toast('No API key for '+prov+'. Configure in Settings → API Keys.','er');return;}
-  let sys=document.getElementById('sys-ta')?.value?.trim()||'';
-  if(!sys&&typeof SuperAgent!=='undefined'){try{sys=await SuperAgent.buildSuperAgentSystemPrompt(txt)||'';}catch{}}
-  let tools=[];
-  if(typeof SuperAgent!=='undefined'){try{tools=SuperAgent.getSuperTools();}catch{}}
-  if(typeof BUILT_IN_TOOLS!=='undefined'){tools=[...tools,...BUILT_IN_TOOLS.filter(t=>!tools.find(s=>s.name===t.name))];}
-  await doStream(prov,mid,key,sys,tools);
+
+// ── Send ───────────────────────────────────────────────────
+async function sendMsg() {
+  if (S.streaming) return;
+  const ta  = document.getElementById('inp');
+  const raw = ta.value.trim();
+  if (!raw) return;
+  const txt = exc(raw);
+
+  const welc = document.getElementById('welc');
+  if (welc) welc.classList.add('hid');
+  ta.value = '';
+  ta.style.height = 'auto';
+
+  S.msgs.push({ role: 'user', content: txt });
+  S.mc++;
+  addU(txt);
+  scroll2b();
+
+  const mid  = document.getElementById('msel').value;
+  const prov = rProv(mid);
+  const key  = getKey(prov);
+  if (!key) {
+    toast(`No API key for "${prov}". Go to Settings → API Keys to add one.`, 'er');
+    return;
+  }
+
+  // Build system prompt
+  let sys = document.getElementById('sys-ta')?.value?.trim() || '';
+  if (!sys && typeof SuperAgent !== 'undefined') {
+    try { sys = await SuperAgent.buildSuperAgentSystemPrompt(txt) || ''; } catch {}
+  }
+
+  // Collect tools
+  let tools = [];
+  if (typeof SuperAgent !== 'undefined') {
+    try { tools = SuperAgent.getSuperTools(); } catch {}
+  }
+  if (typeof BUILT_IN_TOOLS !== 'undefined') {
+    tools = [...tools, ...BUILT_IN_TOOLS.filter(t => !tools.find(s => s.name === t.name))];
+  }
+
+  await doStream(prov, mid, key, sys, tools);
 }
-async function doStream(prov,mid,key,sys,tools){
-  if(!window.ApiRouter){toast('ApiRouter not loaded','er');return;}
-  S.streaming=true;S.abort=new AbortController();
-  setDot('thinking');showTyp('Thinking…');
-  document.getElementById('snd').disabled=true;
+
+// ── Streaming agentic loop ─────────────────────────────────
+async function doStream(prov, mid, key, sys, tools) {
+  if (!window.ApiRouter) { toast('ApiRouter not loaded', 'er'); return; }
+
+  S.streaming = true;
+  S.abort = new AbortController();
+  setDot('thinking');
+  showTyp('Thinking…');
+  document.getElementById('snd').disabled = true;
   document.getElementById('stp').classList.add('vis');
-  try{
-    for(let r=0;r<8;r++){
-      const apiMsgs=buildMsgs(S.msgs);
-      const ae={role:'assistant',content:'',toolCalls:[],toolResults:[]};
+
+  try {
+    for (let round = 0; round < 8; round++) {
+      const apiMsgs = buildMsgs(S.msgs);
+      const ae = { role: 'assistant', content: '', toolCalls: [], toolResults: [] };
       S.msgs.push(ae);
-      const bid='b'+Date.now()+r;
-      addA(bid);hideTyp();
-      let acc='';const pc=[];
-      for await(const ck of ApiRouter.stream(prov,mid,key,apiMsgs,sys,{maxTokens:8192,signal:S.abort.signal,tools})){
-        if(ck.delta){acc+=ck.delta;ae.content=acc;updBub(bid,acc);scroll2b();}
-        if(ck.toolCall){pc.push(ck.toolCall);ae.toolCalls=[...(ae.toolCalls||[]),ck.toolCall];addTCC(bid,ck.toolCall);}
+
+      const bid = 'b' + Date.now() + round;
+      addA(bid);
+      hideTyp();
+
+      let acc = '';
+      const pendingCalls = [];
+
+      for await (const ck of ApiRouter.stream(prov, mid, key, apiMsgs, sys, {
+        maxTokens: 8192,
+        signal: S.abort.signal,
+        tools: tools.length ? tools : undefined,
+      })) {
+        if (ck.delta) {
+          acc += ck.delta;
+          ae.content = acc;
+          updBub(bid, acc);
+          scroll2b();
+        }
+        if (ck.toolCall) {
+          pendingCalls.push(ck.toolCall);
+          ae.toolCalls = [...(ae.toolCalls || []), ck.toolCall];
+          addTCC(bid, ck.toolCall);
+        }
       }
-      if(!pc.length)break;
+
+      // No tool calls → we're done
+      if (!pendingCalls.length) break;
+
       showTyp('Running tools…');
-      for(const tc of pc){
-        S.tc++;updTCS(tc.id,'running');
-        let res='';
-        try{res=await runTool(tc.name,tc.input);}catch(err){res='Tool error: '+err.message;}
-        updTCS(tc.id,'done');addTRC(bid,tc,res);
-        ae.toolResults=[...(ae.toolResults||[]),{tool_use_id:tc.id,content:String(res)}];
-        S.msgs.push({role:'tool',tool_use_id:tc.id,name:tc.name,content:String(res)});
+      const toolResultMsgs = [];
+
+      for (const tc of pendingCalls) {
+        S.tc++;
+        updTCS(tc.id, 'running');
+        let res = '';
+        try { res = await runTool(tc.name, tc.input); }
+        catch (err) { res = 'Tool error: ' + err.message; }
+        updTCS(tc.id, 'done');
+        addTRC(bid, tc, res);
+        ae.toolResults = [...(ae.toolResults || []), { tool_use_id: tc.id, content: String(res) }];
+        toolResultMsgs.push({ tool_use_id: tc.id, content: String(res) });
       }
-      setDot('thinking');renderSb();
+
+      // Push tool results as a user-role message (required by Anthropic format)
+      S.msgs.push({
+        role: 'tool_results',
+        results: toolResultMsgs,
+      });
+
+      setDot('thinking');
+      renderSb();
     }
-  }catch(err){if(err.name!=='AbortError'){toast('Error: '+err.message,'er');console.error('[Aria]',err);}}
-  finally{
-    S.streaming=false;S.abort=null;hideTyp();setDot('idle');
-    document.getElementById('snd').disabled=false;
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      toast('Error: ' + err.message, 'er');
+      console.error('[Aria]', err);
+    }
+  } finally {
+    S.streaming = false;
+    S.abort = null;
+    hideTyp();
+    setDot('idle');
+    document.getElementById('snd').disabled = false;
     document.getElementById('stp').classList.remove('vis');
-    renderSb();refreshSb();scroll2b();
+    renderSb();
+    refreshSb();
+    scroll2b();
   }
 }
-async function runTool(name,inp){
-  if(typeof SuperAgent!=='undefined'&&SuperAgent.config.isEnabled()){
-    const sn=new Set(SuperAgent.tools.map(t=>t.name));
-    if(sn.has(name))return await SuperAgent.executeSuperTool(name,inp);
+
+// ── Tool runner ────────────────────────────────────────────
+async function runTool(name, inp) {
+  // Prefer SuperAgent's tool runner
+  if (typeof SuperAgent !== 'undefined' && SuperAgent.config.isEnabled()) {
+    const superToolNames = new Set(SuperAgent.tools.map(t => t.name));
+    if (superToolNames.has(name)) return await SuperAgent.executeSuperTool(name, inp);
   }
-  switch(name){
-    case'web_search':return await ApiRouter.webSearch(inp.query);
-    case'memory_recall':{if(typeof MemorySystem==='undefined')return'Memory not loaded.';const ws=MemorySystem.workspaces.getActive();return ws?MemorySystem.memories.buildContext(ws.id,inp.query)||'Nothing found.':'No workspace.';}
-    case'memory_save':{if(typeof MemorySystem==='undefined')return'Memory not loaded.';const ws=MemorySystem.workspaces.getActive();if(!ws)return'No workspace.';MemorySystem.memories.add(ws.id,{key:inp.key,value:inp.value,tags:inp.tags||[]});return`Saved: "${inp.key}".`;}
-    case'calculate':{try{return inp.expression+' = '+Function("'use strict';return("+inp.expression+")")();}catch(er){return'Calc error: '+er.message;}}
-    default:return'Unknown tool: '+name;
+  // Fallback built-ins
+  switch (name) {
+    case 'web_search':
+      return await ApiRouter.webSearch(inp.query || inp.q || '');
+    case 'memory_recall': {
+      if (typeof MemorySystem === 'undefined') return 'Memory not loaded.';
+      const ws = MemorySystem.workspaces.getActive();
+      return ws ? MemorySystem.memories.buildContext(ws.id, inp.query) || 'Nothing found.' : 'No workspace.';
+    }
+    case 'memory_save': {
+      if (typeof MemorySystem === 'undefined') return 'Memory not loaded.';
+      const ws = MemorySystem.workspaces.getActive();
+      if (!ws) return 'No workspace.';
+      MemorySystem.memories.add(ws.id, { key: inp.key, value: inp.value, tags: inp.tags || [] });
+      return `Saved: "${inp.key}".`;
+    }
+    case 'calculate': {
+      try {
+        // eslint-disable-next-line no-new-func
+        return inp.expression + ' = ' + Function("'use strict';return(" + inp.expression + ")")();
+      } catch (er) { return 'Calc error: ' + er.message; }
+    }
+    default:
+      return 'Unknown tool: ' + name;
   }
 }
-function buildMsgs(ms){
-  const out=[];
-  for(const m of ms){
-    if(m.role==='user')out.push({role:'user',content:m.content});
-    else if(m.role==='assistant'){
-      const pts=[];
-      if(m.content)pts.push({type:'text',text:m.content});
-      for(const tc of(m.toolCalls||[]))pts.push({type:'tool_use',id:tc.id,name:tc.name,input:tc.input});
-      if(pts.length)out.push({role:'assistant',content:pts});
-    }else if(m.role==='tool')out.push({role:'user',content:[{type:'tool_result',tool_use_id:m.tool_use_id,content:m.content}]});
+
+// ── Build API message array ────────────────────────────────
+function buildMsgs(ms) {
+  const out = [];
+  for (const m of ms) {
+    if (m.role === 'user') {
+      out.push({ role: 'user', content: m.content });
+    } else if (m.role === 'assistant') {
+      const pts = [];
+      if (m.content) pts.push({ type: 'text', text: m.content });
+      for (const tc of (m.toolCalls || [])) {
+        pts.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input });
+      }
+      if (pts.length) out.push({ role: 'assistant', content: pts });
+    } else if (m.role === 'tool_results') {
+      // Tool results must be wrapped as a user message with tool_result content blocks
+      out.push({
+        role: 'user',
+        content: m.results.map(r => ({
+          type: 'tool_result',
+          tool_use_id: r.tool_use_id,
+          content: r.content,
+        })),
+      });
+    }
   }
   return out;
 }
-function rProv(mid){
-  if(typeof MODELS_DATA!=='undefined'){const m=MODELS_DATA.getModel(mid);if(m)return m.provider;}
-  if(mid.startsWith('claude'))return'anthropic';
-  if(mid.startsWith('gpt')||mid.startsWith('o1'))return'openai';
-  if(mid.startsWith('gemini'))return'google';
-  return'groq';
+
+// ── Provider / key resolution ──────────────────────────────
+function rProv(mid) {
+  if (typeof MODELS_DATA !== 'undefined') {
+    const m = MODELS_DATA.getModel(mid);
+    if (m) return m.provider;
+  }
+  if (mid.startsWith('claude'))  return 'anthropic';
+  if (mid.startsWith('gpt') || mid.startsWith('o1')) return 'openai';
+  if (mid.startsWith('gemini'))  return 'google';
+  return 'groq';
 }
-function getKey(prov){
-  try{
-    // Try vault first
-    const v=localStorage.getItem('cpu_vault')||localStorage.getItem('async_vault');
-    if(v){try{const d=JSON.parse(atob(v.split('.')[1]||v));if(d&&d[prov])return d[prov];}catch{}}
-    // Try STATE
-    if(typeof STATE!=='undefined'&&STATE.apiKeys?.[prov])return STATE.apiKeys[prov];
-    // Direct
-    const ks=JSON.parse(localStorage.getItem('cpu_api_keys')||localStorage.getItem('async_api_keys')||'{}');
-    return ks[prov]||'';
-  }catch{return'';}
+
+function getKey(prov) {
+  // S.keys was loaded from ApiKeyVault during boot
+  if (S.keys[prov]) return S.keys[prov];
+  // Fallback: try plain localStorage keys used by the app
+  try {
+    const plain = JSON.parse(localStorage.getItem('cpu_api_keys') || localStorage.getItem('async_api_keys') || '{}');
+    if (plain[prov]) return plain[prov];
+  } catch {}
+  return '';
 }
-function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function addU(txt){
-  const ms=document.getElementById('msgs');
-  const row=document.createElement('div');
-  row.className='mrow u';
-  row.innerHTML=`<div class="mav hu">👤</div><div class="mbody"><div class="msndr">You</div><div class="mbub">${e(txt).replace(/\n/g,'<br>')}</div></div>`;
+
+// ── HTML helpers ───────────────────────────────────────────
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function addU(txt) {
+  const ms  = document.getElementById('msgs');
+  const row = document.createElement('div');
+  row.className = 'mrow u';
+  row.innerHTML =
+    `<div class="mav hu">👤</div>` +
+    `<div class="mbody"><div class="msndr">You</div>` +
+    `<div class="mbub">${esc(txt).replace(/\n/g, '<br>')}</div></div>`;
   ms.appendChild(row);
 }
-function addA(id){
-  const cfg=typeof SuperAgent!=='undefined'?SuperAgent.config.get():{avatarEmoji:'✦',persona:'Aria'};
-  const ms=document.getElementById('msgs');
-  const row=document.createElement('div');row.className='mrow';row.id='r'+id;
-  row.innerHTML=`<div class="mav ai">${e(cfg.avatarEmoji||'✦')}</div><div class="mbody"><div class="msndr">${e(cfg.persona||'Aria')}</div><div class="mbub" id="${id}"></div></div>`;
+
+function addA(id) {
+  const cfg = typeof SuperAgent !== 'undefined' ? SuperAgent.config.get() : { avatarEmoji: '✦', persona: 'Aria' };
+  const ms  = document.getElementById('msgs');
+  const row = document.createElement('div');
+  row.className = 'mrow';
+  row.id = 'r' + id;
+  row.innerHTML =
+    `<div class="mav ai">${esc(cfg.avatarEmoji || '✦')}</div>` +
+    `<div class="mbody"><div class="msndr">${esc(cfg.persona || 'Aria')}</div>` +
+    `<div class="mbub" id="${id}"></div></div>`;
   ms.appendChild(row);
 }
-function updBub(id,txt){const el=document.getElementById(id);if(el)el.innerHTML=md(txt);}
-function addTCC(bid,tc){
-  const bub=document.getElementById(bid);if(!bub)return;
-  const cid='tc'+tc.id;
-  const em={wikipedia_search:'📖',get_weather:'🌤',search_github:'🐙',get_news:'📰',kb_search:'📚',agent_memory_save:'💾',agent_memory_recall:'🧠',web_search:'🔍',memory_recall:'🧠',memory_save:'💾',calculate:'🧮',generate_image:'🎨'}[tc.name]||'⚙';
-  const c=document.createElement('div');c.className='tcc';c.id=cid;
-  c.innerHTML=`<div class="tch" onclick="toggleC('${cid}')"><span>${em}</span><span class="tcn">${e(tc.name)}</span><span class="tcs" id="${cid}s">● queued</span><span class="tct">▼</span></div><div class="tcb">${e(JSON.stringify(tc.input,null,2))}</div>`;
+
+function updBub(id, txt) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = md(txt);
+}
+
+function addTCC(bid, tc) {
+  const bub = document.getElementById(bid);
+  if (!bub) return;
+  const cid = 'tc' + tc.id;
+  const em  = {
+    wikipedia_search: '📖', get_weather: '🌤', search_github: '🐙',
+    get_news: '📰', kb_search: '📚', agent_memory_save: '💾',
+    agent_memory_recall: '🧠', web_search: '🔍', memory_recall: '🧠',
+    memory_save: '💾', calculate: '🧮', generate_image: '🎨',
+  }[tc.name] || '⚙';
+  const c = document.createElement('div');
+  c.className = 'tcc';
+  c.id = cid;
+  c.innerHTML =
+    `<div class="tch" onclick="toggleC('${cid}')">` +
+    `<span>${em}</span><span class="tcn">${esc(tc.name)}</span>` +
+    `<span class="tcs" id="${cid}s">● queued</span><span class="tct">▼</span></div>` +
+    `<div class="tcb">${esc(JSON.stringify(tc.input, null, 2))}</div>`;
   bub.appendChild(c);
 }
-function updTCS(id,st){const el=document.getElementById('tc'+id+'s');if(!el)return;el.textContent=st==='running'?'⟳ running…':'✓ done';el.style.color=st==='running'?'var(--amber)':'var(--emerald)';}
-function addTRC(bid,tc,res){
-  const bub=document.getElementById(bid);if(!bub)return;
-  const rid='tr'+tc.id;
-  const c=document.createElement('div');c.className='trc';c.id=rid;
-  c.innerHTML=`<div class="trh" onclick="toggleC('${rid}')"><span>✓</span><span style="flex:1">Result: ${e(tc.name)}</span><span style="font-size:10px;color:var(--text-3)">▼</span></div><div class="trb">${e(String(res))}</div>`;
+
+function updTCS(id, st) {
+  const el = document.getElementById('tc' + id + 's');
+  if (!el) return;
+  el.textContent = st === 'running' ? '⟳ running…' : '✓ done';
+  el.style.color  = st === 'running' ? 'var(--amber)' : 'var(--emerald)';
+}
+
+function addTRC(bid, tc, res) {
+  const bub = document.getElementById(bid);
+  if (!bub) return;
+  const rid = 'tr' + tc.id;
+  const c = document.createElement('div');
+  c.className = 'trc';
+  c.id = rid;
+  c.innerHTML =
+    `<div class="trh" onclick="toggleC('${rid}')">` +
+    `<span>✓</span><span style="flex:1">Result: ${esc(tc.name)}</span>` +
+    `<span style="font-size:10px;color:var(--text-3)">▼</span></div>` +
+    `<div class="trb">${esc(String(res))}</div>`;
   bub.appendChild(c);
 }
-function toggleC(id){const el=document.getElementById(id);if(el)el.classList.toggle('ex');}
-function showTyp(lbl){document.getElementById('tlbl').textContent=lbl;document.getElementById('typ').style.display='block';scroll2b();}
-function hideTyp(){document.getElementById('typ').style.display='none';}
-function scroll2b(){const ms=document.getElementById('msgs');ms.scrollTop=ms.scrollHeight;}
-function setDot(st){const d=document.getElementById('sdot');d.className='sdot '+st;d.title=st.charAt(0).toUpperCase()+st.slice(1);}
-function md(txt){
-  if(!txt)return'';
-  let h=e(txt);
-  h=h.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,l,c)=>`<pre><code>${c}</code></pre>`);
-  h=h.replace(/`([^`]+)`/g,'<code>$1</code>');
-  h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  h=h.replace(/\*(.+?)\*/g,'<em>$1</em>');
-  h=h.replace(/^### (.+)$/gm,'<h3>$1</h3>');
-  h=h.replace(/^## (.+)$/gm,'<h2>$1</h2>');
-  h=h.replace(/^# (.+)$/gm,'<h1>$1</h1>');
-  h=h.replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>');
-  h=h.replace(/^---+$/gm,'<hr>');
-  h=h.replace(/^\| .+$/gm,row=>{const cells=row.split('|').slice(1,-1).map(c=>`<td>${c.trim()}</td>`).join('');return`<tr>${cells}</tr>`;});
-  h=h.replace(/(<tr>.*<\/tr>)/s,t=>`<table>${t}</table>`);
-  h=h.replace(/^[•\-\*] (.+)$/gm,'<li>$1</li>');
-  h=h.replace(/^\d+\. (.+)$/gm,'<li>$1</li>');
-  h=h.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-  h=h.replace(/\n\n+/g,'</p><p>');
-  h=h.replace(/\n/g,'<br>');
-  return'<p>'+h+'</p>';
+
+function toggleC(id) { const el = document.getElementById(id); if (el) el.classList.toggle('ex'); }
+
+// ── UI helpers ─────────────────────────────────────────────
+function showTyp(lbl) {
+  const tl = document.getElementById('tlbl'); if (tl) tl.textContent = lbl;
+  const ty = document.getElementById('typ');  if (ty) ty.style.display = 'block';
+  scroll2b();
 }
-function stopStream(){if(S.abort)S.abort.abort();}
-function clearChat(){
-  if(S.streaming)stopStream();
-  S.msgs=[];S.tc=0;S.mc=0;
-  const ms=document.getElementById('msgs');
-  ms.innerHTML='';
-  const w=document.createElement('div');w.id='welc';
-  const cfg=typeof SuperAgent!=='undefined'?SuperAgent.config.get():{avatarEmoji:'✦'};
-  w.innerHTML=`<div class="worb">${e(cfg.avatarEmoji||'✦')}</div><div class="wtit">Hello, Cody.</div><div class="wsub">I'm Aria, your super-agent. Ready for a fresh conversation.</div><div class="qps"><button class="qp" onclick="qi('What do you remember about me?')">🧠 Recall memory</button><button class="qp" onclick="qi('Get today\\'s top AI news.')">🔍 AI news</button><button class="qp" onclick="qi('Search GitHub for trending repos.')">🐙 GitHub</button><button class="qp" onclick="qi('Search my knowledge base.')">📚 KB</button></div>`;
+function hideTyp() { const ty = document.getElementById('typ'); if (ty) ty.style.display = 'none'; }
+function scroll2b() { const ms = document.getElementById('msgs'); if (ms) ms.scrollTop = ms.scrollHeight; }
+function setDot(st) {
+  const d = document.getElementById('sdot');
+  if (!d) return;
+  d.className = 'sdot ' + st;
+  d.title = st.charAt(0).toUpperCase() + st.slice(1);
+}
+
+// ── Markdown renderer ──────────────────────────────────────
+function md(txt) {
+  if (!txt) return '';
+  let h = esc(txt);
+  // Code blocks (must come first to avoid double-processing)
+  h = h.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, l, c) => `<pre><code>${c}</code></pre>`);
+  h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Inline formatting
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Headings
+  h = h.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  h = h.replace(/^## (.+)$/gm,  '<h2>$1</h2>');
+  h = h.replace(/^# (.+)$/gm,   '<h1>$1</h1>');
+  // Blockquote
+  h = h.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  // HR
+  h = h.replace(/^---+$/gm, '<hr>');
+  // Lists
+  h = h.replace(/^[•\-\*] (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/^\d+\. (.+)$/gm,   '<li>$1</li>');
+  // Links
+  h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // Paragraphs
+  h = h.replace(/\n\n+/g, '</p><p>');
+  h = h.replace(/\n/g, '<br>');
+  return '<p>' + h + '</p>';
+}
+
+// ── Actions ────────────────────────────────────────────────
+function stopStream() { if (S.abort) S.abort.abort(); }
+
+function clearChat() {
+  if (S.streaming) stopStream();
+  S.msgs = []; S.tc = 0; S.mc = 0;
+  const ms = document.getElementById('msgs');
+  ms.innerHTML = '';
+  const cfg = typeof SuperAgent !== 'undefined' ? SuperAgent.config.get() : { avatarEmoji: '✦' };
+  const w = document.createElement('div');
+  w.id = 'welc';
+  w.innerHTML =
+    `<div class="worb">${esc(cfg.avatarEmoji || '✦')}</div>` +
+    `<div class="wtit">Hello, Cody.</div>` +
+    `<div class="wsub">I'm Aria, your super-agent. Ready for a fresh conversation.</div>` +
+    `<div class="qps">` +
+    `<button class="qp" onclick="qi('What do you remember about me?')">🧠 Recall memory</button>` +
+    `<button class="qp" onclick="qi('Get today\'s top AI news.')">🔍 AI news</button>` +
+    `<button class="qp" onclick="qi('Search GitHub for trending repos.')">🐙 GitHub</button>` +
+    `<button class="qp" onclick="qi('Search my knowledge base.')">📚 KB</button></div>`;
   ms.appendChild(w);
-  renderSb();toast('Chat cleared','ok');
+  renderSb();
+  toast('Chat cleared', 'ok');
 }
-function exportChat(){
-  const lines=S.msgs.map(m=>`## ${m.role==='user'?'Cody':'Aria'}\n${m.content||''}`);
-  const doc=`# Aria Agent Chat\n_${new Date().toLocaleString()}_\n\n---\n\n${lines.join('\n\n---\n\n')}`;
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([doc],{type:'text/markdown'}));
-  a.download='aria-chat-'+Date.now()+'.md';a.click();
-  toast('Exported as Markdown','ok');
+
+function exportChat() {
+  const lines = S.msgs
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .map(m => `## ${m.role === 'user' ? 'Cody' : 'Aria'}\n${m.content || ''}`);
+  const doc = `# Aria Agent Chat\n_${new Date().toLocaleString()}_\n\n---\n\n${lines.join('\n\n---\n\n')}`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([doc], { type: 'text/markdown' }));
+  a.download = 'aria-chat-' + Date.now() + '.md';
+  a.click();
+  toast('Exported as Markdown', 'ok');
 }
-function toggleSyd(){
-  const d=document.getElementById('syd');d.classList.toggle('open');
-  document.getElementById('syd-btn').textContent=d.classList.contains('open')?'✕ Prompt':'⚙ Prompt';
+
+function toggleSyd() {
+  const d = document.getElementById('syd');
+  d.classList.toggle('open');
+  document.getElementById('syd-btn').textContent = d.classList.contains('open') ? '✕ Prompt' : '⚙ Prompt';
 }
-function toast(msg,type='',dur=3500){
-  const w=document.getElementById('tw');const el=document.createElement('div');
-  el.className='ti2 '+type;el.textContent=msg;w.appendChild(el);
-  setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .2s';setTimeout(()=>el.remove(),220);},dur);
+
+function toast(msg, type = '', dur = 3500) {
+  const w  = document.getElementById('tw');
+  const el = document.createElement('div');
+  el.className = 'ti2 ' + type;
+  el.textContent = msg;
+  w.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .2s'; setTimeout(() => el.remove(), 220); }, dur);
 }
 </script>
 </body>
