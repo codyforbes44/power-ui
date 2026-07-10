@@ -488,7 +488,20 @@ const AuthSystem = (() => {
 
   function isAdmin() {
     const session = loadSession();
-    return session?.role === 'admin';
+    if (!session) return false;
+    // Check session role first (fast path)
+    if (session.role === 'admin') return true;
+    // Fallback: check the stored user record — covers cases where the session
+    // was created before a SUPER_ADMINS promotion ran (e.g. cody signed up
+    // before the admin designation was deployed). Also updates the session
+    // in-place so subsequent calls use the fast path.
+    const user = getUser(session.userId);
+    if (user?.role === 'admin') {
+      session.role = 'admin';
+      saveSession(session);
+      return true;
+    }
+    return false;
   }
 
   // ──────────────────────────────────────────────────────────
