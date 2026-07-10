@@ -851,7 +851,7 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
           );
           if (!integ) return `No enabled integration named "${input.name}". Check Admin → Agent → Integrations.`;
 
-          const url     = integ.endpoint + (input.path || '');
+          let url       = integ.endpoint + (input.path || '');
           const method  = (input.method || 'GET').toUpperCase();
           const headers = { 'Content-Type': 'application/json' };
 
