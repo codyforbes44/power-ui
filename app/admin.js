@@ -93,6 +93,7 @@ const AdminApp = (() => {
     settings:    'General Settings',
     connections: 'API Keys & MCP Resources',
     health:      'System Health',
+    agent:       'Super Admin Agent',
   };
 
   async function switchPanel(panelId, navEl) {
@@ -119,7 +120,8 @@ const AdminApp = (() => {
       case 'settings':    renderSettings();     break;
       case 'connections': await renderConnections();  break;
       case 'health':      await renderHealth();       break;
-      case 'memory':      renderMemory();       break;
+      case 'memory':      renderMemory();           break;
+      case 'agent':       await renderAgentPanel?.(); break;
     }
   }
 
@@ -992,6 +994,16 @@ python3 cli.py export --format json</pre>
       if (el) el.style.display = isAdmin ? 'block' : 'none';
     });
 
+    // Super-admin only nav items
+    const isSuperAdmin = AuthSystem.isSuperAdmin?.() || false;
+    const superAdminEls = [
+      document.getElementById('nav-section-superadmin'),
+      document.getElementById('nav-item-agent'),
+    ];
+    superAdminEls.forEach(el => {
+      if (el) el.style.display = isSuperAdmin ? 'block' : 'none';
+    });
+
     if (!isAdmin) {
       const sub = document.querySelector('.admin-brand-sub');
       if (sub) sub.textContent = 'Settings Dashboard';
@@ -1801,6 +1813,8 @@ python3 cli.py export --format json</pre>
     deleteMemoryFact,
     updateMemoryFact,
     clearAllMemory,
+    // Agent panel (loaded from agent-panel.js)
+    toast,
   };
   };
 

@@ -504,6 +504,12 @@ const AuthSystem = (() => {
     return false;
   }
 
+  function isSuperAdmin() {
+    const session = loadSession();
+    if (!session) return false;
+    return SUPER_ADMINS.has(session.username) || session.role === 'super_admin';
+  }
+
   // ──────────────────────────────────────────────────────────
   // Route guards
   // ──────────────────────────────────────────────────────────
@@ -943,6 +949,7 @@ const AuthSystem = (() => {
     getCurrentSession,
     isLoggedIn,
     isAdmin,
+    isSuperAdmin,
     requireAuth,
     requireAdmin,
     checkPasswordChangeRequired,

@@ -27,7 +27,11 @@
         https://*.fal.media
         https://api.replicate.com
         http://127.0.0.1:8188
-        http://localhost:8188;
+        http://localhost:8188
+        https://en.wikipedia.org
+        https://wttr.in
+        https://api.github.com
+        https://gnews.io;
       img-src 'self' data: blob: https://*.fal.run https://*.fal.media;" />
 
   <!-- M4: Inline SVG favicon -->
@@ -95,6 +99,12 @@
         </button>
         <button class="admin-nav-item" id="nav-item-memory" data-panel="memory" onclick="AdminApp.switchPanel('memory', this)">
           <span class="admin-nav-icon">🧠</span> Memory Manager
+        </button>
+
+        <!-- Super Admin Only -->
+        <div class="admin-nav-section-label" id="nav-section-superadmin" style="margin-top:8px;display:none">Super Admin</div>
+        <button class="admin-nav-item" id="nav-item-agent" data-panel="agent" onclick="AdminApp.switchPanel('agent', this)" style="display:none">
+          <span class="admin-nav-icon">🤖</span> Agent
         </button>
       </nav>
 
@@ -481,6 +491,11 @@
           <!-- Rendered entirely by renderMemory() in admin.js -->
         </section>
 
+        <!-- ── Agent Panel (Super Admin Only) ────────── -->
+        <section id="panel-agent" class="admin-panel">
+          <!-- Rendered entirely by renderAgentPanel() in agent-panel.js -->
+        </section>
+
       </div><!-- /admin-content -->
     </main>
 
@@ -522,6 +537,8 @@
   <!-- Scripts: auth + analytics must load first -->
   <script src="auth.js?v=20260708f" defer></script>
   <script src="analytics.js?v=20260708f" defer></script>
+  <script src="agent.js?v=20260710a" defer></script>
+  <script src="agent-panel.js?v=20260710a" defer></script>
   <script src="admin.js?v=20260708f" defer></script>
 
 
