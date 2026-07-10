@@ -646,30 +646,45 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       case 'get_news': {
         try {
           const cfg   = AgentConfig.get();
-          const topic = encodeURIComponent(input.topic);
           const count = Math.min(input.count || 5, 10);
           const key   = cfg.webSearch?.apiKey || '';
+          const PROXY = '/.netlify/functions/proxy';
 
-          // Try GNews if key available
+          // Try GNews via proxy (avoids CORS)
           if (key && cfg.webSearch?.provider !== 'serp') {
-            const res  = await fetch(`https://gnews.io/api/v4/search?q=${topic}&max=${count}&apikey=${key}&lang=en`);
-            const data = await res.json();
-            const arts = data.articles || [];
-            if (arts.length) {
-              return `**News: "${input.topic}"**\n\n` +
-                arts.map(a => `• **${a.title}** (${a.source?.name || 'unknown'})\n  ${(a.description || '').slice(0, 140)}\n  ${a.url}`).join('\n\n');
-            }
+            try {
+              const res  = await fetch(PROXY, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                  provider: 'gnews',
+                  path:     '/',
+                  apiKey:   key,
+                  payload:  { topic: input.topic, count, lang: 'en' },
+                }),
+              });
+              const data = await res.json();
+              const arts = data.articles || [];
+              if (arts.length) {
+                return `**News: "${input.topic}"**\n\n` +
+                  arts.map(a => `• **${a.title}** (${a.source?.name || 'unknown'})\n  ${(a.description || '').slice(0, 140)}\n  ${a.url}`).join('\n\n');
+              }
+            } catch {}
           }
 
-          // Fallback: Wikipedia current events
-          const res  = await fetch(`https://en.wikipedia.org/api/rest_v1/feed/featured/${new Date().toISOString().slice(0, 10).replace(/-/g, '/')}`);
-          const data = await res.json();
-          const news = (data.news || []).slice(0, count);
-          if (news.length) {
-            return `**Today's News (Wikipedia):**\n\n` +
-              news.map(n => `• ${(n.story || '').replace(/<[^>]+>/g, '').slice(0, 200)}`).join('\n');
-          }
-          return `No news data available. Add a GNews/Brave API key in Admin → Agent → Web Search for live news.`;
+          // Fallback: Wikipedia current events (Wikipedia has open CORS headers)
+          try {
+            const date  = new Date().toISOString().slice(0, 10).replace(/-/g, '/');
+            const res   = await fetch(`https://en.wikipedia.org/api/rest_v1/feed/featured/${date}`);
+            const data  = await res.json();
+            const news  = (data.news || []).slice(0, count);
+            if (news.length) {
+              return `**Today's News (Wikipedia):**\n\n` +
+                news.map(n => `• ${(n.story || '').replace(/<[^>]+>/g, '').slice(0, 200)}`).join('\n');
+            }
+          } catch {}
+
+          return `No news data available. Add a GNews API key in Admin → Agent → Web Search for live news.`;
         } catch (e) { return `News search failed: ${e.message}`; }
       }
 
@@ -696,41 +711,71 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
           mems.map(m => `• **${m.key}** [${m.category || 'general'}]: ${m.value}`).join('\n');
       }
 
-      // ── Web search (NEW) ─────────────────────────────────
+      // ── Web search ────────────────────────────────────────
+      // All providers routed through Netlify proxy to avoid CORS
       case 'web_search': {
-        const cfg   = AgentConfig.get();
-        const q     = encodeURIComponent(input.query);
-        const n     = Math.min(input.maxResults || 5, 10);
-        const prov  = cfg.webSearch?.provider || 'ddg';
-        const key   = cfg.webSearch?.apiKey || '';
+        const cfg  = AgentConfig.get();
+        const prov = cfg.webSearch?.provider || 'ddg';
+        const key  = cfg.webSearch?.apiKey   || '';
+        const n    = Math.min(input.maxResults || 5, 10);
+        const PROXY = '/.netlify/functions/proxy';
 
         try {
-          // Brave Search
+          // ── Brave Search (via proxy) ───────────────────────
           if (prov === 'brave' && key) {
-            const res  = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${q}&count=${n}`, {
-              headers: { 'Accept': 'application/json', 'X-Subscription-Token': key },
+            const res  = await fetch(PROXY, {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body:    JSON.stringify({
+                provider: 'web_search',
+                path:     '/',
+                apiKey:   key,
+                payload:  { query: input.query, searchProvider: 'brave', maxResults: n },
+              }),
             });
-            if (!res.ok) throw new Error(`Brave Search: HTTP ${res.status}`);
+            if (!res.ok) throw new Error(`Proxy error: HTTP ${res.status}`);
             const data = await res.json();
+            if (data.error) throw new Error(data.error);
             const hits = data.web?.results || [];
-            if (!hits.length) return `No results found for "${input.query}".`;
+            if (!hits.length) return `No Brave Search results for "${input.query}".`;
             return `**Web Search: "${input.query}"** (Brave)\n\n` +
               hits.slice(0, n).map(h => `• **${h.title}**\n  ${h.description || ''}\n  ${h.url}`).join('\n\n');
           }
 
-          // SerpAPI
+          // ── SerpAPI (via proxy) ───────────────────────────
           if (prov === 'serp' && key) {
-            const res  = await fetch(`https://serpapi.com/search.json?q=${q}&num=${n}&api_key=${key}`);
-            if (!res.ok) throw new Error(`SerpAPI: HTTP ${res.status}`);
+            const res  = await fetch(PROXY, {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body:    JSON.stringify({
+                provider: 'web_search',
+                path:     '/',
+                apiKey:   key,
+                payload:  { query: input.query, searchProvider: 'serp', maxResults: n },
+              }),
+            });
+            if (!res.ok) throw new Error(`Proxy error: HTTP ${res.status}`);
             const data = await res.json();
+            if (data.error) throw new Error(data.error);
             const hits = data.organic_results || [];
-            if (!hits.length) return `No results for "${input.query}".`;
+            if (!hits.length) return `No SerpAPI results for "${input.query}".`;
             return `**Web Search: "${input.query}"** (Google via SerpAPI)\n\n` +
               hits.slice(0, n).map(h => `• **${h.title}**\n  ${h.snippet || ''}\n  ${h.link}`).join('\n\n');
           }
 
-          // DuckDuckGo instant answers (no key required)
-          const ddgRes  = await fetch(`https://api.duckduckgo.com/?q=${q}&format=json&no_html=1&skip_disambig=1`);
+          // ── DuckDuckGo via proxy (no key) ─────────────────
+          // Use existing ddg proxy handler — same route ApiRouter.webSearch() uses
+          const ddgRes  = await fetch(PROXY, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+              provider: 'ddg',
+              path:     '/',
+              apiKey:   '',
+              payload:  { query: input.query },
+            }),
+          });
+          if (!ddgRes.ok) throw new Error(`DDG proxy error: HTTP ${ddgRes.status}`);
           const ddgData = await ddgRes.json();
           const parts   = [];
           if (ddgData.AbstractText) parts.push(`**Summary:** ${ddgData.AbstractText}\nSource: ${ddgData.AbstractURL}`);
@@ -741,7 +786,7 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
             .map(r => `• ${r.Text}`);
           if (related.length) parts.push(`**Related:**\n${related.join('\n')}`);
 
-          if (!parts.length) return `No instant-answer results for "${input.query}". Add a Brave Search or SerpAPI key in Admin → Agent → Web Search for full web search.`;
+          if (!parts.length) return `No instant-answer results for "${input.query}".\n\n💡 Add a Brave Search key in Admin → Super Admin Agent → Web Search for full results.`;
           return `**Web Search: "${input.query}"** (DuckDuckGo)\n\n${parts.join('\n\n')}`;
         } catch (e) { return `Web search failed: ${e.message}`; }
       }

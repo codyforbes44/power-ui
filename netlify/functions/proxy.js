@@ -217,9 +217,9 @@ exports.handler = async function(event) {
   if (provider === 'ddg') {
     const https = require('https');
     const q     = encodeURIComponent((payload.query || '').slice(0, 200));
-    const ddgUrl = `https://api.duckduckgo.com/?q=${q}&format=json&no_html=1&t=claudepowerui`;
+    const ddgUrl = `https://api.duckduckgo.com/?q=${q}&format=json&no_html=1&t=asyncai`;
     return new Promise((resolve) => {
-      https.get(ddgUrl, { headers: { 'User-Agent': 'ClaudePowerUI/2' } }, (res) => {
+      https.get(ddgUrl, { headers: { 'User-Agent': 'AsyncAI/2.0' } }, (res) => {
         const chunks = [];
         res.on('data', c => chunks.push(c));
         res.on('end', () => {
@@ -236,6 +236,88 @@ exports.handler = async function(event) {
       });
     });
   }
+
+  // ── web_search — unified search handler (brave, serpapi, ddg fallback) ──
+  if (provider === 'web_search') {
+    const https    = require('https');
+    const http     = require('http');
+    const urlMod   = require('url');
+    const query    = (payload?.query || '').slice(0, 300);
+    const searchProvider = payload?.searchProvider || 'ddg'; // 'brave' | 'serpapi' | 'ddg'
+    const searchKey      = apiKey || '';
+    const maxResults     = Math.min(payload?.maxResults || 5, 10);
+
+    let searchUrl;
+    let reqHeaders = { 'User-Agent': 'AsyncAI/2.0', 'Accept': 'application/json' };
+
+    if (searchProvider === 'brave' && searchKey) {
+      searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${maxResults}&safesearch=off`;
+      reqHeaders['X-Subscription-Token'] = searchKey;
+      reqHeaders['Accept-Encoding'] = 'gzip';
+    } else if (searchProvider === 'serp' && searchKey) {
+      searchUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=${maxResults}&api_key=${searchKey}`;
+    } else {
+      // DuckDuckGo fallback (no key needed)
+      searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&t=asyncai`;
+    }
+
+    const parsed  = urlMod.parse(searchUrl);
+    const client  = parsed.protocol === 'https:' ? https : http;
+
+    return new Promise((resolve) => {
+      const req2 = client.get(searchUrl, { headers: reqHeaders, timeout: 15000 }, (res) => {
+        const chunks = [];
+        // Handle gzip from Brave
+        let decoder = res;
+        if ((res.headers['content-encoding'] || '').includes('gzip')) {
+          const zlib = require('zlib');
+          decoder = res.pipe(zlib.createGunzip());
+        }
+        decoder.on('data', c => chunks.push(c));
+        decoder.on('end', () => {
+          log({ event: 'web_search_response', searchProvider, status: res.statusCode, durationMs: Date.now() - startedAt });
+          resolve({
+            statusCode: res.statusCode,
+            headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30' },
+            body: Buffer.concat(chunks).toString('utf8'),
+          });
+        });
+        decoder.on('error', (e) => resolve(response(502, { error: `Decode error: ${e.message}` })));
+      });
+      req2.on('error', (e) => {
+        log({ event: 'web_search_error', searchProvider, error: e.message });
+        resolve(response(502, { error: `Web search failed: ${e.message}` }));
+      });
+      req2.on('timeout', () => { req2.destroy(); resolve(response(504, { error: 'Web search timed out' })); });
+    });
+  }
+
+  // ── gnews — GNews API server-side proxy ──────────────────
+  if (provider === 'gnews') {
+    const https  = require('https');
+    const topic  = encodeURIComponent((payload?.topic || '').slice(0, 200));
+    const count  = Math.min(payload?.count || 5, 10);
+    const lang   = payload?.lang || 'en';
+    const gUrl   = `https://gnews.io/api/v4/search?q=${topic}&max=${count}&apikey=${apiKey || ''}&lang=${lang}`;
+    return new Promise((resolve) => {
+      https.get(gUrl, { headers: { 'User-Agent': 'AsyncAI/2.0' }, timeout: 12000 }, (res) => {
+        const chunks = [];
+        res.on('data', c => chunks.push(c));
+        res.on('end', () => {
+          log({ event: 'gnews_response', status: res.statusCode, durationMs: Date.now() - startedAt });
+          resolve({
+            statusCode: res.statusCode,
+            headers: { ...CORS, 'Content-Type': 'application/json' },
+            body: Buffer.concat(chunks).toString('utf8'),
+          });
+        });
+      }).on('error', (e) => {
+        log({ event: 'gnews_error', error: e.message });
+        resolve(response(502, { error: `GNews fetch failed: ${e.message}` }));
+      });
+    });
+  }
+
 
   // Build upstream URL
   let url = base + apiPath;
