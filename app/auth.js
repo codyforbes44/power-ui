@@ -524,6 +524,10 @@ const AuthSystem = (() => {
   function checkPasswordChangeRequired() {
     const user = getCurrentUser();
     if (user?.mustChangePassword) {
+      // If we're on admin.html (no #app element), hide the loading overlay first
+      // so the password-change form isn't buried under the spinner.
+      const loadingEl = document.getElementById('admin-loading');
+      if (loadingEl) loadingEl.style.display = 'none';
       renderForcePasswordChange(user);
       return true;
     }
@@ -534,7 +538,13 @@ const AuthSystem = (() => {
     if (!isLoggedIn()) {
       if (window.location.href.indexOf(redirectTo) === -1) {
         sessionStorage.setItem('cpu_auth_redirect', window.location.href);
-        window.location.href = redirectTo;
+        // On pages without a local #app element (e.g. admin.html), the relative
+        // 'index.html' redirect resolves to /app/index.html which may 404 or loop.
+        // Use the public login page as an absolute fallback to avoid a silent hang.
+        const target = document.getElementById('app')
+          ? redirectTo
+          : (redirectTo === 'index.html' ? '/public/login.html' : redirectTo);
+        window.location.href = target;
       }
       return false;
     }
