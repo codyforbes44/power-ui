@@ -2,7 +2,7 @@
    CLAUDE POWER UI v2 — Workspace + Memory System
    ============================================================ */
 
-const MemorySystem = (() => {
+export const MemorySystem = (() => {
 
   const WS_KEY  = 'cpu_workspaces';
   const MEM_KEY = 'cpu_memories';
@@ -249,3 +249,4 @@ ${transcript}`;
 
   return { workspaces, memories, init };
 })();
+window.MemorySystem = MemorySystem;

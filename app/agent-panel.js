@@ -4,6 +4,8 @@
  * Tabs: Config · Tools · Web Search · Knowledge Base · Memory · Integrations · Code & Calc
  */
 
+import { SuperAgent } from './agent.js';
+
 'use strict';
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -13,7 +15,7 @@ function _escAP(s) {
 function _ap_el(id) { return document.getElementById(id); }
 
 // ── Render entry point (called by admin.js renderPanel) ──────
-async function renderAgentPanel() {
+export async function renderAgentPanel() {
   if (typeof SuperAgent === 'undefined') {
     const p = _ap_el('panel-agent');
     if (p) p.innerHTML = `<div style="padding:40px;text-align:center;color:var(--admin-text-dim)">⚠ SuperAgent not loaded. Ensure agent.js is loaded before agent-panel.js.</div>`;
@@ -501,7 +503,7 @@ async function renderAgentPanel() {
 }
 
 // ── AgentPanel controller ────────────────────────────────────
-window.AgentPanel = {
+export const AgentPanel = {
 
   // ── Config ────────────────────────────────────────────────
   async save() {
@@ -828,7 +830,6 @@ window.AgentPanel = {
     if (!expr || !res) return;
     try {
       if (/[^0-9+\-*/.()%^ Math.,\s_a-zA-Z]/.test(expr)) throw new Error('Invalid characters in expression');
-      // eslint-disable-next-line no-new-func
       const val = Function('"use strict"; return (' + expr + ')')();
       res.style.display = '';
       res.style.color   = '#10b981';
@@ -852,3 +853,4 @@ window.AgentPanel = {
     }).catch(e => { res.textContent = 'Error: ' + e.message; res.style.color = '#f87171'; });
   },
 };
+window.AgentPanel = AgentPanel;

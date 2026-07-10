@@ -38,7 +38,7 @@ module.exports = [
     ignores: ['app/cli.py', 'app/server.py'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'script',
+      sourceType: 'module',
       globals: {
         ...globals.browser,
         ...crossFileGlobals,

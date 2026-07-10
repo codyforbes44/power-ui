@@ -4,6 +4,16 @@
    Skill auto-suggest · Streaming · 4 providers
    ============================================================ */
 
+import { MODELS_DATA } from './models-data.js';
+import { ApiRouter } from './api-router.js';
+import { ImageRouter } from './image-router.js';
+import { MemorySystem } from './memory.js';
+import { SKILLS_DATA } from './skills-data.js';
+import { AuthSystem, ApiKeyVault } from './auth.js';
+import { ProfileSystem } from './profile.js';
+import { SuperAgent } from './agent.js';
+import { Analytics } from './analytics.js';
+
 // ============================================================
 // State
 // ============================================================
@@ -160,6 +170,56 @@ const ImageDb = (() => {
 })();
 
 // ============================================================
+// IndexedDB Session Store (Resolves localStorage quota limits)
+// ============================================================
+const SessionDb = (() => {
+  const DB_NAME = 'async_ai_sessions';
+  const DB_VERSION = 1;
+  const STORE_NAME = 'state';
+  let dbPromise = null;
+
+  function getDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+    return dbPromise;
+  }
+
+  async function get(key) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get(key);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function set(key, value) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.put(value, key);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  return { get, set };
+})();
+
+// ============================================================
 // ServerSync — detect local server, persist to disk, SSE sync
 // ============================================================
 const ServerSync = (() => {
@@ -183,7 +243,7 @@ const ServerSync = (() => {
 
     // 2. Check Firebase availability
     const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
-    const hasFirebase = typeof window.db !== 'undefined' && session && session.userId;
+    const hasFirebase = !!(typeof window.db !== 'undefined' && session && session.userId);
     _available = hasFirebase || _mcpAvailable;
 
     _updateIndicator();
@@ -352,7 +412,6 @@ const LEGACY_KEY  = 'async_ai_v1';
 function saveState() {
   // apiKeys are NOT stored in the main blob — they live in ApiKeyVault (encrypted)
   const data = {
-    sessions:        STATE.sessions,
     activeSessionId: STATE.activeSessionId,
     settings:        STATE.settings,
     costs:           STATE.costs,
@@ -371,13 +430,20 @@ function saveState() {
       toast('⚠ Storage full — export a backup and clear old sessions to free space.', 'error', 8000);
     }
   }
+
+  // Save the heavy sessions data to IndexedDB
+  SessionDb.set('sessions', STATE.sessions).catch(e => {
+    console.error('SessionDb: save failed', e);
+  });
+
   // Push to server for disk persistence + SSE broadcast (fire-and-forget)
   if (ServerSync.isAvailable()) {
-    ServerSync.push(data).catch(() => {});
+    const fullData = { ...data, sessions: STATE.sessions };
+    ServerSync.push(fullData).catch(() => {});
   }
 }
 
-function loadState() {
+async function loadState() {
   // ── Migrate from legacy brand key (claude_power_ui → async_ai) ──────────
   // Runs once on first boot after the rebrand. Reads old state blob from
   // the previous storage key, saves it under the new key, then deletes old.
@@ -394,10 +460,27 @@ function loadState() {
   }
 
   try {
+    // Load sessions from IndexedDB first
+    let sessions = await SessionDb.get('sessions');
+
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      STATE.sessions        = data.sessions || [];
+
+      // Auto-migrate sessions from localStorage to IndexedDB if they exist in legacy blob
+      if (!sessions && data.sessions) {
+        sessions = data.sessions;
+        await SessionDb.set('sessions', sessions);
+        delete data.sessions;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          console.log('✦ Async: migrated sessions from localStorage to IndexedDB');
+        } catch (e) {
+          console.warn('Async: failed to clean legacy sessions from localStorage', e);
+        }
+      }
+
+      STATE.sessions        = sessions || [];
       STATE.activeSessionId = data.activeSessionId || null;
       // apiKeys: load from vault (async, done in boot())
       // Migrate legacy plaintext keys if they're in the old blob
@@ -417,7 +500,10 @@ function loadState() {
     const legacy = localStorage.getItem(LEGACY_KEY);
     if (legacy) {
       const old = JSON.parse(legacy);
-      STATE.sessions        = old.sessions || [];
+      sessions = old.sessions || [];
+      await SessionDb.set('sessions', sessions);
+
+      STATE.sessions        = sessions;
       STATE.activeSessionId = old.activeSessionId || null;
       // Migrate single v1 key into vault
       if (old.settings?.apiKey) {
@@ -579,7 +665,7 @@ function renderMarkdown(text) {
       return '<tr>' + cells.map(c => `<td>${escapeHtml(c)}</td>`).join('') + '</tr>';
     })
     // List items
-    .replace(/^[\*\-] (.+)$/gm, (_, t) => `<li>${escapeHtml(t)}</li>`)
+    .replace(/^[*-] (.+)$/gm, (_, t) => `<li>${escapeHtml(t)}</li>`)
     .replace(/^\d+\. (.+)$/gm,  (_, t) => `<li>${escapeHtml(t)}</li>`)
     // Links — validate href to prevent javascript: URIs
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) =>
@@ -2099,16 +2185,16 @@ function openArtifactPreview(content) {
   let srcdoc = artifact.code;
   if (artifact.type === 'jsx') {
     srcdoc = `<!DOCTYPE html><html><head>
-<script src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>body{margin:0;padding:12px;font-family:sans-serif}</style></head><body>
 <div id="root"></div>
 <script type="text/babel">
 ${artifact.code}
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(typeof App !== 'undefined' ? App : () => React.createElement('div','Component')));
-<\/script></body></html>`;
+</script></body></html>`;
   }
 
   const overlay = document.createElement('div');
@@ -3587,7 +3673,7 @@ async function boot() {
   const serverUp = await ServerSync.probe();
 
   // 3. Load persisted state
-  loadState();
+  await loadState();
   if (serverUp) {
     const serverData = await ServerSync.pull();
     if (serverData?.sessions?.length) {
@@ -4700,3 +4786,27 @@ window.setAgentBackground = function(url) {
     toast('Error setting background: ' + e.message, 'error');
   }
 };
+
+window.ServerSync = ServerSync;
+window.STATE = STATE;
+
+window.copyCodeBlock = copyCodeBlock;
+window.injectSkillFromSuggestion = injectSkillFromSuggestion;
+window.dismissSkillSuggestions = dismissSkillSuggestions;
+window.clearInjectedSkill = clearInjectedSkill;
+window.closeMemoryPanel = closeMemoryPanel;
+window.handleMemoryAdd = handleMemoryAdd;
+window.handleAutoExtract = handleAutoExtract;
+window.saveWorkspacePrompt = saveWorkspacePrompt;
+window.handleMemoryDelete = handleMemoryDelete;
+window.handleWorkspaceChange = handleWorkspaceChange;
+window.handleNewWorkspace = handleNewWorkspace;
+window.toggleDomain = toggleDomain;
+window.injectSkill = injectSkill;
+window.removeAttachment = removeAttachment;
+window.toggleImagePopover = toggleImagePopover;
+window.updateImagineModels = updateImagineModels;
+window.syncImagineModeFields = syncImagineModeFields;
+window.generateFromPopover = generateFromPopover;
+window.doLogout = doLogout;
+window.injectFollowup = injectFollowup;

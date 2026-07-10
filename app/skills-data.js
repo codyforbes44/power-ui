@@ -1,7 +1,7 @@
 // Claude Skills Library — parsed from SKILL_REGISTRY.md (2026-07-07)
 // v2: enhanced with intent-matching triggers for auto-injection
 
-const SKILLS_DATA = {
+export const SKILLS_DATA = {
   domains: [
     {
       id: 'documents',
@@ -320,3 +320,4 @@ SKILLS_DATA.detectSkills = function(inputText, topN = 3) {
     .slice(0, topN)
     .map(s => s.skill);
 };
+window.SKILLS_DATA = SKILLS_DATA;

@@ -3,7 +3,7 @@
    Providers: Anthropic, OpenAI, Google, Groq, + Image Gen
    ============================================================ */
 
-const MODELS_DATA = {
+export const MODELS_DATA = {
 
   providers: {
     anthropic: {
@@ -417,3 +417,4 @@ const MODELS_DATA = {
     image:     { label: 'Image Gen', color: '#ec4899' },
   },
 };
+window.MODELS_DATA = MODELS_DATA;

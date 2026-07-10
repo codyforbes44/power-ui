@@ -3,6 +3,10 @@
    Charts (Canvas API) · User management · Data export
    ============================================================ */
 
+import { AuthSystem, ApiKeyVault } from './auth.js';
+import { Analytics } from './analytics.js';
+import { renderAgentPanel } from './agent-panel.js';
+
 const AdminApp = (() => {
 
   // ──────────────────────────────────────────────────────────
@@ -2001,3 +2005,5 @@ document.addEventListener('DOMContentLoaded', () => AdminApp.boot?.() || (async 
   const defaultPanel = isAdmin ? 'overview' : 'settings';
   AdminApp.switchPanel(defaultPanel, document.querySelector(`.admin-nav-item[data-panel="${defaultPanel}"]`));
 })());
+
+window.AdminApp = AdminApp;

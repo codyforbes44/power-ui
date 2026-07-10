@@ -245,7 +245,7 @@
   }
 })();
 
-const AuthSystem = (() => {
+export const AuthSystem = (() => {
 
   const USERS_KEY   = 'cpu_auth_users';
   const SESSION_KEY = 'cpu_auth_session';
@@ -976,7 +976,7 @@ const AuthSystem = (() => {
 // Keys are encrypted with a per-user key derived from their password.
 // The decryption key lives only in sessionStorage (cleared on tab close).
 // ============================================================
-const ApiKeyVault = (() => {
+export const ApiKeyVault = (() => {
   const VAULT_LS  = 'cpu_apikeys_v2';  // ciphertext in localStorage
   const VAULT_SS  = 'cpu_vault_key';   // raw key bytes (base64) in sessionStorage
 
@@ -1044,4 +1044,6 @@ const ApiKeyVault = (() => {
 
   return { save, load, migrateFromPlaintext, hasVault };
 })();
+window.AuthSystem = AuthSystem;
+window.ApiKeyVault = ApiKeyVault;
 

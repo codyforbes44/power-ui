@@ -5,7 +5,7 @@
    ============================================================ */
 'use strict';
 
-const ProfileSystem = (() => {
+export const ProfileSystem = (() => {
 
   // ── Storage ────────────────────────────────────────────────
   const KEY = (u) => `async_profile_v1_${u}`;
@@ -314,3 +314,4 @@ const ProfileSystem = (() => {
 
   return { get, save, remove, buildSystemBlock, open, _st, _sc, _tc, _ep, _se, _uh, _save, _close, _collect };
 })();
+window.ProfileSystem = ProfileSystem;

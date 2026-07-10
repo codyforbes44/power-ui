@@ -3,7 +3,7 @@
    Ring buffer · Aggregators · Per-session metrics
    ============================================================ */
 
-const Analytics = (() => {
+export const Analytics = (() => {
 
   const STORE_KEY  = 'cpu_analytics';
   const MAX_EVENTS = 10000;
@@ -232,3 +232,4 @@ const Analytics = (() => {
   };
 
 })();
+window.Analytics = Analytics;

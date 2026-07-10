@@ -8,7 +8,9 @@
  *   Config:  webSearchProvider, webSearchApiKey, memoryCategories, apiIntegrations[]
  */
 
-(() => {
+import { AuthSystem } from './auth.js';
+
+export const SuperAgent = (() => {
   'use strict';
 
   // ──────────────────────────────────────────────────────────
@@ -805,7 +807,6 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
           if (/[^0-9+\-*/.()%^ Math.,\s_a-zA-Z]/.test(expr)) {
             return 'Invalid expression — only math expressions are allowed.';
           }
-          // eslint-disable-next-line no-new-func
           const result = Function('"use strict"; return (' + expr + ')')();
           if (typeof result === 'number') {
             const formatted = Number.isInteger(result)
@@ -1030,7 +1031,7 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
   // ──────────────────────────────────────────────────────────
   // Public API
   // ──────────────────────────────────────────────────────────
-  window.SuperAgent = {
+  return {
     config:      AgentConfig,
     memory:      AgentMemory,
     kb:          KnowledgeBase,
@@ -1042,3 +1043,4 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
   };
 
 })();
+window.SuperAgent = SuperAgent;

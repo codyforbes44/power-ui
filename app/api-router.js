@@ -17,7 +17,9 @@
      ApiRouter.isProxied                  → boolean
    ============================================================ */
 
-const ApiRouter = (() => {
+import { MODELS_DATA } from './models-data.js';
+
+export const ApiRouter = (() => {
 
   // ── Proxy detection ───────────────────────────────────────
   const _isLocalhost = (
@@ -414,3 +416,4 @@ const ApiRouter = (() => {
 
   return { stream, webSearch, resolveProvider, isProxied: USE_PROXY };
 })();
+window.ApiRouter = ApiRouter;

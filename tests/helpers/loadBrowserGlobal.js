@@ -36,7 +36,12 @@ function makeStorage() {
  */
 function loadBrowserGlobal(relativePath, globalName, extraGlobals = {}) {
   const filePath = path.join(__dirname, '..', '..', relativePath);
-  const source = fs.readFileSync(filePath, 'utf8');
+  let source = fs.readFileSync(filePath, 'utf8');
+
+  // Strip ES Module imports and exports to support script-mode vm running
+  source = source.replace(/^[ \t]*import\s+[\s\S]*?from\s+['"].*?['"];?/gm, '');
+  source = source.replace(/^[ \t]*export\s+default\s+/gm, '');
+  source = source.replace(/^[ \t]*export\s+/gm, '');
 
   const sandbox = {
     localStorage: makeStorage(),

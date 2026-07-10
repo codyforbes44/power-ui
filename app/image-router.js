@@ -4,7 +4,7 @@
  * Supports: ComfyUI (local), Black Forest Labs, fal.ai, Replicate
  */
 
-const ImageRouter = (() => {
+export const ImageRouter = (() => {
   'use strict';
 
   // ---------------------------------------------------------------------------
@@ -795,3 +795,4 @@ const ImageRouter = (() => {
     MODELS
   };
 })();
+window.ImageRouter = ImageRouter;

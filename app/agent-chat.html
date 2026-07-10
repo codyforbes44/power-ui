@@ -317,12 +317,13 @@
     </div>
   </main>
 </div>
-<script src="auth.js"></script>
-<script src="models-data.js"></script>
-<script src="api-router.js"></script>
-<script src="memory.js"></script>
-<script src="agent.js?v=20260710b"></script>
-<script>
+<script type="module">
+import { AuthSystem } from './auth.js';
+import { MODELS_DATA } from './models-data.js';
+import { ApiRouter } from './api-router.js';
+import { MemorySystem } from './memory.js';
+import { SuperAgent } from './agent.js';
+
 'use strict';
 
 // ── State ──────────────────────────────────────────────────
@@ -1058,6 +1059,17 @@ function toast(msg, type = '', dur = 3500) {
   w.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .2s'; setTimeout(() => el.remove(), 220); }, dur);
 }
+
+window.refreshSb = refreshSb;
+window.qi = qi;
+window.injectCmd = injectCmd;
+window.sendMsg = sendMsg;
+window.toggleC = toggleC;
+window.stopStream = stopStream;
+window.startElevenLabsCall = startElevenLabsCall;
+window.clearChat = clearChat;
+window.exportChat = exportChat;
+window.toggleSyd = toggleSyd;
 </script>
 </body>
 </html>

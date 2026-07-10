@@ -121,8 +121,96 @@ class Handler(http.server.BaseHTTPRequestHandler):
             super().log_message(fmt, *args)
 
     # ── Utilities ─────────────────────────────────────────────
+    def _check_mcp_origin(self) -> bool:
+        origin = self.headers.get('Origin')
+        if not origin:
+            return True  # Allow non-browser requests or same-origin direct navigation
+        
+        parsed_origin = urlparse(origin)
+        origin_host = parsed_origin.netloc.lower()
+        host = self.headers.get('Host', '').lower()
+        
+        if not host:
+            return False
+            
+        if origin_host == host:
+            return True
+            
+        if any(lh in origin_host for lh in ['localhost', '127.0.0.1', '[::1]']):
+            if any(lh in host for lh in ['localhost', '127.0.0.1', '[::1]']):
+                return True
+                
+        return False
+
+    def _is_safe_mcp_command(self, command: str, args: list) -> bool:
+        base_cmd = os.path.basename(command).lower()
+        
+        # Strip extensions
+        for ext in ['.exe', '.cmd', '.bat']:
+            if base_cmd.endswith(ext):
+                base_cmd = base_cmd[:-len(ext)]
+                
+        # Default allowed commands
+        allowed = {
+            'node', 'npm', 'npx',
+            'python', 'python3',
+            'uv', 'uvx',
+            'bun', 'deno',
+            'git', 'docker'
+        }
+        
+        # Allow custom commands via environment variable if needed
+        env_allowed = os.environ.get('ALLOWED_MCP_COMMANDS')
+        if env_allowed:
+            custom_set = {c.strip().lower() for c in env_allowed.split(',') if c.strip()}
+            allowed.update(custom_set)
+            
+        if base_cmd not in allowed:
+            return False
+            
+        # Check arguments for code-execution flags
+        args_lower = [str(a).lower() for a in args]
+        
+        if base_cmd in ('node', 'bun', 'deno'):
+            # Block: -e, --eval, -p, --print
+            for arg in args_lower:
+                if arg in ('-e', '--eval', '-p', '--print'):
+                    return False
+                # Check for combined flags (e.g. -pe, -ep, -e=code, etc)
+                if arg.startswith('-') and not arg.startswith('--'):
+                    if 'e' in arg or 'p' in arg:
+                        return False
+                if arg.startswith('--eval='):
+                    return False
+                    
+        elif base_cmd in ('python', 'python3'):
+            # Block: -c, -i
+            for arg in args_lower:
+                if arg in ('-c', '-i'):
+                    return False
+                # Check for combined flags (e.g. -ci, -ic, etc)
+                if arg.startswith('-') and not arg.startswith('--'):
+                    if 'c' in arg or 'i' in arg:
+                        return False
+                        
+        return True
+
     def _cors(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
+        origin = self.headers.get('Origin')
+        if origin:
+            parsed_origin = urlparse(origin)
+            origin_host = parsed_origin.netloc.lower()
+            host = self.headers.get('Host', '').lower()
+            is_safe = (origin_host == host) or (
+                any(lh in origin_host for lh in ['localhost', '127.0.0.1', '[::1]']) and
+                any(lh in host for lh in ['localhost', '127.0.0.1', '[::1]'])
+            )
+            if is_safe:
+                self.send_header('Access-Control-Allow-Origin', origin)
+            else:
+                self.send_header('Access-Control-Allow-Origin', 'null')
+        else:
+            self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
@@ -182,6 +270,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path.rstrip('/') or '/'
 
+        if path.startswith('/api/mcp'):
+            if not self._check_mcp_origin():
+                return self._err('Forbidden: Untrusted origin', 403)
+
         if path == '/api/ping':
             self._json({
                 'status':     'ok',
@@ -239,6 +331,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         path = urlparse(self.path).path.rstrip('/')
         payload = self._json_body()
 
+        if path.startswith('/api/mcp'):
+            if not self._check_mcp_origin():
+                return self._err('Forbidden: Untrusted origin', 403)
+
         if path == '/api/mcp/start':
             self._mcp_start(payload)
 
@@ -252,6 +348,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
     # ── DELETE ────────────────────────────────────────────────
     def do_DELETE(self):
         path = urlparse(self.path).path.rstrip('/')
+
+        if path.startswith('/api/mcp'):
+            if not self._check_mcp_origin():
+                return self._err('Forbidden: Untrusted origin', 403)
 
         if path.startswith('/api/mcp/'):
             mcp_id = path.split('/')[3]
@@ -311,6 +411,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         if not command:
             return self._err('command is required')
+
+        if not self._is_safe_mcp_command(command, args):
+            return self._err('Forbidden command or arguments', 403)
 
         try:
             env = {**os.environ, **{str(k): str(v) for k, v in env_ext.items()}}
