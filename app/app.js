@@ -629,6 +629,24 @@ let _skillTimer = null;
 function onComposerInput(e) {
   autoResize(e.target);
   updateContextBar();
+
+  // ── Slash command picker ──────────────────────────────────────
+  const raw = e.target.value;
+  if (raw.startsWith('/')) {
+    // Show picker if user types just '/' or '/partial-command'
+    // but not if they've already passed a space (mid-prompt typing)
+    const spaceIdx = raw.indexOf(' ');
+    if (spaceIdx === -1 || (spaceIdx > 0 && raw.slice(0, spaceIdx).startsWith('/'))) {
+      const query = spaceIdx === -1 ? raw : raw.slice(0, spaceIdx);
+      showSlashPicker(query);
+    } else {
+      hideSlashPicker();
+    }
+  } else if (_slash.visible) {
+    hideSlashPicker();
+  }
+  // ─────────────────────────────────────────────────────────────
+
   if (!STATE.settings.skillAutoSuggest) return;
   clearTimeout(_skillTimer);
   _skillTimer = setTimeout(() => {
@@ -676,6 +694,250 @@ function injectSkillFromSuggestion(slug, name) {
 function dismissSkillSuggestions() {
   STATE.ui.skillSuggestions = [];
   renderSkillSuggestions();
+}
+
+// ============================================================
+// Slash Command Picker
+// ============================================================
+const SLASH_COMMANDS = [
+  {
+    trigger:  '/imagine',
+    aliases:  ['/img'],
+    icon:     '🎨',
+    name:     '/imagine',
+    desc:     'Generate an image — describe what you want to see',
+    detail:   'Supports --provider bfl|fal|replicate, --size WxH, --steps N',
+    insert:   '/imagine ',
+    category: 'image',
+  },
+  {
+    trigger:  '/web',
+    aliases:  ['/search'],
+    icon:     '🔍',
+    name:     '/web',
+    desc:     'Search the web for current info, news, or facts',
+    detail:   'AI will call web_search automatically',
+    insert:   '/web ',
+    category: 'tools',
+  },
+  {
+    trigger:  '/remember',
+    aliases:  ['/save', '/mem'],
+    icon:     '💾',
+    name:     '/remember',
+    desc:     'Save something to persistent memory for future chats',
+    detail:   'e.g. /remember my stack is Next.js + Postgres',
+    insert:   '/remember ',
+    category: 'memory',
+  },
+  {
+    trigger:  '/recall',
+    aliases:  ['/memory'],
+    icon:     '🧠',
+    name:     '/recall',
+    desc:     'Search your saved memories and surface relevant facts',
+    detail:   'e.g. /recall project name',
+    insert:   '/recall ',
+    category: 'memory',
+  },
+  {
+    trigger:  '/recap',
+    aliases:  ['/summary', '/tldr'],
+    icon:     '📖',
+    name:     '/recap',
+    desc:     'Summarise this conversation so far',
+    detail:   'Useful before hitting context limits',
+    insert:   '/recap',
+    category: 'workflow',
+  },
+  {
+    trigger:  '/compress',
+    aliases:  ['/save-context'],
+    icon:     '🗜️',
+    name:     '/compress',
+    desc:     'Save conversation state before the context limit',
+    detail:   'Preserves decisions, current state, and next steps',
+    insert:   '/compress',
+    category: 'workflow',
+  },
+];
+
+// Internal state for the picker
+const _slash = {
+  visible:  false,
+  query:    '',
+  activeIdx: 0,
+  filtered: [],
+};
+
+function _slashFilter(query) {
+  const q = query.toLowerCase().replace(/^\//,'');
+  if (!q) return SLASH_COMMANDS;
+  return SLASH_COMMANDS.filter(c => {
+    const text = [c.trigger, ...c.aliases, c.desc, c.category].join(' ').toLowerCase();
+    return text.includes(q);
+  });
+}
+
+function _slashHighlight(name, query) {
+  if (!query) return esc(name);
+  const q = query.replace(/^\//,'');
+  if (!q) return esc(name);
+  const idx = name.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) return esc(name);
+  return esc(name.slice(0,idx)) +
+    '<em>' + esc(name.slice(idx, idx+q.length)) + '</em>' +
+    esc(name.slice(idx+q.length));
+}
+
+function renderSlashPicker() {
+  // Mount point: the .composer element (positioned relative)
+  const composer = document.querySelector('.composer');
+  if (!composer) return;
+
+  let el = document.getElementById('slash-picker');
+
+  if (!_slash.visible || !_slash.filtered.length) {
+    if (el) {
+      el.style.animation = 'none';
+      el.remove();
+    }
+    return;
+  }
+
+  const query = _slash.query;
+
+  const itemsHTML = _slash.filtered.map((cmd, i) => `
+    <div class="slash-picker-item${i === _slash.activeIdx ? ' active' : ''}"
+         data-idx="${i}"
+         id="slash-item-${i}">
+      <div class="slash-picker-item-icon">${cmd.icon}</div>
+      <div class="slash-picker-item-body">
+        <div class="slash-picker-item-name">${_slashHighlight(cmd.name, query)}</div>
+        <div class="slash-picker-item-desc">${esc(cmd.desc)}</div>
+      </div>
+      <span class="slash-picker-item-shortcut">${esc(cmd.category)}</span>
+    </div>
+  `).join('');
+
+  const html = `
+    <div class="slash-picker-header">
+      <span class="slash-picker-header-key">/</span>
+      Slash Commands &nbsp;·&nbsp; ${_slash.filtered.length} match${_slash.filtered.length!==1?'es':''}
+    </div>
+    <div class="slash-picker-list" id="slash-picker-list">${itemsHTML}</div>
+    <div class="slash-picker-footer">
+      <span><kbd>↑↓</kbd> navigate</span>
+      <span><kbd>↵</kbd> or <kbd>Tab</kbd> select</span>
+      <span><kbd>Esc</kbd> dismiss</span>
+    </div>
+  `;
+
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'slash-picker';
+    el.className = 'slash-picker';
+    // ensure .composer is positioned
+    composer.style.position = 'relative';
+    composer.appendChild(el);
+
+    // Click-outside to dismiss
+    const outside = (e) => {
+      const el2 = document.getElementById('slash-picker');
+      const input = document.getElementById('message-input');
+      if (el2 && !el2.contains(e.target) && e.target !== input) {
+        hideSlashPicker();
+        document.removeEventListener('mousedown', outside, true);
+      }
+    };
+    document.addEventListener('mousedown', outside, true);
+  }
+
+  el.innerHTML = html;
+
+  // Wire item clicks
+  el.querySelectorAll('.slash-picker-item').forEach(item => {
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault(); // don't blur the textarea
+      const idx = parseInt(item.dataset.idx, 10);
+      _slash.activeIdx = idx;
+      commitSlashCommand();
+    });
+    item.addEventListener('mouseenter', () => {
+      _slash.activeIdx = parseInt(item.dataset.idx, 10);
+      renderSlashPicker();
+    });
+  });
+
+  // Scroll active item into view
+  const activeEl = document.getElementById(`slash-item-${_slash.activeIdx}`);
+  if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+}
+
+function showSlashPicker(query) {
+  _slash.query    = query;
+  _slash.filtered = _slashFilter(query);
+  _slash.visible  = !!_slash.filtered.length;
+  _slash.activeIdx = 0;
+  renderSlashPicker();
+}
+
+function hideSlashPicker() {
+  _slash.visible  = false;
+  _slash.query    = '';
+  _slash.filtered = [];
+  _slash.activeIdx = 0;
+  renderSlashPicker();
+}
+
+function commitSlashCommand() {
+  const cmd = _slash.filtered[_slash.activeIdx];
+  if (!cmd) return hideSlashPicker();
+
+  const input = document.getElementById('message-input');
+  if (!input) return;
+
+  input.value = cmd.insert;
+  autoResize(input);
+  input.focus();
+  // Place cursor at end
+  input.setSelectionRange(input.value.length, input.value.length);
+  hideSlashPicker();
+
+  // If /imagine — open the image popover instead
+  if (cmd.trigger === '/imagine') {
+    input.value = '';
+    autoResize(input);
+    toggleImagePopover();
+    return;
+  }
+}
+
+function _slashNavKey(e) {
+  if (!_slash.visible) return false;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _slash.activeIdx = Math.min(_slash.activeIdx + 1, _slash.filtered.length - 1);
+    renderSlashPicker();
+    return true;
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _slash.activeIdx = Math.max(_slash.activeIdx - 1, 0);
+    renderSlashPicker();
+    return true;
+  }
+  if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault();
+    commitSlashCommand();
+    return true;
+  }
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    hideSlashPicker();
+    return true;
+  }
+  return false;
 }
 
 function renderInjectedSkillTag() {
@@ -1784,6 +2046,66 @@ function handleSend() {
     }
   }
 
+  // ── /web — explicit web search shortcut ───────────────────────
+  if (userText.startsWith('/web ') || userText.startsWith('/search ')) {
+    const query = userText.replace(/^\/(?:web|search)\s+/, '').trim();
+    if (query) {
+      input.value = '';
+      autoResize(input);
+      const msg = `Search the web for: ${query}`;
+      addMessage(session.id, 'user', msg);
+      sendMessageDirect(session, msg, msg);
+      return;
+    }
+  }
+
+  // ── /remember — save to persistent memory ─────────────────────
+  if (userText.startsWith('/remember ') || userText.startsWith('/save ') || userText.startsWith('/mem ')) {
+    const fact = userText.replace(/^\/(?:remember|save|mem)\s+/, '').trim();
+    if (fact) {
+      input.value = '';
+      autoResize(input);
+      const msg = `Please save this to your persistent memory: ${fact}`;
+      addMessage(session.id, 'user', msg);
+      sendMessageDirect(session, msg, msg);
+      return;
+    }
+  }
+
+  // ── /recall — search persistent memory ────────────────────────
+  if (userText.startsWith('/recall ') || userText.startsWith('/memory ')) {
+    const query = userText.replace(/^\/(?:recall|memory)\s+/, '').trim();
+    if (query) {
+      input.value = '';
+      autoResize(input);
+      const msg = `Search your persistent memory for anything related to: ${query}`;
+      addMessage(session.id, 'user', msg);
+      sendMessageDirect(session, msg, msg);
+      return;
+    }
+  }
+
+  // ── /recap — summarise this conversation ──────────────────────
+  if (userText === '/recap' || userText === '/summary' || userText === '/tldr') {
+    input.value = '';
+    autoResize(input);
+    const msg = 'Please give me a clear, structured summary of our conversation so far — covering the main topics, decisions made, and any open questions.';
+    addMessage(session.id, 'user', msg);
+    sendMessageDirect(session, msg, msg);
+    return;
+  }
+
+  // ── /compress — save context state ────────────────────────────
+  if (userText === '/compress' || userText === '/save-context') {
+    input.value = '';
+    autoResize(input);
+    const msg = 'We are approaching the context limit. Summarise this conversation so far, capturing:\n1. Decisions made\n2. Current state of work\n3. What to do next\n4. Key context a fresh session needs';
+    addMessage(session.id, 'user', msg);
+    sendMessageDirect(session, msg, msg);
+    return;
+  }
+
+
   const messageContent = buildMessageContent(userText || '[Attachment]');
   addMessage(session.id, 'user', typeof messageContent === 'string' ? messageContent : userText);
   input.value = '';
@@ -2407,8 +2729,11 @@ function attachEventListeners() {
   if (input) {
     input.addEventListener('input', onComposerInput);
     input.addEventListener('keydown', e => {
+      // Slash picker navigation takes priority
+      if (_slashNavKey(e)) return;
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSend(); }
     });
+
   }
 
   // Session title — debounced so it doesn't saveState on every keystroke

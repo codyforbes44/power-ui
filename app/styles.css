@@ -1932,6 +1932,158 @@ button { font-family: var(--font-ui); }
 .tool-call-block.tool-call-running { }
 .tool-call-block.tool-call-running .tool-call-body { display: block; }
 
+/* ── Slash Command Picker ── */
+.slash-picker {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 500;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  overflow: hidden;
+  animation: slashPickerIn 0.14s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes slashPickerIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+.slash-picker-header {
+  padding: 8px 12px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.slash-picker-header-key {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: rgba(99,102,241,0.15);
+  color: var(--indigo-400);
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.slash-picker-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.slash-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast);
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+.slash-picker-item:hover,
+.slash-picker-item.active {
+  background: rgba(99,102,241,0.10);
+  border-color: rgba(99,102,241,0.2);
+}
+
+.slash-picker-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: transform var(--t-fast);
+}
+
+.slash-picker-item.active .slash-picker-item-icon,
+.slash-picker-item:hover  .slash-picker-item-icon {
+  transform: scale(1.08);
+}
+
+.slash-picker-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.slash-picker-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  margin-bottom: 1px;
+}
+
+.slash-picker-item-name em {
+  color: var(--indigo-400);
+  font-style: normal;
+}
+
+.slash-picker-item-desc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slash-picker-item-shortcut {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.slash-picker-empty {
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.slash-picker-footer {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.slash-picker-footer kbd {
+  font-family: var(--font-mono);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 9.5px;
+  color: var(--text-secondary);
+}
+
 /* ── Image model badge in dropdown ── */
 .model-dropdown-item-badge {
   font-size: 10px;
