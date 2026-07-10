@@ -3593,7 +3593,8 @@ function renderUserBadge() {
 
   const initials = (user.displayName || user.username).slice(0, 2).toUpperCase();
   const userObj  = AuthSystem.getCurrentUser();
-  const isAdmin  = session?.role === 'admin' || userObj?.role === 'admin';
+  const isAdmin      = session?.role === 'admin' || userObj?.role === 'admin';
+  const isSuperAdmin = typeof AuthSystem !== 'undefined' && AuthSystem.isSuperAdmin?.();
 
   // Find or create badge container in header
   const header = document.querySelector('.chat-header');
@@ -3606,11 +3607,14 @@ function renderUserBadge() {
   wrap.id = 'user-badge-wrap';
   wrap.style.cssText = 'position:relative;display:flex;align-items:center;gap:6px;margin-left:4px';
 
+  const badgeLabel = isSuperAdmin ? 'SUPER' : (isAdmin ? 'ADMIN' : 'USER');
+  const badgeClass = isSuperAdmin ? 'admin' : (isAdmin ? 'admin' : 'user');
+
   wrap.innerHTML = `
     <div class="user-badge" id="user-badge-btn" title="${esc(user.displayName || user.username)}">
       <div class="user-avatar">${initials}</div>
       <span class="user-badge-name">${esc(user.displayName || user.username)}</span>
-      <span class="user-badge-role ${isAdmin ? 'admin' : 'user'}">${isAdmin ? 'ADMIN' : 'USER'}</span>
+      <span class="user-badge-role ${badgeClass}">${badgeLabel}</span>
     </div>
     <div class="user-menu-dropdown" id="user-menu" style="display:none">
       <div style="padding:8px 12px 6px;font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.06em">
@@ -3619,6 +3623,9 @@ function renderUserBadge() {
       <div class="user-menu-divider"></div>
       ${isAdmin ? `<button class="user-menu-item" onclick="window.open('admin.html','_blank')">
         <span>◈</span> Admin Dashboard
+      </button>` : ''}
+      ${isSuperAdmin ? `<button class="user-menu-item" onclick="window.location.href='agent-chat.html'" style="color:#818cf8;font-weight:600">
+        <span>✦</span> Aria — Super Agent
       </button>` : ''}
       <button class="user-menu-item" onclick="window.location.href='gallery.html'">
         <span>🖼</span> Media Gallery

@@ -999,6 +999,7 @@ python3 cli.py export --format json</pre>
     const superAdminEls = [
       document.getElementById('nav-section-superadmin'),
       document.getElementById('nav-item-agent'),
+      document.getElementById('nav-item-agent-chat'),
     ];
     superAdminEls.forEach(el => {
       if (el) el.style.display = isSuperAdmin ? 'block' : 'none';

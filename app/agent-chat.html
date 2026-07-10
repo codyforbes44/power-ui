@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aria — Super Agent · Async</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>✦</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#030712;--bg-2:#0a0f1e;--bg-3:#111827;--bg-4:#1a2235;
+      --border:rgba(99,102,241,.18);--border-2:rgba(99,102,241,.08);
+      --indigo:#6366f1;--indigo-l:#818cf8;--violet:#8b5cf6;
+      --cyan:#06b6d4;--emerald:#10b981;--rose:#f43f5e;--amber:#f59e0b;
+      --text:#e2e8f0;--text-2:#94a3b8;--text-3:#475569;
+      --r:12px;--rs:8px;
+      --font:'Inter',system-ui,sans-serif;
+      --mono:'JetBrains Mono','Fira Code',monospace;
+      --sw:300px;--hh:60px;
+    }
+    html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font)}
+    /* Auth wall */
+    #auth-wall{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:1000}
+    .spin{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--indigo);border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #auth-wall p{color:var(--text-2);font-size:14px}
+    /* Layout */
+    #app{display:none;height:100vh;grid-template-rows:var(--hh) 1fr;grid-template-columns:var(--sw) 1fr;grid-template-areas:"hdr hdr" "sb main"}
+    #app.ready{display:grid}
+    /* Header */
+    header{grid-area:hdr;display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 16px;background:rgba(10,15,30,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:100}
+    .hbrand{display:flex;align-items:center;gap:10px}
+    .orb{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--indigo),var(--violet));display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 20px rgba(99,102,241,.4);animation:glow 3s ease-in-out infinite;flex-shrink:0}
+    @keyframes glow{0%,100%{box-shadow:0 0 20px rgba(99,102,241,.4)}50%{box-shadow:0 0 35px rgba(99,102,241,.7),0 0 60px rgba(139,92,246,.3)}}
+    .htitle{font-size:15px;font-weight:600}
+    .hsub{font-size:11px;color:var(--indigo-l);font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+    .hright{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .msel{background:var(--bg-3);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 10px;font-size:12px;font-family:var(--font);cursor:pointer;outline:none;max-width:200px}
+    .msel:focus{border-color:var(--indigo)}
+    .hbtn{background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);border-radius:var(--rs);padding:6px 12px;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;font-family:var(--font)}
+    .hbtn:hover{border-color:var(--indigo);color:var(--text);background:rgba(99,102,241,.08)}
+    .sdot{width:8px;height:8px;border-radius:50%;background:var(--emerald);box-shadow:0 0 8px rgba(16,185,129,.6);animation:sp 2s ease-in-out infinite;flex-shrink:0}
+    @keyframes sp{0%,100%{opacity:1}50%{opacity:.4}}
+    .sdot.idle{background:var(--text-3);box-shadow:none;animation:none}
+    .sdot.thinking{background:var(--amber);box-shadow:0 0 8px rgba(245,158,11,.6)}
+    /* Sidebar */
+    aside{grid-area:sb;background:var(--bg-2);border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;padding:16px 0;display:flex;flex-direction:column}
+    aside::-webkit-scrollbar{width:4px}
+    aside::-webkit-scrollbar-thumb{background:var(--bg-4);border-radius:4px}
+    .sbs{padding:0 14px 16px}
+    .sbs+.sbs{border-top:1px solid var(--border-2);padding-top:16px}
+    .sbl{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-3);margin-bottom:10px}
+    .acard{background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+    .actop{display:flex;align-items:center;gap:10px}
+    .aav{width:40px;height:40px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,var(--indigo),var(--violet));display:flex;align-items:center;justify-content:center;font-size:20px}
+    .aname{font-size:14px;font-weight:600}
+    .amod{font-size:11px;color:var(--indigo-l)}
+    .adesc{font-size:11px;color:var(--text-2);line-height:1.5}
+    .tgrid{display:flex;flex-direction:column;gap:4px}
+    .trow{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid transparent;transition:all .15s}
+    .trow.on{border-color:rgba(99,102,241,.2);background:rgba(99,102,241,.06)}
+    .trow.on .tdot{background:var(--emerald);box-shadow:0 0 6px rgba(16,185,129,.5)}
+    .tdot{width:6px;height:6px;border-radius:50%;background:var(--text-3);flex-shrink:0}
+    .tname{font-size:11px;color:var(--text-2);flex:1}
+    .trow.on .tname{color:var(--text)}
+    .tico{font-size:13px;flex-shrink:0}
+    .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .sc{background:rgba(255,255,255,.03);border:1px solid var(--border-2);border-radius:10px;padding:10px;text-align:center}
+    .sv{font-size:20px;font-weight:700;color:var(--indigo-l)}
+    .sl{font-size:10px;color:var(--text-3);margin-top:2px}
+    .mlist{display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto}
+    .mi{background:rgba(255,255,255,.03);border:1px solid var(--border-2);border-radius:8px;padding:7px 10px}
+    .mk{font-size:10px;font-weight:600;color:var(--indigo-l)}
+    .mv{font-size:11px;color:var(--text-2);margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .nd{font-size:11px;color:var(--text-3);font-style:italic}
+    .sbbtn{width:100%;text-align:left;background:rgba(255,255,255,.03);border:1px solid var(--border-2);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text-2);cursor:pointer;transition:all .15s;font-family:var(--font);display:flex;align-items:center;gap:8px;text-decoration:none}
+    .sbbtn:hover{background:rgba(99,102,241,.08);border-color:var(--border);color:var(--text)}
+    /* Main */
+    main{grid-area:main;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+    /* Sys drawer */
+    #syd{display:none;padding:10px 20px 10px;background:var(--bg-2);border-bottom:1px solid var(--border-2)}
+    #syd.open{display:block}
+    #syd-inner{max-width:900px;margin:0 auto}
+    #syd-lbl{font-size:10px;color:var(--text-3);margin-bottom:6px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+    #sys-ta{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text-2);font-size:12px;font-family:var(--mono);line-height:1.6;resize:vertical;min-height:70px;outline:none}
+    #sys-ta:focus{border-color:rgba(99,102,241,.4)}
+    /* Messages */
+    #msgs{flex:1;overflow-y:auto;overflow-x:hidden;padding:24px 0;scroll-behavior:smooth}
+    #msgs::-webkit-scrollbar{width:6px}
+    #msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06);border-radius:6px}
+    .mrow{display:flex;gap:14px;padding:6px 24px;max-width:900px;margin:0 auto;width:100%;animation:min .2s ease-out}
+    @keyframes min{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    .mrow.u{flex-direction:row-reverse}
+    .mav{width:32px;height:32px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;align-self:flex-start;margin-top:2px}
+    .mav.ai{background:linear-gradient(135deg,var(--indigo),var(--violet));box-shadow:0 0 14px rgba(99,102,241,.35)}
+    .mav.hu{background:rgba(255,255,255,.06);border:1px solid var(--border)}
+    .mbody{flex:1;min-width:0}
+    .msndr{font-size:11px;font-weight:600;margin-bottom:6px}
+    .mrow.u .msndr{text-align:right;color:var(--text-2)}
+    .mrow:not(.u) .msndr{color:var(--indigo-l)}
+    .mbub{padding:12px 16px;border-radius:14px;font-size:14px;line-height:1.65;word-break:break-word}
+    .mrow.u .mbub{background:linear-gradient(135deg,rgba(99,102,241,.25),rgba(139,92,246,.15));border:1px solid rgba(99,102,241,.3);border-radius:14px 4px 14px 14px;margin-left:auto;max-width:75%}
+    .mrow:not(.u) .mbub{background:var(--bg-3);border:1px solid var(--border-2);border-radius:4px 14px 14px 14px;max-width:92%}
+    /* Markdown */
+    .mbub h1,.mbub h2,.mbub h3{font-size:14px;font-weight:600;margin:12px 0 6px;color:var(--text)}
+    .mbub h1{font-size:16px}
+    .mbub p{margin:6px 0}
+    .mbub ul,.mbub ol{padding-left:20px;margin:6px 0}
+    .mbub li{margin:3px 0}
+    .mbub code{font-family:var(--mono);font-size:12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;color:var(--cyan)}
+    .mbub pre{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;margin:10px 0;overflow-x:auto}
+    .mbub pre code{background:none;border:none;padding:0;font-size:12px;color:var(--text)}
+    .mbub strong{color:var(--text);font-weight:600}
+    .mbub a{color:var(--indigo-l)}
+    .mbub blockquote{border-left:3px solid var(--indigo);padding-left:12px;color:var(--text-2);margin:8px 0}
+    .mbub hr{border:none;border-top:1px solid var(--border);margin:10px 0}
+    .mbub table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+    .mbub th{background:rgba(99,102,241,.12);padding:8px 12px;text-align:left;font-weight:600;border:1px solid var(--border)}
+    .mbub td{padding:7px 12px;border:1px solid var(--border-2)}
+    /* Tool cards */
+    .tcc{margin:8px 0;border-radius:10px;overflow:hidden;border:1px solid rgba(99,102,241,.25);background:rgba(99,102,241,.06)}
+    .tch{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;background:rgba(99,102,241,.08);font-size:12px;font-weight:500}
+    .tch:hover{background:rgba(99,102,241,.14)}
+    .tcn{color:var(--indigo-l);font-family:var(--mono);flex:1}
+    .tcs{font-size:11px;color:var(--text-3)}
+    .tct{font-size:10px;color:var(--text-3);transition:transform .2s}
+    .tcc.ex .tct{transform:rotate(180deg)}
+    .tcb{display:none;padding:10px 12px;font-size:12px;font-family:var(--mono);color:var(--text-2);border-top:1px solid rgba(99,102,241,.15);background:rgba(0,0,0,.2);line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto}
+    .tcc.ex .tcb{display:block}
+    .trc{margin:4px 0 8px;border-radius:10px;overflow:hidden;border:1px solid rgba(16,185,129,.2);background:rgba(16,185,129,.05)}
+    .trh{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:11px;color:var(--emerald);font-weight:500;cursor:pointer}
+    .trh:hover{background:rgba(16,185,129,.08)}
+    .trb{display:none;padding:10px 12px;font-size:12px;font-family:var(--mono);color:var(--text-2);border-top:1px solid rgba(16,185,129,.15);background:rgba(0,0,0,.2);max-height:250px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+    .trc.ex .trb{display:block}
+    /* Typing */
+    #typ{display:none;padding:6px 24px;max-width:900px;margin:0 auto;width:100%}
+    .ti{display:flex;align-items:center;gap:12px}
+    .tav{width:32px;height:32px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,var(--indigo),var(--violet));display:flex;align-items:center;justify-content:center;font-size:15px}
+    .tdots{display:flex;gap:4px}
+    .tdots span{width:6px;height:6px;border-radius:50%;background:var(--indigo-l);opacity:.4;animation:tb .8s ease-in-out infinite}
+    .tdots span:nth-child(2){animation-delay:.15s}
+    .tdots span:nth-child(3){animation-delay:.3s}
+    @keyframes tb{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
+    .tlbl{font-size:12px;color:var(--text-3)}
+    /* Welcome */
+    #welc{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:40px 24px;text-align:center}
+    #welc.hid{display:none}
+    .worb{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,var(--indigo),var(--violet));display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 0 40px rgba(99,102,241,.45),0 0 80px rgba(99,102,241,.2);animation:glow 3s ease-in-out infinite}
+    .wtit{font-size:24px;font-weight:700}
+    .wsub{font-size:14px;color:var(--text-2);max-width:420px;line-height:1.6}
+    .qps{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:560px}
+    .qp{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:20px;padding:8px 16px;font-size:13px;color:var(--text-2);cursor:pointer;transition:all .15s;font-family:var(--font)}
+    .qp:hover{background:rgba(99,102,241,.18);color:var(--text);border-color:rgba(99,102,241,.4);transform:translateY(-1px)}
+    /* Composer */
+    .cwrap{padding:12px 20px 16px;background:linear-gradient(to top,rgba(10,15,30,.98) 0%,rgba(3,7,18,.6) 100%);backdrop-filter:blur(20px);border-top:1px solid var(--border)}
+    .comp{max-width:900px;margin:0 auto;background:var(--bg-3);border:1px solid var(--border);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;transition:border-color .15s}
+    .comp:focus-within{border-color:rgba(99,102,241,.5);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+    #inp{width:100%;padding:14px 16px 6px;background:transparent;border:none;outline:none;color:var(--text);font-size:14px;font-family:var(--font);resize:none;min-height:48px;max-height:200px;line-height:1.5}
+    #inp::placeholder{color:var(--text-3)}
+    .cfoot{display:flex;align-items:center;justify-content:space-between;padding:6px 12px 10px}
+    .hints{display:flex;gap:6px;flex-wrap:wrap}
+    .hp{background:rgba(255,255,255,.04);border:1px solid var(--border-2);border-radius:12px;padding:3px 10px;font-size:11px;color:var(--text-3);cursor:pointer;transition:all .15s;font-family:var(--mono)}
+    .hp:hover{background:rgba(99,102,241,.1);color:var(--indigo-l);border-color:rgba(99,102,241,.25)}
+    .cacts{display:flex;align-items:center;gap:8px}
+    #snd{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--indigo),var(--violet));border:none;color:#fff;font-size:16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+    #snd:hover{transform:scale(1.06);box-shadow:0 4px 16px rgba(99,102,241,.4)}
+    #snd:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+    #stp{width:36px;height:36px;border-radius:10px;background:rgba(244,63,94,.15);border:1px solid rgba(244,63,94,.3);color:var(--rose);font-size:14px;cursor:pointer;transition:all .15s;display:none;align-items:center;justify-content:center}
+    #stp.vis{display:flex}
+    #stp:hover{background:rgba(244,63,94,.25)}
+    /* Toast */
+    #tw{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px}
+    .ti2{padding:10px 16px;border-radius:10px;font-size:13px;background:var(--bg-4);border:1px solid var(--border);animation:tin .2s ease-out}
+    .ti2.ok{border-color:rgba(16,185,129,.3);color:var(--emerald)}
+    .ti2.er{border-color:rgba(244,63,94,.3);color:var(--rose)}
+    @keyframes tin{from{opacity:0;transform:translateX(20px)}}
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    @media(max-width:768px){:root{--sw:0px}#app{grid-template-columns:1fr;grid-template-areas:"hdr" "main"}aside{display:none}}
+  </style>
+</head>
+<body>
+<div id="auth-wall"><div class="spin"></div><p>Verifying super-admin access…</p></div>
+<div id="tw"></div>
+<div id="app">
+  <!-- Header -->
+  <header>
+    <div class="hbrand">
+      <div class="orb" id="horb">✦</div>
+      <div><div class="htitle" id="hname">Aria</div><div class="hsub">Super Agent · Async</div></div>
+    </div>
+    <div class="hright">
+      <div class="sdot idle" id="sdot" title="Idle"></div>
+      <select class="msel" id="msel" aria-label="AI Model">
+        <optgroup label="Anthropic">
+          <option value="claude-opus-4-5">Claude Opus 4.5</option>
+          <option value="claude-sonnet-4-5" selected>Claude Sonnet 4.5</option>
+          <option value="claude-haiku-3-5">Claude Haiku 3.5</option>
+        </optgroup>
+        <optgroup label="OpenAI">
+          <option value="gpt-4o">GPT-4o</option>
+          <option value="gpt-4o-mini">GPT-4o Mini</option>
+        </optgroup>
+        <optgroup label="Google">
+          <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+          <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+        </optgroup>
+        <optgroup label="Groq (fast)">
+          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+          <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+        </optgroup>
+      </select>
+      <button class="hbtn" id="syd-btn" onclick="toggleSyd()">⚙ Prompt</button>
+      <button class="hbtn" onclick="clearChat()">↺ Clear</button>
+      <button class="hbtn" onclick="exportChat()">↓ Export</button>
+      <a class="hbtn" href="admin.html">⚙ Settings</a>
+      <a class="hbtn" href="index.html">← App</a>
+    </div>
+  </header>
+  <!-- Sidebar -->
+  <aside>
+    <div class="sbs">
+      <div class="acard">
+        <div class="actop">
+          <div class="aav" id="sbav">✦</div>
+          <div><div class="aname" id="sbnm">Aria</div><div class="amod">Super Agent</div></div>
+        </div>
+        <div class="adesc" id="sbdesc">Hyper-capable AI with live tools, memory, and knowledge base access.</div>
+      </div>
+    </div>
+    <div class="sbs">
+      <div class="sbl">Active Tools</div>
+      <div class="tgrid" id="tgrid"></div>
+    </div>
+    <div class="sbs">
+      <div class="sbl">Session Stats</div>
+      <div class="sgrid">
+        <div class="sc"><div class="sv" id="stm">0</div><div class="sl">Messages</div></div>
+        <div class="sc"><div class="sv" id="stt">0</div><div class="sl">Tool Calls</div></div>
+        <div class="sc"><div class="sv" id="stk">—</div><div class="sl">KB Docs</div></div>
+        <div class="sc"><div class="sv" id="stme">—</div><div class="sl">Memories</div></div>
+      </div>
+    </div>
+    <div class="sbs">
+      <div class="sbl">Cross-Session Memory</div>
+      <div class="mlist" id="mlist"><div class="nd">No memories yet.</div></div>
+      <button class="sbbtn" style="margin-top:8px" onclick="refreshSb()">↺ Refresh</button>
+    </div>
+    <div class="sbs">
+      <div class="sbl">Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="sbbtn" onclick="qi('What do you remember about me and our past conversations?')">🧠 Recall all memory</button>
+        <button class="sbbtn" onclick="qi('Search the knowledge base and give me a full summary.')">📚 Search knowledge base</button>
+        <button class="sbbtn" onclick="qi('Get the latest tech and AI headlines for today.')">📰 Today\\'s news</button>
+        <button class="sbbtn" onclick="qi('What is the weather in Austin, TX right now?')">🌤 Austin weather</button>
+        <a class="sbbtn" href="admin.html" style="color:inherit">⚙ Admin dashboard</a>
+      </div>
+    </div>
+  </aside>
+  <!-- Main -->
+  <main>
+    <!-- System prompt drawer -->
+    <div id="syd">
+      <div id="syd-inner">
+        <div id="syd-lbl">System Prompt Override — leave blank to use Aria's configured prompt</div>
+        <textarea id="sys-ta" rows="3" placeholder="Override Aria's system prompt for this session only…"></textarea>
+      </div>
+    </div>
+    <!-- Messages -->
+    <div id="msgs">
+      <div id="welc">
+        <div class="worb" id="wav">✦</div>
+        <div class="wtit">Hello, Cody.</div>
+        <div class="wsub">I'm Aria, your super-agent. I have access to live web search, Wikipedia, weather, GitHub, news, your knowledge base, and persistent memory across all sessions.</div>
+        <div class="qps">
+          <button class="qp" onclick="qi('What do you know about me from past sessions?')">🧠 What do you remember?</button>
+          <button class="qp" onclick="qi('Search the web for the latest AI news today.')">🔍 Latest AI news</button>
+          <button class="qp" onclick="qi('Search GitHub for trending JavaScript repos this week.')">🐙 GitHub trending</button>
+          <button class="qp" onclick="qi('What is the current weather in Austin, TX?')">🌤 Austin weather</button>
+          <button class="qp" onclick="qi('Search my knowledge base and summarize everything you know.')">📚 Knowledge base</button>
+          <button class="qp" onclick="qi('What tasks do I have in progress? What should I prioritize?')">✅ What\\'s next?</button>
+        </div>
+      </div>
+    </div>
+    <!-- Typing indicator -->
+    <div id="typ">
+      <div class="ti">
+        <div class="tav" id="tav">✦</div>
+        <div class="tdots"><span></span><span></span><span></span></div>
+        <div class="tlbl" id="tlbl">Thinking…</div>
+      </div>
+    </div>
+    <!-- Composer -->
+    <div class="cwrap">
+      <div class="comp">
+        <textarea id="inp" rows="1" aria-label="Message Aria" placeholder="Ask Aria anything — live tools, memory, and your knowledge base…"></textarea>
+        <div class="cfoot">
+          <div class="hints">
+            <span class="hp" onclick="qi('/web ')">/web</span>
+            <span class="hp" onclick="qi('/remember ')">/remember</span>
+            <span class="hp" onclick="qi('/recall ')">/recall</span>
+            <span class="hp" onclick="qi('/kb ')">/kb</span>
+            <span class="hp" onclick="qi('/news ')">/news</span>
+            <span class="hp" onclick="qi('/weather ')">/weather</span>
+          </div>
+          <div class="cacts">
+            <button id="stp" onclick="stopStream()" title="Stop" aria-label="Stop">■</button>
+            <button id="snd" onclick="sendMsg()" title="Send (Enter)" aria-label="Send">↑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="auth.js" defer></script>
+<script src="models-data.js" defer></script>
+<script src="api-router.js" defer></script>
+<script src="memory.js" defer></script>
+<script src="agent.js" defer></script>
+<script>
+'use strict';
+const S={msgs:[],streaming:false,abort:null,tc:0,mc:0};
+let _b=false;
+window.addEventListener('DOMContentLoaded',()=>setTimeout(boot,0));
+async function boot(){
+  if(_b)return;_b=true;
+  let t=0;
+  while(typeof AuthSystem==='undefined'&&t++<50)await p(100);
+  if(typeof AuthSystem==='undefined'){aw('AuthSystem failed to load');return;}
+  await AuthSystem.init();
+  if(!AuthSystem.isSuperAdmin?.()){aw('Access denied — super-admin only.');setTimeout(()=>{location.href='index.html';},2000);return;}
+  t=0;while(typeof SuperAgent==='undefined'&&t++<30)await p(100);
+  document.getElementById('auth-wall').style.display='none';
+  document.getElementById('app').classList.add('ready');
+  setupComp();renderSb();refreshSb();loadModel();
+  // Populate agent avatar/name from config
+  if(typeof SuperAgent!=='undefined'){
+    const c=SuperAgent.config.get();
+    ['horb','wav','tav','sbav'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=c.avatarEmoji||'✦';});
+    const nm=document.getElementById('sbnm');if(nm)nm.textContent=c.persona||'Aria';
+    const hn=document.getElementById('hname');if(hn)hn.textContent=c.persona||'Aria';
+    const wd=document.getElementById('welc');
+    if(wd){const wt=wd.querySelector('.wtit');if(wt)wt.textContent='Hello, Cody.';}
+  }
+}
+function aw(msg){document.getElementById('auth-wall').querySelector('p').textContent=msg;}
+function p(ms){return new Promise(r=>setTimeout(r,ms));}
+function renderSb(){
+  if(typeof SuperAgent==='undefined')return;
+  const c=SuperAgent.config.get();
+  const tools=[
+    {k:'webSearch',i:'🔍',l:'Web Search'},{k:'wikipedia',i:'📖',l:'Wikipedia'},
+    {k:'weather',i:'🌤',l:'Live Weather'},{k:'githubSearch',i:'🐙',l:'GitHub Search'},
+    {k:'news',i:'📰',l:'News Headlines'},{k:'knowledgeBase',i:'📚',l:'Knowledge Base'},
+    {k:'crossMemory',i:'🧠',l:'Cross-Session Memory'},
+  ];
+  document.getElementById('tgrid').innerHTML=tools.map(t=>`<div class="trow ${c.tools[t.k]?'on':''}"><span class="tico">${t.i}</span><span class="tname">${t.l}</span><div class="tdot"></div></div>`).join('');
+  document.getElementById('stm').textContent=S.mc;
+  document.getElementById('stt').textContent=S.tc;
+}
+async function refreshSb(){
+  if(typeof SuperAgent==='undefined')return;
+  try{const d=await SuperAgent.kb.list();document.getElementById('stk').textContent=d.length;}catch{document.getElementById('stk').textContent='?';}
+  const ms=SuperAgent.memory.list();
+  document.getElementById('stme').textContent=ms.length;
+  const ml=document.getElementById('mlist');
+  ml.innerHTML=!ms.length?'<div class="nd">No memories yet.</div>':ms.slice(0,8).map(m=>`<div class="mi"><div class="mk">${e(m.key)}</div><div class="mv">${e(m.value)}</div></div>`).join('');
+}
+function loadModel(){
+  try{const sv=localStorage.getItem('async_agent_model');if(sv){const s=document.getElementById('msel');for(const o of s.options){if(o.value===sv){s.value=sv;break;}}}}catch{}
+  document.getElementById('msel').addEventListener('change',ev=>{try{localStorage.setItem('async_agent_model',ev.target.value);}catch{}});
+}
+function setupComp(){
+  const ta=document.getElementById('inp');
+  ta.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();sendMsg();}});
+  ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,200)+'px';});
+  ta.focus();
+}
+function qi(txt){
+  const ta=document.getElementById('inp');ta.value=txt;ta.focus();ta.dispatchEvent(new Event('input'));
+  if(!txt.endsWith(' '))sendMsg();
+}
+function exc(t){
+  if(t.startsWith('/web ')||t.startsWith('/search '))return'Search the web for: '+t.replace(/^\/(web|search)\s+/,'');
+  if(t.startsWith('/remember ')||t.startsWith('/mem '))return'Save this to your memory: '+t.replace(/^\/(remember|mem)\s+/,'');
+  if(t.startsWith('/recall ')||t.startsWith('/memory '))return'Recall from memory: '+t.replace(/^\/(recall|memory)\s+/,'');
+  if(t.startsWith('/kb '))return'Search knowledge base for: '+t.replace(/^\/kb\s+/,'');
+  if(t.startsWith('/news '))return'Get the latest news about: '+t.replace(/^\/news\s+/,'');
+  if(t.startsWith('/weather '))return'What is the current weather in: '+t.replace(/^\/weather\s+/,'');
+  if(t.startsWith('/github '))return'Search GitHub for: '+t.replace(/^\/github\s+/,'');
+  return t;
+}
+async function sendMsg(){
+  if(S.streaming)return;
+  const ta=document.getElementById('inp');
+  const raw=ta.value.trim();if(!raw)return;
+  const txt=exc(raw);
+  const w=document.getElementById('welc');if(w)w.classList.add('hid');
+  ta.value='';ta.style.height='auto';
+  S.msgs.push({role:'user',content:txt});S.mc++;
+  addU(txt);scroll2b();
+  const mid=document.getElementById('msel').value;
+  const prov=rProv(mid);
+  const key=getKey(prov);
+  if(!key){toast('No API key for '+prov+'. Configure in Settings → API Keys.','er');return;}
+  let sys=document.getElementById('sys-ta')?.value?.trim()||'';
+  if(!sys&&typeof SuperAgent!=='undefined'){try{sys=await SuperAgent.buildSuperAgentSystemPrompt(txt)||'';}catch{}}
+  let tools=[];
+  if(typeof SuperAgent!=='undefined'){try{tools=SuperAgent.getSuperTools();}catch{}}
+  if(typeof BUILT_IN_TOOLS!=='undefined'){tools=[...tools,...BUILT_IN_TOOLS.filter(t=>!tools.find(s=>s.name===t.name))];}
+  await doStream(prov,mid,key,sys,tools);
+}
+async function doStream(prov,mid,key,sys,tools){
+  if(!window.ApiRouter){toast('ApiRouter not loaded','er');return;}
+  S.streaming=true;S.abort=new AbortController();
+  setDot('thinking');showTyp('Thinking…');
+  document.getElementById('snd').disabled=true;
+  document.getElementById('stp').classList.add('vis');
+  try{
+    for(let r=0;r<8;r++){
+      const apiMsgs=buildMsgs(S.msgs);
+      const ae={role:'assistant',content:'',toolCalls:[],toolResults:[]};
+      S.msgs.push(ae);
+      const bid='b'+Date.now()+r;
+      addA(bid);hideTyp();
+      let acc='';const pc=[];
+      for await(const ck of ApiRouter.stream(prov,mid,key,apiMsgs,sys,{maxTokens:8192,signal:S.abort.signal,tools})){
+        if(ck.delta){acc+=ck.delta;ae.content=acc;updBub(bid,acc);scroll2b();}
+        if(ck.toolCall){pc.push(ck.toolCall);ae.toolCalls=[...(ae.toolCalls||[]),ck.toolCall];addTCC(bid,ck.toolCall);}
+      }
+      if(!pc.length)break;
+      showTyp('Running tools…');
+      for(const tc of pc){
+        S.tc++;updTCS(tc.id,'running');
+        let res='';
+        try{res=await runTool(tc.name,tc.input);}catch(err){res='Tool error: '+err.message;}
+        updTCS(tc.id,'done');addTRC(bid,tc,res);
+        ae.toolResults=[...(ae.toolResults||[]),{tool_use_id:tc.id,content:String(res)}];
+        S.msgs.push({role:'tool',tool_use_id:tc.id,name:tc.name,content:String(res)});
+      }
+      setDot('thinking');renderSb();
+    }
+  }catch(err){if(err.name!=='AbortError'){toast('Error: '+err.message,'er');console.error('[Aria]',err);}}
+  finally{
+    S.streaming=false;S.abort=null;hideTyp();setDot('idle');
+    document.getElementById('snd').disabled=false;
+    document.getElementById('stp').classList.remove('vis');
+    renderSb();refreshSb();scroll2b();
+  }
+}
+async function runTool(name,inp){
+  if(typeof SuperAgent!=='undefined'&&SuperAgent.config.isEnabled()){
+    const sn=new Set(SuperAgent.tools.map(t=>t.name));
+    if(sn.has(name))return await SuperAgent.executeSuperTool(name,inp);
+  }
+  switch(name){
+    case'web_search':return await ApiRouter.webSearch(inp.query);
+    case'memory_recall':{if(typeof MemorySystem==='undefined')return'Memory not loaded.';const ws=MemorySystem.workspaces.getActive();return ws?MemorySystem.memories.buildContext(ws.id,inp.query)||'Nothing found.':'No workspace.';}
+    case'memory_save':{if(typeof MemorySystem==='undefined')return'Memory not loaded.';const ws=MemorySystem.workspaces.getActive();if(!ws)return'No workspace.';MemorySystem.memories.add(ws.id,{key:inp.key,value:inp.value,tags:inp.tags||[]});return`Saved: "${inp.key}".`;}
+    case'calculate':{try{return inp.expression+' = '+Function("'use strict';return("+inp.expression+")")();}catch(er){return'Calc error: '+er.message;}}
+    default:return'Unknown tool: '+name;
+  }
+}
+function buildMsgs(ms){
+  const out=[];
+  for(const m of ms){
+    if(m.role==='user')out.push({role:'user',content:m.content});
+    else if(m.role==='assistant'){
+      const pts=[];
+      if(m.content)pts.push({type:'text',text:m.content});
+      for(const tc of(m.toolCalls||[]))pts.push({type:'tool_use',id:tc.id,name:tc.name,input:tc.input});
+      if(pts.length)out.push({role:'assistant',content:pts});
+    }else if(m.role==='tool')out.push({role:'user',content:[{type:'tool_result',tool_use_id:m.tool_use_id,content:m.content}]});
+  }
+  return out;
+}
+function rProv(mid){
+  if(typeof MODELS_DATA!=='undefined'){const m=MODELS_DATA.getModel(mid);if(m)return m.provider;}
+  if(mid.startsWith('claude'))return'anthropic';
+  if(mid.startsWith('gpt')||mid.startsWith('o1'))return'openai';
+  if(mid.startsWith('gemini'))return'google';
+  return'groq';
+}
+function getKey(prov){
+  try{
+    // Try vault first
+    const v=localStorage.getItem('cpu_vault')||localStorage.getItem('async_vault');
+    if(v){try{const d=JSON.parse(atob(v.split('.')[1]||v));if(d&&d[prov])return d[prov];}catch{}}
+    // Try STATE
+    if(typeof STATE!=='undefined'&&STATE.apiKeys?.[prov])return STATE.apiKeys[prov];
+    // Direct
+    const ks=JSON.parse(localStorage.getItem('cpu_api_keys')||localStorage.getItem('async_api_keys')||'{}');
+    return ks[prov]||'';
+  }catch{return'';}
+}
+function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function addU(txt){
+  const ms=document.getElementById('msgs');
+  const row=document.createElement('div');
+  row.className='mrow u';
+  row.innerHTML=`<div class="mav hu">👤</div><div class="mbody"><div class="msndr">You</div><div class="mbub">${e(txt).replace(/\n/g,'<br>')}</div></div>`;
+  ms.appendChild(row);
+}
+function addA(id){
+  const cfg=typeof SuperAgent!=='undefined'?SuperAgent.config.get():{avatarEmoji:'✦',persona:'Aria'};
+  const ms=document.getElementById('msgs');
+  const row=document.createElement('div');row.className='mrow';row.id='r'+id;
+  row.innerHTML=`<div class="mav ai">${e(cfg.avatarEmoji||'✦')}</div><div class="mbody"><div class="msndr">${e(cfg.persona||'Aria')}</div><div class="mbub" id="${id}"></div></div>`;
+  ms.appendChild(row);
+}
+function updBub(id,txt){const el=document.getElementById(id);if(el)el.innerHTML=md(txt);}
+function addTCC(bid,tc){
+  const bub=document.getElementById(bid);if(!bub)return;
+  const cid='tc'+tc.id;
+  const em={wikipedia_search:'📖',get_weather:'🌤',search_github:'🐙',get_news:'📰',kb_search:'📚',agent_memory_save:'💾',agent_memory_recall:'🧠',web_search:'🔍',memory_recall:'🧠',memory_save:'💾',calculate:'🧮',generate_image:'🎨'}[tc.name]||'⚙';
+  const c=document.createElement('div');c.className='tcc';c.id=cid;
+  c.innerHTML=`<div class="tch" onclick="toggleC('${cid}')"><span>${em}</span><span class="tcn">${e(tc.name)}</span><span class="tcs" id="${cid}s">● queued</span><span class="tct">▼</span></div><div class="tcb">${e(JSON.stringify(tc.input,null,2))}</div>`;
+  bub.appendChild(c);
+}
+function updTCS(id,st){const el=document.getElementById('tc'+id+'s');if(!el)return;el.textContent=st==='running'?'⟳ running…':'✓ done';el.style.color=st==='running'?'var(--amber)':'var(--emerald)';}
+function addTRC(bid,tc,res){
+  const bub=document.getElementById(bid);if(!bub)return;
+  const rid='tr'+tc.id;
+  const c=document.createElement('div');c.className='trc';c.id=rid;
+  c.innerHTML=`<div class="trh" onclick="toggleC('${rid}')"><span>✓</span><span style="flex:1">Result: ${e(tc.name)}</span><span style="font-size:10px;color:var(--text-3)">▼</span></div><div class="trb">${e(String(res))}</div>`;
+  bub.appendChild(c);
+}
+function toggleC(id){const el=document.getElementById(id);if(el)el.classList.toggle('ex');}
+function showTyp(lbl){document.getElementById('tlbl').textContent=lbl;document.getElementById('typ').style.display='block';scroll2b();}
+function hideTyp(){document.getElementById('typ').style.display='none';}
+function scroll2b(){const ms=document.getElementById('msgs');ms.scrollTop=ms.scrollHeight;}
+function setDot(st){const d=document.getElementById('sdot');d.className='sdot '+st;d.title=st.charAt(0).toUpperCase()+st.slice(1);}
+function md(txt){
+  if(!txt)return'';
+  let h=e(txt);
+  h=h.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,l,c)=>`<pre><code>${c}</code></pre>`);
+  h=h.replace(/`([^`]+)`/g,'<code>$1</code>');
+  h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  h=h.replace(/\*(.+?)\*/g,'<em>$1</em>');
+  h=h.replace(/^### (.+)$/gm,'<h3>$1</h3>');
+  h=h.replace(/^## (.+)$/gm,'<h2>$1</h2>');
+  h=h.replace(/^# (.+)$/gm,'<h1>$1</h1>');
+  h=h.replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>');
+  h=h.replace(/^---+$/gm,'<hr>');
+  h=h.replace(/^\| .+$/gm,row=>{const cells=row.split('|').slice(1,-1).map(c=>`<td>${c.trim()}</td>`).join('');return`<tr>${cells}</tr>`;});
+  h=h.replace(/(<tr>.*<\/tr>)/s,t=>`<table>${t}</table>`);
+  h=h.replace(/^[•\-\*] (.+)$/gm,'<li>$1</li>');
+  h=h.replace(/^\d+\. (.+)$/gm,'<li>$1</li>');
+  h=h.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  h=h.replace(/\n\n+/g,'</p><p>');
+  h=h.replace(/\n/g,'<br>');
+  return'<p>'+h+'</p>';
+}
+function stopStream(){if(S.abort)S.abort.abort();}
+function clearChat(){
+  if(S.streaming)stopStream();
+  S.msgs=[];S.tc=0;S.mc=0;
+  const ms=document.getElementById('msgs');
+  ms.innerHTML='';
+  const w=document.createElement('div');w.id='welc';
+  const cfg=typeof SuperAgent!=='undefined'?SuperAgent.config.get():{avatarEmoji:'✦'};
+  w.innerHTML=`<div class="worb">${e(cfg.avatarEmoji||'✦')}</div><div class="wtit">Hello, Cody.</div><div class="wsub">I'm Aria, your super-agent. Ready for a fresh conversation.</div><div class="qps"><button class="qp" onclick="qi('What do you remember about me?')">🧠 Recall memory</button><button class="qp" onclick="qi('Get today\\'s top AI news.')">🔍 AI news</button><button class="qp" onclick="qi('Search GitHub for trending repos.')">🐙 GitHub</button><button class="qp" onclick="qi('Search my knowledge base.')">📚 KB</button></div>`;
+  ms.appendChild(w);
+  renderSb();toast('Chat cleared','ok');
+}
+function exportChat(){
+  const lines=S.msgs.map(m=>`## ${m.role==='user'?'Cody':'Aria'}\n${m.content||''}`);
+  const doc=`# Aria Agent Chat\n_${new Date().toLocaleString()}_\n\n---\n\n${lines.join('\n\n---\n\n')}`;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([doc],{type:'text/markdown'}));
+  a.download='aria-chat-'+Date.now()+'.md';a.click();
+  toast('Exported as Markdown','ok');
+}
+function toggleSyd(){
+  const d=document.getElementById('syd');d.classList.toggle('open');
+  document.getElementById('syd-btn').textContent=d.classList.contains('open')?'✕ Prompt':'⚙ Prompt';
+}
+function toast(msg,type='',dur=3500){
+  const w=document.getElementById('tw');const el=document.createElement('div');
+  el.className='ti2 '+type;el.textContent=msg;w.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .2s';setTimeout(()=>el.remove(),220);},dur);
+}
+</script>
+</body>
+</html>
