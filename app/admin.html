@@ -85,6 +85,9 @@
         <button class="admin-nav-item" id="nav-item-users" data-panel="users" onclick="AdminApp.switchPanel('users', this)">
           <span class="admin-nav-icon">👥</span> Users
         </button>
+        <button class="admin-nav-item" id="nav-item-profiles" data-panel="profiles" onclick="AdminApp.switchPanel('profiles', this)">
+          <span class="admin-nav-icon">🪪</span> User Profiles
+        </button>
         <button class="admin-nav-item" id="nav-item-health" data-panel="health" onclick="AdminApp.switchPanel('health', this)">
           <span class="admin-nav-icon">🩺</span> System Health
         </button>
@@ -335,6 +338,13 @@
           </div>
         </section>
 
+        <!-- ── Profiles Panel ─────────────────────────── -->
+        <section id="panel-profiles" class="admin-panel">
+          <div class="panel-title">User Profiles</div>
+          <div class="panel-subtitle">View and manage user personas — profiles shape how the AI responds to each user</div>
+          <div id="profiles-panel-content"><div style="color:var(--text-muted,#64748b);padding:40px;text-align:center">Loading…</div></div>
+        </section>
+
         <!-- ── Health Panel ────────────────────────────── -->
         <section id="panel-health" class="admin-panel">
           <div class="panel-title">System Health</div>
@@ -540,6 +550,7 @@
   <!-- Scripts: auth + analytics must load first -->
   <script src="auth.js?v=20260708f" defer></script>
   <script src="analytics.js?v=20260708f" defer></script>
+  <script src="profile.js?v=20260710b" defer></script>
   <script src="agent.js?v=20260710b" defer></script>
   <script src="agent-panel.js?v=20260710b" defer></script>
   <script src="admin.js?v=20260708f" defer></script>

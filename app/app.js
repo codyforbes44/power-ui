@@ -2380,6 +2380,25 @@ async function sendMessageDirect(session, userText, messageContent = null) {
   const spEl = document.getElementById('system-prompt');
   systemPrompt += spEl?.value || session.systemPrompt || STATE.settings.defaultSystemPrompt;
 
+  // User profile context — inject persona for every authenticated user
+  if (typeof ProfileSystem !== 'undefined' && typeof AuthSystem !== 'undefined') {
+    try {
+      const profileUser = AuthSystem.getSession?.()?.username || AuthSystem.getCurrentUser?.()?.username;
+      if (profileUser) {
+        const prof = ProfileSystem.get(profileUser);
+        // Admin override note goes before everything else
+        if (prof.adminNote) {
+          systemPrompt = prof.adminNote + '\n\n' + systemPrompt;
+        }
+        // User persona block prepended after admin note
+        const profileCtx = ProfileSystem.buildSystemBlock(profileUser);
+        if (profileCtx) {
+          systemPrompt = profileCtx + '\n\n---\n\n' + systemPrompt;
+        }
+      }
+    } catch (e) { console.warn('Profile injection failed:', e); }
+  }
+
   // Super-admin agent: prepend persona + KB + cross-session memory context
   if (typeof AuthSystem !== 'undefined' && AuthSystem.isSuperAdmin?.() &&
       typeof SuperAgent !== 'undefined' && SuperAgent.config.isEnabled()) {
@@ -2947,6 +2966,33 @@ function attachEventListeners() {
   });
 
   document.getElementById('settings-btn')?.addEventListener('click', () => window.location.href = 'admin.html#settings');
+
+  // Profile badge — init and keep in sync with saved profiles
+  (function initProfileBadge() {
+    if (typeof ProfileSystem === 'undefined' || typeof AuthSystem === 'undefined') return;
+    try {
+      const u = AuthSystem.getSession?.()?.username || AuthSystem.getCurrentUser?.()?.username;
+      if (!u) return;
+      const prof = ProfileSystem.get(u);
+      const av = document.getElementById('sidebar-profile-avatar');
+      const nm = document.getElementById('sidebar-profile-name');
+      if (av) av.textContent = prof.avatarEmoji || '🧑';
+      if (nm) nm.textContent = prof.displayName || u || 'My Profile';
+    } catch {}
+  })();
+  window.addEventListener('profile-updated', () => {
+    if (typeof ProfileSystem === 'undefined' || typeof AuthSystem === 'undefined') return;
+    try {
+      const u = AuthSystem.getSession?.()?.username || AuthSystem.getCurrentUser?.()?.username;
+      if (!u) return;
+      const prof = ProfileSystem.get(u);
+      const av = document.getElementById('sidebar-profile-avatar');
+      const nm = document.getElementById('sidebar-profile-name');
+      if (av) av.textContent = prof.avatarEmoji || '🧑';
+      if (nm) nm.textContent = prof.displayName || u || 'My Profile';
+    } catch {}
+  });
+
   document.getElementById('export-btn')?.addEventListener('click', exportSession);
   document.getElementById('share-btn')?.addEventListener('click', shareSession);
   document.getElementById('memory-btn')?.addEventListener('click', openMemoryPanel);
@@ -3026,6 +3072,14 @@ function buildHTML() {
 
         <!-- Footer -->
         <div class="sidebar-footer">
+          <button class="sidebar-footer-btn sidebar-text" id="profile-btn"
+            onclick="if(typeof ProfileSystem!=='undefined'&&typeof AuthSystem!=='undefined'){const u=AuthSystem.getSession?.()?.username||AuthSystem.getCurrentUser?.()?.username||'user';ProfileSystem.open(u);}"
+            title="Edit your profile & AI persona"
+            style="display:flex;align-items:center;gap:8px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:8px;margin-bottom:4px">
+            <span id="sidebar-profile-avatar" style="font-size:18px;line-height:1">🧑</span>
+            <span id="sidebar-profile-name" style="flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">My Profile</span>
+            <span style="font-size:10px;color:var(--text-muted,#64748b);flex-shrink:0">✏</span>
+          </button>
           <button class="sidebar-footer-btn sidebar-text" id="settings-btn">⚙ Settings</button>
           <button class="sidebar-footer-btn sidebar-text" id="shortcuts-btn" title="Keyboard shortcuts">? Help</button>
           <button class="status-cost sidebar-text" id="cost-widget-btn" title="Click for cost breakdown" style="cursor:pointer;background:none;border:none;display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:6px;">
