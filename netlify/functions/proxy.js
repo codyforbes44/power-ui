@@ -29,7 +29,6 @@ const PROVIDER_BASE = {
   bfl:          'https://api.bfl.ml',
   fal:          'https://fal.run',
   replicate:    'https://api.replicate.com',
-  huggingface:  'https://router.huggingface.co/hf-inference',
   // Web search
   ddg:       'https://api.duckduckgo.com',
 };

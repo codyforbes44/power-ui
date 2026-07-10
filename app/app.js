@@ -11,7 +11,7 @@ const STATE = {
   sessions:        [],
   activeSessionId: null,
 
-  apiKeys: { anthropic: '', openai: '', google: '', groq: '', mistral: '', bfl: '', fal: '', replicate: '', huggingface: '' },
+  apiKeys: { anthropic: '', openai: '', google: '', groq: '', mistral: '', bfl: '', fal: '', replicate: '' },
 
   settings: {
     model:              'claude-sonnet-4-5',
@@ -2677,7 +2677,6 @@ function buildHTML() {
                     <option value="bfl">Black Forest Labs</option>
                     <option value="fal">fal.ai</option>
                     <option value="replicate">Replicate</option>
-                    <option value="huggingface">🤗 HuggingFace</option>
                     <option value="comfyui">ComfyUI (local)</option>
                   </select>
                   <select class="image-popover-select" id="imagine-model">
@@ -2734,26 +2733,6 @@ function buildHTML() {
                       <label style="display:flex; align-items:center; gap:4px; font-size:12px; cursor:pointer; color:var(--text-muted);">
                         <input type="checkbox" id="imagine-safety-checker" checked style="cursor:pointer;" /> Enable
                       </label>
-                    </div>
-                  </div>
-                </div>
-                <!-- HuggingFace extras -->
-                <div id="imagine-hf-extras" style="display:none; border-top:1px solid var(--border-color); margin-top:8px; padding-top:8px;">
-                  <div style="display:flex; align-items:flex-start; gap:8px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:6px; padding:8px 10px;">
-                    <span style="font-size:16px; flex-shrink:0;">🤗</span>
-                    <div style="font-size:11px; color:var(--text-muted); line-height:1.5;">
-                      <strong style="color:var(--text-main); font-size:12px;">HuggingFace Inference API</strong><br>
-                      Select any open-source text-to-image model. First run may take <strong style="color:#f59e0b;">20–60 s</strong> while the model warms up — the app retries automatically.<br>
-                      <span style="opacity:0.7;">Requires a HuggingFace token saved in Settings → Image Generation.</span>
-                    </div>
-                  </div>
-                  <div class="image-popover-row" style="justify-content:space-between; align-items:center; margin-top:8px;">
-                    <span style="font-size:12px; color:var(--text-muted);">Steps:</span>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                      <input type="range" id="imagine-hf-steps" min="10" max="50" step="1" value="28"
-                        style="flex:1; width:100px; cursor:pointer;"
-                        oninput="document.getElementById('imagine-hf-steps-val').textContent = this.value" />
-                      <span id="imagine-hf-steps-val" style="font-size:12px; color:var(--text-main); font-family:monospace; min-width:22px; text-align:right;">28</span>
                     </div>
                   </div>
                 </div>
@@ -3246,22 +3225,15 @@ function syncImaginePopoverFields() {
   const provider = document.getElementById('imagine-provider')?.value;
   const qtyRow    = document.getElementById('imagine-qty-row');
   const falExtras = document.getElementById('imagine-fal-extras');
-  const hfExtras  = document.getElementById('imagine-hf-extras');
 
   // fal.ai: show quantity + mode extras
   if (provider === 'fal') {
     if (qtyRow)    qtyRow.style.display    = 'flex';
     if (falExtras) falExtras.style.display = 'block';
-    if (hfExtras)  hfExtras.style.display  = 'none';
     syncImagineModeFields();
-  } else if (provider === 'huggingface') {
-    if (qtyRow)    qtyRow.style.display    = 'none';
-    if (falExtras) falExtras.style.display = 'none';
-    if (hfExtras)  hfExtras.style.display  = 'block';
   } else {
     if (qtyRow)    qtyRow.style.display    = 'none';
     if (falExtras) falExtras.style.display = 'none';
-    if (hfExtras)  hfExtras.style.display  = 'none';
   }
 }
 
@@ -3295,10 +3267,7 @@ function generateFromPopover() {
   const enable_safety_checker = provider === 'fal' ? document.getElementById('imagine-safety-checker')?.checked : true;
   const safety_tolerance = provider === 'fal' ? (document.getElementById('imagine-safety-tolerance')?.value || '2') : '2';
 
-  // HuggingFace-specific: steps from the HF slider
-  const steps = provider === 'huggingface'
-    ? parseInt(document.getElementById('imagine-hf-steps')?.value || '28', 10)
-    : undefined; // undefined → handleImageGeneration uses its own default
+  const steps = 28;  // Default inference steps for all providers
 
   if (!prompt) {
     toast('🎨 Please enter an image description', 'warning');

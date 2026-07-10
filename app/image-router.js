@@ -94,12 +94,7 @@ const ImageRouter = (() => {
       { id: 'black-forest-labs/flux-schnell', name: 'Flux Schnell' },
       { id: 'black-forest-labs/flux-dev',     name: 'Flux Dev' }
     ],
-    huggingface: [
-      { id: 'black-forest-labs/FLUX.1-schnell',     name: 'Flux Schnell (HF)' },
-      { id: 'black-forest-labs/FLUX.1-dev',         name: 'Flux Dev (HF)' },
-      { id: 'stabilityai/stable-diffusion-xl-base-1.0', name: 'SDXL Base 1.0' },
-      { id: 'runwayml/stable-diffusion-v1-5',       name: 'SD v1.5' }
-    ],
+    huggingface: [],  // Removed — use ComfyUI for self-hosted models
     comfyui: [
       { id: 'comfyui-default', name: 'ComfyUI (local)' }
     ]
@@ -749,8 +744,7 @@ const ImageRouter = (() => {
           result = await generateReplicate({ prompt, model, width, height, steps, seed, apiKey, signal });
           break;
         case 'huggingface':
-          result = await generateHuggingFace({ prompt, model, width, height, steps, seed, apiKey, signal });
-          break;
+          throw new Error('HuggingFace provider removed. Run the model locally via ComfyUI and configure the ComfyUI endpoint in Settings → API Keys & MCP.');
         case 'comfyui':
           result = await generateComfyUI({ prompt, width, height, steps, seed, comfyUrl, workflow, signal });
           break;

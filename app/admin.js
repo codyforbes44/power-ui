@@ -908,17 +908,8 @@ python3 cli.py export --format json</pre>
       docsUrl: 'https://replicate.com/account/api-tokens',
       desc: 'Flux 1.1 Pro via Replicate. Pay-per-run, no subscription needed.',
     },
-    {
-      id: 'huggingface',
-      name: 'HuggingFace',
-      icon: '🤗',
-      color: '#f59e0b',
-      placeholder: 'hf_…',
-      baseUrl: 'https://api-inference.huggingface.co',
-      docsUrl: 'https://huggingface.co/settings/tokens',
-      desc: 'HuggingFace Inference API — access thousands of open-source models including FHDR Uncensored, Flux, SDXL and more.',
-    },
   ];
+
 
   // ── ComfyUI local URL (not a key — a URL setting) ────────
   const COMFYUI_SETTING = {
@@ -926,7 +917,7 @@ python3 cli.py export --format json</pre>
     name: 'ComfyUI (Local)',
     icon: '⚙️',
     color: '#84cc16',
-    desc: 'URL of your local ComfyUI instance. No API key needed — runs entirely on your machine.',
+    desc: 'Run FHDR Uncensored (self-hosted) and other local models. URL of your local ComfyUI instance. No API key needed — runs entirely on your machine.',
     settingKey: 'imageGen.comfyUrl',
     placeholder: 'http://127.0.0.1:8188',
     inputType: 'url',
