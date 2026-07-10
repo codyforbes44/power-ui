@@ -2922,12 +2922,15 @@ function attachEventListeners() {
 
   document.getElementById('settings-btn')?.addEventListener('click', () => window.location.href = 'admin.html#settings');
   document.getElementById('export-btn')?.addEventListener('click', exportSession);
+  document.getElementById('share-btn')?.addEventListener('click', shareSession);
   document.getElementById('memory-btn')?.addEventListener('click', openMemoryPanel);
   document.getElementById('optimize-btn')?.addEventListener('click', optimizeCurrentPrompt);
+  document.getElementById('cost-widget-btn')?.addEventListener('click', toggleCostBreakdown);
 
-  // Wire voice input and session search (defined in new_features block below)
+  // Wire voice input, session search, and img2img upload (defined in feature blocks)
   window._wireVoiceBtn?.();
   window._wireSessionSearchInput?.();
+  window._wireImg2ImgUpload?.();
 
   document.addEventListener('keydown', e => {
     // Cmd+K → focus session search (overrides old new-chat shortcut)
@@ -2999,10 +3002,10 @@ function buildHTML() {
         <div class="sidebar-footer">
           <button class="sidebar-footer-btn sidebar-text" id="settings-btn">⚙ Settings</button>
           <button class="sidebar-footer-btn sidebar-text" id="shortcuts-btn" title="Keyboard shortcuts">? Help</button>
-          <div class="status-cost sidebar-text">
+          <button class="status-cost sidebar-text" id="cost-widget-btn" title="Click for cost breakdown" style="cursor:pointer;background:none;border:none;display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:6px;">
             <span class="status-cost-label">💰</span>
             <span class="status-cost-value" id="status-cost-value">Today: $0</span>
-          </div>
+          </button>
         </div>
       </aside>
 
@@ -3035,6 +3038,7 @@ function buildHTML() {
               <div class="model-dropdown" id="model-dropdown" style="display:none"></div>
             </div>
             <button class="icon-btn" id="export-btn" title="Export conversation (Markdown)" aria-label="Export conversation">⇧</button>
+            <button class="icon-btn" id="share-btn" title="Share conversation (read-only link)" aria-label="Share conversation">🔗</button>
             <button class="icon-btn" id="skills-toggle" title="Toggle AI Tools panel (⌘/)" aria-label="Toggle AI Tools panel"><span style="font-size:13px">⋞</span> <span style="font-size:11px">Tools</span></button>
           </div>
         </header>
@@ -3129,8 +3133,14 @@ function buildHTML() {
                     </select>
                   </div>
                   <div id="imagine-ref-row" style="display:none; margin-bottom:8px;">
-                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">Reference Image URL:</div>
-                    <input type="text" class="image-popover-input" id="imagine-image-url" placeholder="https://example.com/pose.jpg" style="width:100%; box-sizing:border-box; background:var(--bg-app); color:var(--text-main); border:1px solid var(--border-color); border-radius:4px; padding:6px 8px; font-size:12px; margin-bottom:8px;" />
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">Reference Image:</div>
+                    <!-- File upload drop zone -->
+                    <div class="img2img-dropzone" id="img2img-dropzone" title="Click or drag an image here">
+                      <input type="file" id="img2img-file" accept="image/*" style="display:none" />
+                      <span class="img2img-dropzone-label" id="img2img-dropzone-label">🖼️ Drop image or click to upload</span>
+                    </div>
+                    <div style="font-size:10px;color:var(--text-muted);text-align:center;margin:4px 0">— or paste a URL —</div>
+                    <input type="text" class="image-popover-input" id="imagine-image-url" placeholder="https://example.com/image.jpg" style="width:100%; box-sizing:border-box; background:var(--bg-app); color:var(--text-main); border:1px solid var(--border-color); border-radius:4px; padding:6px 8px; font-size:12px; margin-bottom:8px;" />
                     <div class="image-popover-row" id="imagine-strength-row" style="justify-content:space-between; align-items:center;">
                       <span style="font-size:12px; color:var(--text-muted);">Strength:</span>
                       <input type="range" id="imagine-strength" min="0.1" max="1.0" step="0.05" value="0.5" style="flex:1; margin:0 12px; cursor:pointer;" oninput="document.getElementById('imagine-strength-val').textContent = this.value" />
@@ -4127,3 +4137,226 @@ function injectFollowup(text) {
 
 
 document.addEventListener('DOMContentLoaded', boot);
+
+// ============================================================
+// Cost Breakdown Popover
+// ============================================================
+function toggleCostBreakdown() {
+  const existing = document.getElementById('cost-breakdown-popover');
+  if (existing) { existing.remove(); return; }
+
+  const btn = document.getElementById('cost-widget-btn');
+  if (!btn) return;
+
+  // Build per-session cost table for today
+  const today = new Date().toDateString();
+  const sessionsToday = STATE.sessions
+    .filter(s => s.totalCost > 0 && new Date(s.updatedAt).toDateString() === today)
+    .sort((a, b) => b.totalCost - a.totalCost)
+    .slice(0, 15);
+
+  const allTimeCost = STATE.sessions.reduce((t, s) => t + (s.totalCost || 0), 0);
+  const dailyCost   = STATE.costs.dailyTotal || 0;
+
+  const pop = document.createElement('div');
+  pop.id = 'cost-breakdown-popover';
+  pop.className = 'cost-breakdown-pop';
+  pop.innerHTML = `
+    <div class="cost-breakdown-header">
+      <span>💰 Cost Breakdown</span>
+      <button onclick="document.getElementById('cost-breakdown-popover')?.remove()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px">✕</button>
+    </div>
+    <div class="cost-breakdown-stats">
+      <div class="cost-stat">
+        <div class="cost-stat-label">Today</div>
+        <div class="cost-stat-val">${formatCost(dailyCost) || '$0.00'}</div>
+      </div>
+      <div class="cost-stat">
+        <div class="cost-stat-label">All Time</div>
+        <div class="cost-stat-val">${formatCost(allTimeCost) || '$0.00'}</div>
+      </div>
+      <div class="cost-stat">
+        <div class="cost-stat-label">Sessions</div>
+        <div class="cost-stat-val">${STATE.sessions.length}</div>
+      </div>
+    </div>
+    ${sessionsToday.length ? `
+      <div class="cost-breakdown-label">Today's sessions</div>
+      <div class="cost-breakdown-list">
+        ${sessionsToday.map(s => `
+          <div class="cost-breakdown-row">
+            <span class="cost-row-title">${esc(s.title.slice(0, 36))}${s.title.length > 36 ? '…' : ''}</span>
+            <span class="cost-row-val">${formatCost(s.totalCost)}</span>
+          </div>
+        `).join('')}
+      </div>
+    ` : `<div style="padding:12px 0;text-align:center;font-size:12px;color:var(--text-muted)">No spending today</div>`}
+    <button class="cost-breakdown-reset" onclick="if(confirm('Reset all cost tracking?')){STATE.costs={dailyTotal:0,sessions:{}};saveState();updateCostDisplays();document.getElementById('cost-breakdown-popover')?.remove();toast('Cost tracking reset','success')}">Reset tracking</button>
+  `;
+
+  // Position above the button
+  const rect = btn.getBoundingClientRect();
+  pop.style.cssText = `position:fixed;bottom:${window.innerHeight - rect.top + 8}px;left:${rect.left}px;z-index:9999`;
+
+  document.body.appendChild(pop);
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function closer(e) {
+      if (!pop.contains(e.target) && e.target !== btn) {
+        pop.remove();
+        document.removeEventListener('click', closer);
+      }
+    });
+  }, 50);
+}
+
+// ============================================================
+// Session Sharing (read-only snapshot link)
+// ============================================================
+function shareSession() {
+  const session = getActiveSession();
+  if (!session?.messages.length) {
+    toast('No messages to share', 'info');
+    return;
+  }
+
+  // Build a compact snapshot object
+  const snapshot = {
+    v:    1,
+    t:    session.title,
+    m:    session.model,
+    at:   session.updatedAt,
+    msgs: session.messages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({
+        r: m.role === 'user' ? 'u' : 'a',
+        c: typeof m.content === 'string' ? m.content.slice(0, 4000) : '',
+        ...(m.cost ? { $: m.cost } : {}),
+      })),
+  };
+
+  let encoded;
+  try {
+    const json    = JSON.stringify(snapshot);
+    const bytes   = new TextEncoder().encode(json);
+    const b64     = btoa(String.fromCharCode(...bytes));
+    encoded = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  } catch (e) {
+    toast('Snapshot too large to share as URL — use Export instead', 'warning', 5000);
+    return;
+  }
+
+  // Build the share URL pointing to our read-only viewer
+  const shareUrl = `${window.location.origin}/app/share.html#${encoded}`;
+
+  // Copy to clipboard and show modal
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    showShareModal(shareUrl, session.title);
+  }).catch(() => {
+    showShareModal(shareUrl, session.title);
+  });
+}
+
+function showShareModal(url, title) {
+  const existing = document.getElementById('share-modal-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'share-modal-overlay';
+  overlay.className = 'share-modal-overlay';
+  overlay.innerHTML = `
+    <div class="share-modal-card" role="dialog" aria-label="Share conversation">
+      <button class="share-modal-close" id="share-modal-close" aria-label="Close">✕</button>
+      <div class="share-modal-icon">🔗</div>
+      <h3 class="share-modal-title">Share Conversation</h3>
+      <p class="share-modal-subtitle">${esc(title.slice(0,60))}</p>
+      <div class="share-url-box">
+        <input class="share-url-input" id="share-url-input" type="text" value="${esc(url)}" readonly />
+        <button class="share-copy-btn" id="share-copy-btn" title="Copy link">📋</button>
+      </div>
+      <p class="share-modal-note">
+        Anyone with this link can view the conversation in read-only mode.<br>
+        The snapshot is encoded in the URL — no server required.
+      </p>
+      <div class="share-modal-actions">
+        <button class="share-open-btn" onclick="window.open('${esc(url)}','_blank')">Open Preview ↗</button>
+      </div>
+    </div>
+  `;
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('#share-modal-close')?.addEventListener('click', () => overlay.remove());
+
+  const copyBtn = overlay.querySelector('#share-copy-btn');
+  copyBtn?.addEventListener('click', () => {
+    navigator.clipboard.writeText(url).then(() => {
+      copyBtn.textContent = '✅';
+      setTimeout(() => { copyBtn.textContent = '📋'; }, 2000);
+      toast('Link copied!', 'success', 2000);
+    });
+  });
+
+  // Select the URL on click
+  overlay.querySelector('#share-url-input')?.addEventListener('click', e => e.target.select());
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('share-in'));
+  toast('Share link copied to clipboard!', 'success', 3000);
+}
+
+// ============================================================
+// Image-to-Image file upload wiring
+// (called from attachEventListeners via _wireImg2ImgUpload)
+// ============================================================
+window._wireImg2ImgUpload = function() {
+  const dropzone = document.getElementById('img2img-dropzone');
+  const fileInput = document.getElementById('img2img-file');
+  const label    = document.getElementById('img2img-dropzone-label');
+  const urlInput = document.getElementById('imagine-image-url');
+  if (!dropzone || !fileInput) return;
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      toast('Please select an image file', 'warning');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      // Store as data URL in the URL field — proxy will handle it
+      if (urlInput) urlInput.value = dataUrl;
+      if (label) {
+        label.innerHTML = `<span style="color:var(--text-primary)">✅ ${esc(file.name)} (${(file.size/1024).toFixed(0)} KB)</span>`;
+      }
+      dropzone.classList.add('img2img-loaded');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Click to open file picker
+  dropzone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+  // Drag and drop
+  dropzone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropzone.classList.add('img2img-drag-over');
+  });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('img2img-drag-over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('img2img-drag-over');
+    const file = e.dataTransfer?.files?.[0];
+    if (file) handleFile(file);
+  });
+
+  // Clear when popover closes / provider changes
+  document.addEventListener('click', e => {
+    if (e.target?.closest?.('#image-popover')) return;
+    // Reset on close
+    if (label) label.textContent = '🖼️ Drop image or click to upload';
+    if (urlInput) urlInput.value = '';
+    dropzone.classList.remove('img2img-loaded');
+  });
+};
