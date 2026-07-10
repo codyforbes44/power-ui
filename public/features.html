@@ -287,22 +287,7 @@
     </div>
   </div>
 </div>
-        <div class="mockup-bar"><div class="mockup-dot" style="background:#ff5f57"></div><div class="mockup-dot" style="background:#febc2e"></div><div class="mockup-dot" style="background:#28c840"></div><div class="mockup-title">Admin · Overview</div></div>
-        <div class="mockup-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-            <div style="background:var(--surface-2);border-radius:8px;padding:10px;"><div style="font-size:.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Messages Today</div><div style="font-size:1.4rem;font-weight:800;color:var(--text);font-family:'Outfit',sans-serif;">247</div><div style="font-size:.65rem;color:#4ade80;">↑ 18% vs yesterday</div></div>
-            <div style="background:var(--surface-2);border-radius:8px;padding:10px;"><div style="font-size:.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">API Cost Today</div><div style="font-size:1.4rem;font-weight:800;color:var(--text);font-family:'Outfit',sans-serif;">$2.14</div><div style="font-size:.65rem;color:var(--text-dim);">Avg $0.009/msg</div></div>
-          </div>
-          <div style="background:var(--surface-2);border-radius:8px;padding:10px;">
-            <div style="font-size:.65rem;color:var(--text-dim);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Top Models</div>
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><div style="font-size:.72rem;color:var(--text-muted);width:100px;">claude-opus-4-5</div><div style="flex:1;height:5px;background:var(--surface-3);border-radius:3px;"><div style="width:68%;height:100%;background:var(--primary);border-radius:3px;"></div></div><div style="font-size:.7rem;color:var(--text-dim);">68%</div></div>
-            <div style="display:flex;gap:8px;align-items:center;"><div style="font-size:.72rem;color:var(--text-muted);width:100px;">gpt-4o</div><div style="flex:1;height:5px;background:var(--surface-3);border-radius:3px;"><div style="width:22%;height:100%;background:var(--secondary);border-radius:3px;"></div></div><div style="font-size:.7rem;color:var(--text-dim);">22%</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+
 
 <section style="background:linear-gradient(180deg,transparent,rgba(99,102,241,.04),transparent);">
   <div class="container">
@@ -359,6 +344,25 @@
 <script>
   const nav=document.getElementById('nav');
   window.addEventListener('scroll',()=>{nav.style.background=window.scrollY>40?'rgba(3,7,18,.92)':'rgba(3,7,18,.70)';});
+  // Mobile hamburger menu
+  const hamburger=document.getElementById('hamburger');
+  const navLinks=document.querySelector('.nav-links');
+  const navActions=document.querySelector('.nav-actions');
+  if(hamburger&&navLinks&&navActions){
+    hamburger.addEventListener('click',()=>{
+      const open=navLinks.style.display==='flex';
+      navLinks.style.cssText=open?'':'display:flex;flex-direction:column;position:fixed;top:60px;left:0;right:0;background:rgba(3,7,18,.96);backdrop-filter:blur(12px);padding:20px 24px;gap:12px;z-index:999;border-bottom:1px solid rgba(99,102,241,.18);';
+      navActions.style.cssText=open?'':'display:flex;flex-direction:column;position:fixed;top:calc(60px + var(--nav-links-h,200px));left:0;right:0;background:rgba(3,7,18,.96);backdrop-filter:blur(12px);padding:12px 24px 20px;gap:10px;z-index:999;';
+      hamburger.setAttribute('aria-expanded',String(!open));
+    });
+    document.addEventListener('click',(e)=>{
+      if(!hamburger.contains(e.target)&&!navLinks.contains(e.target)&&!navActions.contains(e.target)){
+        navLinks.style.cssText='';
+        navActions.style.cssText='';
+        hamburger.setAttribute('aria-expanded','false');
+      }
+    });
+  }
 </script>
 </body>
 </html>
