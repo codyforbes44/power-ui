@@ -316,11 +316,11 @@
     </div>
   </main>
 </div>
-<script src="auth.js" defer></script>
-<script src="models-data.js" defer></script>
-<script src="api-router.js" defer></script>
-<script src="memory.js" defer></script>
-<script src="agent.js" defer></script>
+<script src="auth.js"></script>
+<script src="models-data.js"></script>
+<script src="api-router.js"></script>
+<script src="memory.js"></script>
+<script src="agent.js"></script>
 <script>
 'use strict';
 
@@ -335,27 +335,31 @@ async function boot() {
   if (_booted) return;
   _booted = true;
 
-  // 1. Wait for AuthSystem (loaded by auth.js defer)
+  // 1. Wait for AuthSystem
   for (let t = 0; typeof AuthSystem === 'undefined' && t < 60; t++) await sleep(100);
   if (typeof AuthSystem === 'undefined') { awMsg('AuthSystem failed to load.'); return; }
 
-  // 2. Init auth
+  // 2. Wait for ApiRouter (file-level const, not on window)
+  for (let t = 0; typeof ApiRouter === 'undefined' && t < 60; t++) await sleep(100);
+  if (typeof ApiRouter === 'undefined') { awMsg('ApiRouter failed to load.'); return; }
+
+  // 3. Init auth
   try { await AuthSystem.init(); } catch (e) { awMsg('Auth init failed: ' + e.message); return; }
 
-  // 3. Guard: super-admin only
+  // 4. Guard: super-admin only
   if (!AuthSystem.isSuperAdmin?.()) {
     awMsg('Access denied — super-admin only.');
     setTimeout(() => { location.href = 'index.html'; }, 2000);
     return;
   }
 
-  // 4. Load API keys from vault (ApiKeyVault is defined in auth.js)
+  // 5. Load API keys from vault (ApiKeyVault is defined in auth.js)
   try {
     const keys = await ApiKeyVault.load();
     if (keys && typeof keys === 'object') Object.assign(S.keys, keys);
   } catch (e) { console.warn('[Aria] Vault load failed:', e); }
 
-  // 5. Wait for SuperAgent (agent.js defer) — optional, degrade gracefully
+  // 6. Wait for SuperAgent — optional, degrade gracefully
   for (let t = 0; typeof SuperAgent === 'undefined' && t < 30; t++) await sleep(100);
 
   // 6. Show app
@@ -542,7 +546,7 @@ async function sendMsg() {
 
 // ── Streaming agentic loop ─────────────────────────────────
 async function doStream(prov, mid, key, sys, tools) {
-  if (!window.ApiRouter) { toast('ApiRouter not loaded', 'er'); return; }
+  if (typeof ApiRouter === 'undefined') { toast('ApiRouter not loaded — please reload the page.', 'er'); return; }
 
   S.streaming = true;
   S.abort = new AbortController();
