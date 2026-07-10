@@ -13,6 +13,7 @@ const globals = require('globals');
 // others via the shared global scope (see app/index.html script order).
 const crossFileGlobals = {
   AdminApp: 'readonly',
+  AgentPanel: 'readonly',
   Analytics: 'readonly',
   ApiKeyVault: 'readonly',
   ApiRouter: 'readonly',
@@ -26,6 +27,7 @@ const crossFileGlobals = {
   STATE: 'writable',
   STORAGE_KEY: 'readonly',
   ServerSync: 'readonly',
+  SuperAgent: 'readonly',
   TG_CATEGORIES: 'readonly',
 };
 

@@ -4,7 +4,8 @@
  */
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// Renamed _escAP to avoid no-redeclare lint error (app.js also declares esc at top level)
+function _escAP(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── Panel renderer ───────────────────────────────────────────────────────────
 async function renderAgentPanel() {
@@ -68,13 +69,13 @@ async function renderAgentPanel() {
         <div style="display:grid;grid-template-columns:80px 1fr;gap:16px;margin-bottom:16px">
           <div>
             <label class="conn-field-label">Avatar</label>
-            <input type="text" id="agent-avatar" value="${esc(cfg.avatarEmoji)}" maxlength="2"
+            <input type="text" id="agent-avatar" value="${_escAP(cfg.avatarEmoji)}" maxlength="2"
               style="width:100%;font-size:24px;text-align:center;background:rgba(255,255,255,0.04);border:1px solid var(--admin-border);border-radius:8px;padding:10px;color:var(--admin-text);cursor:text"
               onchange="AgentPanel.save()" />
           </div>
           <div>
             <label class="conn-field-label">Persona Name</label>
-            <input type="text" id="agent-persona" value="${esc(cfg.persona)}" placeholder="Aria"
+            <input type="text" id="agent-persona" value="${_escAP(cfg.persona)}" placeholder="Aria"
               style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--admin-border);border-radius:8px;padding:10px 12px;color:var(--admin-text);font-size:14px"
               onchange="AgentPanel.save()" />
           </div>
@@ -82,7 +83,7 @@ async function renderAgentPanel() {
         <label class="conn-field-label">System Prompt</label>
         <textarea id="agent-system-prompt" rows="10"
           style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.03);border:1px solid var(--admin-border);border-radius:8px;padding:12px;color:var(--admin-text);font-size:12.5px;font-family:monospace;resize:vertical;outline:none;line-height:1.6"
-          onchange="AgentPanel.save()">${esc(cfg.systemPrompt)}</textarea>
+          onchange="AgentPanel.save()">${_escAP(cfg.systemPrompt)}</textarea>
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
           <div style="flex:1">
             <label class="conn-field-label">Temperature (${cfg.temperature})</label>
@@ -117,11 +118,11 @@ async function renderAgentPanel() {
         </div>
         <div class="agent-tools-grid">
           ${toolRows.map(t => `
-            <label class="agent-tool-row" title="${esc(t.desc)}">
+            <label class="agent-tool-row" title="${_escAP(t.desc)}">
               <span class="agent-tool-icon">${t.icon}</span>
               <span class="agent-tool-info">
                 <span class="agent-tool-name">${t.label}</span>
-                <span class="agent-tool-desc">${esc(t.desc)}</span>
+                <span class="agent-tool-desc">${_escAP(t.desc)}</span>
               </span>
               <input type="checkbox" class="agent-tool-check" data-tool="${t.key}" ${cfg.tools[t.key]?'checked':''}
                 onchange="AgentPanel.toggleTool('${t.key}', this.checked)" />
@@ -172,15 +173,15 @@ async function renderAgentPanel() {
           ` : `
             <div class="kb-doc-list">
               ${docs.map(d => `
-                <div class="kb-doc-row" data-id="${esc(d.id)}">
+                <div class="kb-doc-row" data-id="${_escAP(d.id)}">
                   <span class="kb-doc-icon">${{url:'🔗',pdf:'📕',txt:'📄',md:'📝',json:'📊',csv:'📈',html:'🌐'}[d.type]||'📄'}</span>
                   <div class="kb-doc-info">
-                    <div class="kb-doc-title">${esc(d.title)}</div>
+                    <div class="kb-doc-title">${_escAP(d.title)}</div>
                     <div class="kb-doc-meta">${d.chunks?.length||0} chunks · ${d.type} · ${new Date(d.createdAt).toLocaleDateString()}
-                      ${d.source?.startsWith('http') ? ` · <a href="${esc(d.source)}" target="_blank" style="color:#818cf8">source ↗</a>` : ''}
+                      ${d.source?.startsWith('http') ? ` · <a href="${_escAP(d.source)}" target="_blank" style="color:#818cf8">source ↗</a>` : ''}
                     </div>
                   </div>
-                  <button class="kb-doc-delete" onclick="AgentPanel.deleteKbDoc('${esc(d.id)}')" title="Remove document">✕</button>
+                  <button class="kb-doc-delete" onclick="AgentPanel.deleteKbDoc('${_escAP(d.id)}')" title="Remove document">✕</button>
                 </div>
               `).join('')}
             </div>
@@ -218,16 +219,16 @@ async function renderAgentPanel() {
             ${mems.map((m, i) => `
               <div class="memory-row">
                 <div class="memory-row-main">
-                  <div class="memory-row-key">${esc(m.key)}</div>
+                  <div class="memory-row-key">${_escAP(m.key)}</div>
                   <div class="memory-row-value" id="agmem-val-${i}" contenteditable="true"
-                    onblur="AgentPanel.updateMemory('${esc(m.key)}', this.textContent)"
-                    style="cursor:text">${esc(m.value)}</div>
+                    onblur="AgentPanel.updateMemory('${_escAP(m.key)}', this.textContent)"
+                    style="cursor:text">${_escAP(m.value)}</div>
                   <div class="memory-row-meta">
                     ${m.timestamp ? `<span>${new Date(m.timestamp).toLocaleDateString()}</span>` : ''}
-                    ${m.tags?.length ? ` · ${m.tags.map(t=>`<span>#${esc(t)}</span>`).join(' ')}` : ''}
+                    ${m.tags?.length ? ` · ${m.tags.map(t=>`<span>#${_escAP(t)}</span>`).join(' ')}` : ''}
                   </div>
                 </div>
-                <button class="memory-row-delete" onclick="AgentPanel.deleteMemory('${esc(m.key)}')">✕</button>
+                <button class="memory-row-delete" onclick="AgentPanel.deleteMemory('${_escAP(m.key)}')">✕</button>
               </div>
             `).join('')}
           </div>
