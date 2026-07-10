@@ -19,1020 +19,725 @@
       --accent:      #6366f1;
       --accent-glow: rgba(99,102,241,0.25);
       --danger:      #ef4444;
-      --success:     #22c55e;
       --radius:      10px;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
 
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text-main);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* ─── Header ─── */
-    .gallery-header {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 14px 24px;
-      background: rgba(10,11,15,0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+    /* Header */
+    .g-header {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 12px 20px;
+      background: rgba(10,11,15,0.88); backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
     }
-
-    .gallery-header-left {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
+    .g-header-left  { display: flex; align-items: center; gap: 12px; }
+    .g-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
     .back-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 13px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text-dim);
-      font-size: 13px;
-      font-family: inherit;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.15s;
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-dim); font-size: 13px; font-family: inherit;
+      cursor: pointer; text-decoration: none; transition: all 0.15s;
     }
-    .back-btn:hover { background: var(--bg-hover); color: var(--text-main); border-color: rgba(255,255,255,0.14); }
+    .back-btn:hover { background: var(--bg-hover); color: var(--text-main); }
 
-    .gallery-title {
-      font-size: 17px;
-      font-weight: 600;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .g-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .g-count {
+      font-size: 11px; font-weight: 500; color: var(--text-muted);
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2px 8px;
     }
 
-    .gallery-count {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 2px 9px;
+    .g-search-wrap { position: relative; }
+    .g-search {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 7px 10px 7px 30px; color: var(--text-main); font-family: inherit; font-size: 13px;
+      width: 180px; transition: all 0.15s; outline: none;
     }
-
-    .gallery-header-right {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    /* ─── Search & Filters ─── */
-    .gallery-search-wrap {
-      position: relative;
-    }
-    .gallery-search {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 12px 8px 34px;
-      color: var(--text-main);
-      font-family: inherit;
-      font-size: 13px;
-      width: 220px;
-      transition: all 0.15s;
-      outline: none;
-    }
-    .gallery-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); width: 270px; }
-    .gallery-search::placeholder { color: var(--text-muted); }
-    .search-icon {
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-      font-size: 14px;
-      pointer-events: none;
-    }
+    .g-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); width: 230px; }
+    .g-search::placeholder { color: var(--text-muted); }
+    .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px; pointer-events: none; }
 
     .filter-btn {
-      padding: 7px 13px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text-dim);
-      font-size: 12px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
+      padding: 6px 11px; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-dim); font-size: 11px; font-family: inherit;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap; font-weight: 500;
     }
-    .filter-btn:hover, .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .filter-btn:hover { background: var(--bg-hover); color: var(--text-main); }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
     .sort-select {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 7px 10px;
-      color: var(--text-dim);
-      font-size: 12px;
-      font-family: inherit;
-      cursor: pointer;
-      outline: none;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 6px 9px; color: var(--text-dim); font-size: 11px; font-family: inherit;
+      cursor: pointer; outline: none;
     }
     .sort-select:focus { border-color: var(--accent); }
 
-    /* ─── Main Grid ─── */
-    .gallery-body {
-      padding: 24px;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
+    /* Grid */
+    .g-body { padding: 20px; max-width: 1400px; margin: 0 auto; }
 
-    .gallery-grid {
-      columns: 4 280px;
-      column-gap: 14px;
-    }
+    .g-grid { columns: 4 260px; column-gap: 12px; }
+    @media (max-width: 880px) { .g-grid { columns: 2 180px; } }
+    @media (max-width: 480px) { .g-grid { columns: 1; } }
 
-    @media (max-width: 900px) { .gallery-grid { columns: 2 200px; } }
-    @media (max-width: 520px) { .gallery-grid { columns: 1; } }
-
-    .gallery-item {
-      break-inside: avoid;
-      margin-bottom: 14px;
-      border-radius: var(--radius);
-      overflow: hidden;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      position: relative;
-      cursor: pointer;
+    .g-card {
+      break-inside: avoid; margin-bottom: 12px;
+      border-radius: var(--radius); overflow: hidden;
+      background: var(--bg-card); border: 1px solid var(--border);
+      position: relative; cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-      animation: fadeIn 0.35s ease both;
+      animation: fadeUp 0.3s ease both;
     }
-    .gallery-item:hover {
+    .g-card:hover {
       transform: translateY(-3px);
       box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.25);
       border-color: rgba(99,102,241,0.3);
-      z-index: 2;
     }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+    .g-card img { display: block; width: 100%; height: auto; object-fit: cover; transition: opacity 0.3s; }
 
-    .gallery-item img {
-      display: block;
-      width: 100%;
-      height: auto;
-      object-fit: cover;
+    .g-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 28px 9px 9px;
+      background: linear-gradient(to top, rgba(0,0,0,0.88), transparent);
+      opacity: 0; transition: opacity 0.2s;
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 5px;
     }
+    .g-card:hover .g-overlay { opacity: 1; }
 
-    .gallery-item-overlay {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      padding: 28px 10px 10px;
-      background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
-      opacity: 0;
-      transition: opacity 0.2s;
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 6px;
+    .g-prompt {
+      font-size: 11px; color: rgba(255,255,255,0.9); line-height: 1.4; flex: 1;
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     }
-    .gallery-item:hover .gallery-item-overlay { opacity: 1; }
+    .g-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
-    .gallery-item-prompt {
-      font-size: 11px;
-      color: rgba(255,255,255,0.9);
-      line-height: 1.4;
-      flex: 1;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
+    .g-action-btn {
+      width: 27px; height: 27px; border-radius: 6px; border: none;
+      background: rgba(255,255,255,0.14); backdrop-filter: blur(6px);
+      color: #fff; font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
     }
+    .g-action-btn:hover { background: rgba(255,255,255,0.26); }
+    .g-action-btn.del:hover { background: rgba(239,68,68,0.65); }
 
-    .gallery-item-actions {
-      display: flex;
-      gap: 4px;
-      flex-shrink: 0;
+    .g-badge {
+      position: absolute; top: 7px; right: 7px;
+      padding: 2px 6px; border-radius: 20px;
+      font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+      backdrop-filter: blur(6px);
     }
+    .badge-bfl       { background: rgba(236,72,153,0.22); color: #f472b6; }
+    .badge-fal       { background: rgba(168,85,247,0.22); color: #c084fc; }
+    .badge-replicate { background: rgba(14,165,233,0.22); color: #38bdf8; }
+    .badge-comfyui   { background: rgba(132,204,22,0.22); color: #a3e635; }
+    .badge-unknown   { background: rgba(100,116,139,0.22); color: #94a3b8; }
 
-    .item-action-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      border: none;
-      background: rgba(255,255,255,0.12);
-      backdrop-filter: blur(8px);
-      color: #fff;
-      font-size: 13px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s;
+    /* States */
+    .g-loading, .g-empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 80px 24px; color: var(--text-muted); text-align: center; gap: 14px;
     }
-    .item-action-btn:hover { background: rgba(255,255,255,0.22); }
-    .item-action-btn.danger:hover { background: rgba(239,68,68,0.6); }
+    .g-empty-icon { font-size: 48px; opacity: 0.35; }
+    .g-empty h3 { font-size: 17px; font-weight: 600; color: var(--text-dim); }
+    .g-empty p { font-size: 13px; max-width: 340px; line-height: 1.65; }
+    .g-empty a {
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 6px;
+      padding: 9px 16px; background: var(--accent); border-radius: 8px;
+      color: #fff; font-size: 13px; font-weight: 500; text-decoration: none; transition: opacity 0.15s;
+    }
+    .g-empty a:hover { opacity: 0.85; }
 
-    .gallery-item-badge {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      padding: 2px 7px;
-      border-radius: 20px;
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      backdrop-filter: blur(8px);
-    }
-
-    /* ─── Empty / Loading ─── */
-    .gallery-empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 80px 24px;
-      color: var(--text-muted);
-      text-align: center;
-      gap: 14px;
-    }
-    .gallery-empty-icon { font-size: 52px; opacity: 0.4; }
-    .gallery-empty h3 { font-size: 18px; font-weight: 600; color: var(--text-dim); }
-    .gallery-empty p { font-size: 14px; max-width: 360px; line-height: 1.6; }
-    .gallery-empty a {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 8px;
-      padding: 10px 18px;
-      background: var(--accent);
-      border-radius: 8px;
-      color: #fff;
-      font-size: 13px;
-      font-weight: 500;
-      text-decoration: none;
-      transition: opacity 0.15s;
-    }
-    .gallery-empty a:hover { opacity: 0.85; }
-
-    .gallery-loading {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 80px 24px;
-      gap: 16px;
-      color: var(--text-muted);
-    }
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
+    .spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.75s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ─── Lightbox ─── */
-    .lightbox {
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      background: rgba(0,0,0,0.92);
-      backdrop-filter: blur(4px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      animation: lbIn 0.2s ease both;
+    /* Lightbox */
+    .lb {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.93); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; padding: 16px;
     }
-    .lightbox.open { display: flex; }
-    @keyframes lbIn { from { opacity:0; } to { opacity:1; } }
+    .lb.open { display: flex; animation: lbFade 0.18s ease both; }
+    @keyframes lbFade { from { opacity:0; } to { opacity:1; } }
 
-    .lightbox-inner {
-      display: flex;
-      gap: 20px;
-      max-width: 1100px;
-      width: 100%;
-      max-height: 90vh;
-      align-items: flex-start;
+    .lb-inner { display: flex; gap: 18px; max-width: 1080px; width: 100%; max-height: 92vh; align-items: flex-start; }
+
+    .lb-img-wrap { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; }
+    .lb-img { max-width: 100%; max-height: 82vh; border-radius: 10px; object-fit: contain; box-shadow: 0 24px 80px rgba(0,0,0,0.85); transition: opacity 0.2s; }
+
+    .lb-panel {
+      width: 260px; flex-shrink: 0;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px; display: flex; flex-direction: column; gap: 12px;
+      max-height: 82vh; overflow-y: auto;
     }
-
-    .lightbox-img-wrap {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .lightbox-img {
-      max-width: 100%;
-      max-height: 80vh;
-      border-radius: 10px;
-      object-fit: contain;
-      box-shadow: 0 24px 80px rgba(0,0,0,0.8);
-      animation: imgIn 0.25s ease both;
-    }
-    @keyframes imgIn { from { transform: scale(0.96); opacity:0; } to { transform: scale(1); opacity:1; } }
-
-    .lightbox-panel {
-      width: 280px;
-      flex-shrink: 0;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-
-    .lb-panel-title {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
-    }
-
-    .lb-prompt {
-      font-size: 13px;
-      color: var(--text-main);
-      line-height: 1.6;
-      word-break: break-word;
-    }
-
-    .lb-meta-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .lb-meta-val { color: var(--text-dim); font-weight: 500; }
-
+    .lb-panel-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+    .lb-prompt-txt { font-size: 13px; color: var(--text-main); line-height: 1.6; word-break: break-word; }
     .lb-divider { border: none; border-top: 1px solid var(--border); }
-
-    .lb-actions { display: flex; flex-direction: column; gap: 8px; }
-
+    .lb-meta { display: flex; flex-direction: column; gap: 5px; }
+    .lb-meta-row { display: flex; justify-content: space-between; font-size: 12px; }
+    .lb-meta-key { color: var(--text-muted); }
+    .lb-meta-val { color: var(--text-dim); font-weight: 500; text-align: right; max-width: 140px; word-break: break-word; }
+    .lb-actions { display: flex; flex-direction: column; gap: 7px; }
     .lb-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 14px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--bg-hover);
-      color: var(--text-main);
-      font-size: 13px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.15s;
-      width: 100%;
+      display: flex; align-items: center; gap: 7px; padding: 8px 13px;
+      border-radius: 8px; border: 1px solid var(--border); background: var(--bg-hover);
+      color: var(--text-main); font-size: 12px; font-family: inherit; cursor: pointer; transition: all 0.15s; width: 100%;
     }
     .lb-btn:hover { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.3); color: #a5b4fc; }
     .lb-btn.danger { color: var(--danger); }
     .lb-btn.danger:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
 
-    .lightbox-close {
-      position: fixed;
-      top: 18px;
-      right: 22px;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-      color: var(--text-dim);
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 210;
-      transition: all 0.15s;
-    }
-    .lightbox-close:hover { background: var(--bg-hover); color: var(--text-main); }
+    .lb-close { position: fixed; top: 16px; right: 18px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-dim); font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 210; transition: all 0.15s; }
+    .lb-close:hover { background: var(--bg-hover); color: var(--text-main); }
+    .lb-nav { position: fixed; top: 50%; transform: translateY(-50%); width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-dim); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 210; transition: all 0.15s; }
+    .lb-nav:hover { background: var(--bg-hover); color: var(--text-main); }
+    .lb-prev { left: 14px; }
+    .lb-next { right: 14px; }
 
-    .lightbox-nav {
-      position: fixed;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-      color: var(--text-dim);
-      font-size: 20px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 210;
-      transition: all 0.15s;
-    }
-    .lightbox-nav:hover { background: var(--bg-hover); color: var(--text-main); }
-    .lightbox-nav.prev { left: 16px; }
-    .lightbox-nav.next { right: 16px; }
-    @media (max-width: 700px) {
-      .lightbox-inner { flex-direction: column; }
-      .lightbox-panel { width: 100%; max-height: 40vh; }
-    }
+    @media (max-width: 680px) { .lb-inner { flex-direction: column; } .lb-panel { width: 100%; max-height: none; } }
 
-    /* ─── Provider colors ─── */
-    .badge-bfl      { background: rgba(236,72,153,0.2); color: #f472b6; }
-    .badge-fal      { background: rgba(168,85,247,0.2); color: #c084fc; }
-    .badge-replicate{ background: rgba(14,165,233,0.2); color: #38bdf8; }
-    .badge-comfyui  { background: rgba(132,204,22,0.2); color: #a3e635; }
-    .badge-default  { background: rgba(100,116,139,0.2); color: #94a3b8; }
-
-    /* ─── Toast ─── */
-    .gallery-toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(60px);
-      background: #1e2330;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 16px;
-      font-size: 13px;
-      color: var(--text-main);
-      z-index: 300;
-      transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), opacity 0.25s;
-      opacity: 0;
-      pointer-events: none;
-      white-space: nowrap;
+    /* Toast */
+    .g-toast {
+      position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(50px);
+      background: #1e2330; border: 1px solid var(--border); border-radius: 8px;
+      padding: 9px 15px; font-size: 13px; color: var(--text-main); z-index: 300;
+      transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), opacity 0.25s; opacity: 0; pointer-events: none; white-space: nowrap;
     }
-    .gallery-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .g-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <header class="gallery-header">
-    <div class="gallery-header-left">
-      <a href="index.html" class="back-btn">← Back</a>
-      <div class="gallery-title">
-        🖼 Media Gallery
-        <span class="gallery-count" id="gallery-count">0</span>
-      </div>
+<!-- Header -->
+<header class="g-header">
+  <div class="g-header-left">
+    <a href="index.html" class="back-btn">← Back</a>
+    <div class="g-title">🖼 Media Gallery <span class="g-count" id="g-count">0</span></div>
+  </div>
+  <div class="g-header-right">
+    <div class="g-search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="g-search" id="g-search" type="search" placeholder="Search prompts…" autocomplete="off" />
     </div>
-    <div class="gallery-header-right">
-      <div class="gallery-search-wrap">
-        <span class="search-icon">🔍</span>
-        <input class="gallery-search" id="gallery-search"
-               type="search" placeholder="Search prompts…"
-               autocomplete="off" />
-      </div>
-      <button class="filter-btn active" data-filter="all" id="filter-all">All</button>
-      <button class="filter-btn" data-filter="bfl" id="filter-bfl">BFL</button>
-      <button class="filter-btn" data-filter="fal" id="filter-fal">fal.ai</button>
-      <button class="filter-btn" data-filter="replicate" id="filter-replicate">Replicate</button>
-      <select class="sort-select" id="sort-select">
-        <option value="newest">Newest first</option>
-        <option value="oldest">Oldest first</option>
-        <option value="provider">By provider</option>
-      </select>
-    </div>
-  </header>
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="bfl">BFL</button>
+    <button class="filter-btn" data-filter="fal">fal.ai</button>
+    <button class="filter-btn" data-filter="replicate">Replicate</button>
+    <button class="filter-btn" data-filter="comfyui">ComfyUI</button>
+    <select class="sort-select" id="g-sort">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+      <option value="provider">By provider</option>
+    </select>
+  </div>
+</header>
 
-  <!-- Body -->
-  <main class="gallery-body">
-    <div id="gallery-loading" class="gallery-loading">
-      <div class="spinner"></div>
-      <span>Loading your media…</span>
-    </div>
-    <div class="gallery-grid" id="gallery-grid" style="display:none"></div>
-    <div id="gallery-empty" class="gallery-empty" style="display:none">
-      <div class="gallery-empty-icon">🖼</div>
-      <h3>No images yet</h3>
-      <p>Use the <strong>/imagine</strong> command or the 🎨 button in the chat composer to generate your first image.</p>
-      <a href="index.html">← Go to Chat</a>
-    </div>
-  </main>
+<main class="g-body">
+  <div id="g-loading" class="g-loading"><div class="spinner"></div><span>Loading media…</span></div>
+  <div class="g-grid" id="g-grid" style="display:none"></div>
+  <div id="g-empty" class="g-empty" style="display:none">
+    <div class="g-empty-icon">🖼</div>
+    <h3>No images yet</h3>
+    <p>Use the <strong>/imagine</strong> command or the 🎨 button in the chat to generate images. They'll appear here automatically.</p>
+    <a href="index.html">← Go to Chat</a>
+  </div>
+</main>
 
-  <!-- Lightbox -->
-  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
-    <button class="lightbox-close" id="lb-close" title="Close (Esc)">✕</button>
-    <button class="lightbox-nav prev" id="lb-prev" title="Previous (←)">‹</button>
-    <button class="lightbox-nav next" id="lb-next" title="Next (→)">›</button>
-    <div class="lightbox-inner">
-      <div class="lightbox-img-wrap">
-        <img class="lightbox-img" id="lb-img" src="" alt="" />
+<!-- Lightbox -->
+<div class="lb" id="lb">
+  <button class="lb-close" id="lb-close">✕</button>
+  <button class="lb-nav lb-prev" id="lb-prev">‹</button>
+  <button class="lb-nav lb-next" id="lb-next">›</button>
+  <div class="lb-inner">
+    <div class="lb-img-wrap">
+      <img class="lb-img" id="lb-img" src="" alt="" />
+    </div>
+    <div class="lb-panel">
+      <div class="lb-panel-label">Prompt</div>
+      <div class="lb-prompt-txt" id="lb-prompt">—</div>
+      <hr class="lb-divider" />
+      <div class="lb-meta">
+        <div class="lb-meta-row"><span class="lb-meta-key">Provider</span><span class="lb-meta-val" id="lb-provider">—</span></div>
+        <div class="lb-meta-row"><span class="lb-meta-key">Model</span><span class="lb-meta-val" id="lb-model">—</span></div>
+        <div class="lb-meta-row"><span class="lb-meta-key">Size</span><span class="lb-meta-val" id="lb-size">—</span></div>
+        <div class="lb-meta-row"><span class="lb-meta-key">Seed</span><span class="lb-meta-val" id="lb-seed">—</span></div>
+        <div class="lb-meta-row"><span class="lb-meta-key">Generated</span><span class="lb-meta-val" id="lb-date">—</span></div>
+        <div class="lb-meta-row"><span class="lb-meta-key">Session</span><span class="lb-meta-val" id="lb-session">—</span></div>
       </div>
-      <div class="lightbox-panel">
-        <div class="lb-panel-title">Prompt</div>
-        <div class="lb-prompt" id="lb-prompt">—</div>
-        <hr class="lb-divider" />
-        <div>
-          <div class="lb-meta-row" style="margin-bottom:6px">
-            <span>Provider</span>
-            <span class="lb-meta-val" id="lb-provider">—</span>
-          </div>
-          <div class="lb-meta-row" style="margin-bottom:6px">
-            <span>Model</span>
-            <span class="lb-meta-val" id="lb-model">—</span>
-          </div>
-          <div class="lb-meta-row" style="margin-bottom:6px">
-            <span>Size</span>
-            <span class="lb-meta-val" id="lb-size">—</span>
-          </div>
-          <div class="lb-meta-row" style="margin-bottom:6px">
-            <span>Seed</span>
-            <span class="lb-meta-val" id="lb-seed">—</span>
-          </div>
-          <div class="lb-meta-row">
-            <span>Generated</span>
-            <span class="lb-meta-val" id="lb-date">—</span>
-          </div>
-        </div>
-        <hr class="lb-divider" />
-        <div class="lb-actions">
-          <button class="lb-btn" id="lb-copy-prompt">📋 Copy prompt</button>
-          <button class="lb-btn" id="lb-download">⬇ Download image</button>
-          <button class="lb-btn danger" id="lb-delete">🗑 Delete</button>
-        </div>
+      <hr class="lb-divider" />
+      <div class="lb-actions">
+        <button class="lb-btn" id="lb-copy">📋 Copy prompt</button>
+        <button class="lb-btn" id="lb-dl">⬇ Download image</button>
+        <button class="lb-btn danger" id="lb-del">🗑 Delete</button>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Toast -->
-  <div class="gallery-toast" id="gallery-toast"></div>
+<div class="g-toast" id="g-toast"></div>
 
-  <script>
-    // ── IndexedDB mirror of ImageDb in app.js ────────────────────────────────
-    const ImageDb = (() => {
-      const DB_NAME    = 'async_ai_images';
-      const DB_VERSION = 1;
-      const STORE      = 'images';
-      let dbP = null;
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// IndexedDB — mirrors app.js ImageDb exactly (same DB_NAME, STORE_NAME)
+// ─────────────────────────────────────────────────────────────────────────────
+const ImageDb = (() => {
+  const DB_NAME = 'async_ai_images', STORE = 'images';
+  let _db = null;
 
-      function open() {
-        if (dbP) return dbP;
-        dbP = new Promise((res, rej) => {
-          const r = indexedDB.open(DB_NAME, DB_VERSION);
-          r.onupgradeneeded = e => {
-            if (!e.target.result.objectStoreNames.contains(STORE))
-              e.target.result.createObjectStore(STORE);
-          };
-          r.onsuccess = e => res(e.target.result);
-          r.onerror   = e => rej(e.target.error);
-        });
-        return dbP;
-      }
+  function open() {
+    if (_db) return Promise.resolve(_db);
+    return new Promise((res, rej) => {
+      const r = indexedDB.open(DB_NAME, 1);
+      r.onupgradeneeded = e => {
+        if (!e.target.result.objectStoreNames.contains(STORE))
+          e.target.result.createObjectStore(STORE);
+      };
+      r.onsuccess = e => { _db = e.target.result; res(_db); };
+      r.onerror   = e => rej(e.target.error);
+    });
+  }
 
-      async function get(key) {
-        const db = await open();
-        return new Promise((res, rej) => {
-          const req = db.transaction(STORE,'readonly').objectStore(STORE).get(key);
-          req.onsuccess = () => res(req.result);
-          req.onerror   = () => rej(req.error);
-        });
-      }
+  async function tx(mode, fn) {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const t = db.transaction(STORE, mode);
+      const s = t.objectStore(STORE);
+      const r = fn(s);
+      r.onsuccess = () => res(r.result);
+      r.onerror   = () => rej(r.error);
+    });
+  }
 
-      async function del(key) {
-        const db = await open();
-        return new Promise((res, rej) => {
-          const req = db.transaction(STORE,'readwrite').objectStore(STORE).delete(key);
-          req.onsuccess = () => res();
-          req.onerror   = () => rej(req.error);
-        });
-      }
+  return {
+    get:      key  => tx('readonly',  s => s.get(key)),
+    del:      key  => tx('readwrite', s => s.delete(key)),
+    getAllKeys: ()  => tx('readonly',  s => s.getAllKeys()),
+    getAll:    ()  => tx('readonly',  s => s.getAll()),
+  };
+})();
 
-      async function getAllKeys() {
-        const db = await open();
-        return new Promise((res, rej) => {
-          const req = db.transaction(STORE,'readonly').objectStore(STORE).getAllKeys();
-          req.onsuccess = () => res(req.result);
-          req.onerror   = () => rej(req.error);
-        });
-      }
+// ─────────────────────────────────────────────────────────────────────────────
+// Parse ALL image items from sessions + IndexedDB
+// ─────────────────────────────────────────────────────────────────────────────
 
-      return { get, del, getAllKeys };
-    })();
+// All localStorage keys that may hold session data (including legacy keys)
+const SESSION_LS_KEYS = [
+  'async_ai_v2',          // current key (app.js STORAGE_KEY)
+  'async_ai_v1',          // v1 legacy
+  'claude_power_ui_v2',   // pre-rebrand legacy
+  'claude_power_ui_v1',
+  'cpu_sessions',         // even older
+  'async_sessions',
+];
 
-    // ── Parse sessions from localStorage ─────────────────────────────────────
-    function parseGalleryItems() {
-      const items = [];
-      const seen  = new Set();
+function extractImageItems(sessions) {
+  const items = [];
+  const seen  = new Set();
 
-      // Read sessions from localStorage (same key used by app.js saveState)
-      let sessions = [];
-      try {
-        const raw = localStorage.getItem('cpu_sessions') || localStorage.getItem('async_sessions');
-        if (raw) sessions = JSON.parse(raw);
-      } catch (_) {}
+  for (const sess of (sessions || [])) {
+    const sessionName = sess.title || sess.name || 'Chat';
+    const sessionId   = sess.id   || '';
 
-      for (const sess of sessions) {
-        for (const msg of (sess.messages || [])) {
-          const c = msg.content || '';
+    for (const msg of (sess.messages || [])) {
+      const c  = typeof msg.content === 'string' ? msg.content : '';
+      const ts = msg.timestamp || 0;
 
-          // Direct /imagine messages: __IMAGE__:{...}
-          const imgMatch = c.match(/^__IMAGE__:(.+)$/s);
-          if (imgMatch) {
-            try {
-              const data = JSON.parse(imgMatch[1]);
-              const key  = (data.src || '').replace('db:', '');
-              if (key && !seen.has(key)) {
-                seen.add(key);
-                items.push({
-                  dbKey:    key,
-                  src:      data.src,
-                  prompt:   data.prompt   || '',
-                  provider: data.provider || 'unknown',
-                  model:    data.model    || '',
-                  width:    data.width    || null,
-                  height:   data.height   || null,
-                  seed:     data.seed     || null,
-                  timingS:  data.timingS  || null,
-                  ts:       msg.timestamp || msg.id || 0,
-                  sessionName: sess.title || sess.name || 'Chat',
-                  // batch images
-                  batchImages: (data.images || []).map((bi, i) => ({
-                    dbKey: (bi.src || '').replace('db:', ''),
-                    src:   bi.src,
-                    seed:  bi.seed,
-                    prompt:   data.prompt,
-                    provider: data.provider,
-                    model:    data.model,
-                    width:    data.width,
-                    height:   data.height,
-                    ts:       msg.timestamp || msg.id || 0,
-                    sessionName: sess.title || sess.name || 'Chat',
-                  }))
-                });
-                // Push batch images as individual items too
-                for (const bi of (data.images || [])) {
-                  const bKey = (bi.src || '').replace('db:', '');
-                  if (bKey && !seen.has(bKey)) {
-                    seen.add(bKey);
-                    items.push({
-                      dbKey: bKey,
-                      src: bi.src,
-                      prompt: data.prompt || '',
-                      provider: data.provider || 'unknown',
-                      model: data.model || '',
-                      width: data.width || null,
-                      height: data.height || null,
-                      seed: bi.seed || null,
-                      ts: msg.timestamp || msg.id || 0,
-                      sessionName: sess.title || sess.name || 'Chat',
-                      batchImages: []
-                    });
-                  }
-                }
-              }
-            } catch (_) {}
+      // ── __IMAGE__:{...} — generated via /imagine or toolbar ──────────────
+      if (c.startsWith('__IMAGE__:')) {
+        try {
+          const data = JSON.parse(c.slice('__IMAGE__:'.length));
+          addItem(items, seen, { data, ts, sessionName, sessionId });
+
+          // Batch images embedded in same message
+          for (const bi of (data.images || [])) {
+            addItem(items, seen, {
+              data: { ...data, src: bi.src, seed: bi.seed, images: [] },
+              ts, sessionName, sessionId
+            });
           }
+        } catch (_) {}
+      }
 
-          // Tool-use image results: __TOOL_IMAGE__:{...}
-          const toolMatch = c.match(/^__TOOL_IMAGE__:(.+)$/s);
-          if (toolMatch) {
+      // ── __TOOL_IMAGE__:{...} — generated via AI tool use ─────────────────
+      if (c.startsWith('__TOOL_IMAGE__:')) {
+        try {
+          const data = JSON.parse(c.slice('__TOOL_IMAGE__:'.length));
+          addItem(items, seen, { data, ts, sessionName, sessionId });
+        } catch (_) {}
+      }
+
+      // ── scan assistant message parts for embedded image blocks ───────────
+      // Sometimes content is an array of parts
+      if (Array.isArray(msg.content)) {
+        for (const part of msg.content) {
+          const pc = typeof part === 'string' ? part : (part?.text || '');
+          if (pc.startsWith('__IMAGE__:')) {
             try {
-              const data = JSON.parse(toolMatch[1]);
-              const key  = (data.src || '').replace('db:', '');
-              if (key && !seen.has(key)) {
-                seen.add(key);
-                items.push({
-                  dbKey: key,
-                  src: data.src,
-                  prompt: data.prompt || '',
-                  provider: data.provider || 'unknown',
-                  model: data.model || '',
-                  width: data.width || null,
-                  height: data.height || null,
-                  seed: data.seed || null,
-                  ts: msg.timestamp || 0,
-                  sessionName: sess.title || sess.name || 'Chat',
-                  batchImages: []
-                });
-              }
+              const data = JSON.parse(pc.slice('__IMAGE__:'.length));
+              addItem(items, seen, { data, ts, sessionName, sessionId });
             } catch (_) {}
           }
         }
       }
-
-      // Also scan IndexedDB keys not found in sessions (orphaned images)
-      return items;
     }
+  }
 
-    // ── Globals ───────────────────────────────────────────────────────────────
-    let allItems    = [];   // {dbKey, src, prompt, provider, ...}
-    let filtered    = [];   // currently visible items
-    let activeFilter = 'all';
-    let activeSort   = 'newest';
-    let searchQuery  = '';
-    let lbIndex      = 0;  // lightbox current index into filtered[]
+  return items;
+}
 
-    // ── Load and render ───────────────────────────────────────────────────────
-    async function loadGallery() {
-      const grid    = document.getElementById('gallery-grid');
-      const loading = document.getElementById('gallery-loading');
-      const empty   = document.getElementById('gallery-empty');
+function addItem(items, seen, { data, ts, sessionName, sessionId }) {
+  if (!data || !data.src) return;
+  const key = data.src.startsWith('db:') ? data.src.slice(3) : data.src;
+  if (!key || seen.has(key)) return;
+  seen.add(key);
+  items.push({
+    dbKey:       key,
+    isDb:        data.src.startsWith('db:'),
+    url:         data.src.startsWith('db:') ? null : data.src,
+    prompt:      data.prompt   || '',
+    provider:    data.provider || 'unknown',
+    model:       data.model    || '',
+    width:       data.width    || null,
+    height:      data.height   || null,
+    seed:        data.seed     ?? null,
+    timingS:     data.timingS  || null,
+    ts,
+    sessionName,
+    sessionId,
+  });
+}
 
-      allItems = parseGalleryItems();
+async function loadAllItems() {
+  const items = [];
+  const seen  = new Set();
 
-      // For items with db: src, check they actually exist in IndexedDB
-      const dbKeys = new Set(await ImageDb.getAllKeys().catch(() => []));
-      allItems = allItems.filter(item => {
-        if (!item.src) return false;
-        if (item.src.startsWith('db:')) return dbKeys.has(item.dbKey);
-        return true; // URL-based image, keep it
-      });
-
-      loading.style.display = 'none';
-
-      applyFiltersAndRender();
-    }
-
-    function applyFiltersAndRender() {
-      const grid  = document.getElementById('gallery-grid');
-      const empty = document.getElementById('gallery-empty');
-
-      let items = [...allItems];
-
-      // Filter by provider
-      if (activeFilter !== 'all') {
-        items = items.filter(i => i.provider === activeFilter);
+  // ── PHASE 1: scan all localStorage session keys ──────────────────────────
+  for (const lsKey of SESSION_LS_KEYS) {
+    try {
+      const raw = localStorage.getItem(lsKey);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      // State blob has {sessions:[...]}; or might be a bare array
+      const sessions = Array.isArray(parsed) ? parsed : (parsed.sessions || []);
+      const found = extractImageItems(sessions);
+      for (const item of found) {
+        if (!seen.has(item.dbKey)) { seen.add(item.dbKey); items.push(item); }
       }
+    } catch (_) {}
+  }
 
-      // Filter by search
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        items = items.filter(i =>
-          (i.prompt || '').toLowerCase().includes(q) ||
-          (i.provider || '').toLowerCase().includes(q) ||
-          (i.model || '').toLowerCase().includes(q)
-        );
-      }
+  // ── PHASE 2: scan IndexedDB for ALL keys — picks up any orphaned images ──
+  // (images that exist in IDB but whose session was deleted / never parsed)
+  let allDbKeys = [];
+  try { allDbKeys = await ImageDb.getAllKeys(); } catch (_) {}
 
-      // Sort
-      if (activeSort === 'newest') items.sort((a, b) => tsOf(b) - tsOf(a));
-      else if (activeSort === 'oldest') items.sort((a, b) => tsOf(a) - tsOf(b));
-      else if (activeSort === 'provider') items.sort((a, b) => a.provider.localeCompare(b.provider));
+  const sessionDbKeys = new Set(items.filter(i => i.isDb).map(i => i.dbKey));
 
-      filtered = items;
+  for (const key of allDbKeys) {
+    if (seen.has(key)) continue;          // already captured from sessions
+    if (sessionDbKeys.has(key)) continue; // already in list
 
-      document.getElementById('gallery-count').textContent = items.length;
+    // Orphaned — no session metadata, but image exists in IDB
+    const keyStr = String(key);
+    // Try to parse a timestamp from the key (img_1720000000000_abc format)
+    let ts = 0;
+    const tsMatch = keyStr.match(/img_(\d+)/);
+    if (tsMatch) ts = parseInt(tsMatch[1], 10);
 
-      if (items.length === 0) {
-        grid.style.display  = 'none';
-        empty.style.display = 'flex';
-        return;
-      }
-
-      empty.style.display = 'none';
-      grid.style.display  = 'block';
-      grid.innerHTML      = '';
-
-      items.forEach((item, idx) => {
-        const card = buildCard(item, idx);
-        grid.appendChild(card);
-      });
-    }
-
-    function tsOf(item) {
-      // ts might be a number (ms) or ISO string or message id like "msg_..."
-      if (!item.ts) return 0;
-      const n = Number(item.ts);
-      if (!isNaN(n)) return n;
-      const d = new Date(item.ts);
-      return isNaN(d) ? 0 : d.getTime();
-    }
-
-    function buildCard(item, idx) {
-      const card = document.createElement('div');
-      card.className = 'gallery-item';
-      card.dataset.index = idx;
-
-      const provClass = `badge-${item.provider || 'default'}`;
-      const provLabel = item.provider || '?';
-
-      // Image element — loads lazily
-      const img = document.createElement('img');
-      img.alt      = item.prompt || 'Generated image';
-      img.loading  = 'lazy';
-      img.style.opacity = '0';
-      img.style.transition = 'opacity 0.3s';
-      img.onload = () => { img.style.opacity = '1'; };
-
-      if (item.src && item.src.startsWith('db:')) {
-        ImageDb.get(item.dbKey).then(dataUrl => {
-          if (dataUrl) img.src = dataUrl;
-        }).catch(() => {});
-      } else {
-        img.src = item.src;
-      }
-
-      const overlay = document.createElement('div');
-      overlay.className = 'gallery-item-overlay';
-      overlay.innerHTML = `
-        <div class="gallery-item-prompt">${esc(item.prompt)}</div>
-        <div class="gallery-item-actions">
-          <button class="item-action-btn" title="Copy prompt" onclick="event.stopPropagation(); copyPrompt(${idx})">📋</button>
-          <button class="item-action-btn" title="Download" onclick="event.stopPropagation(); downloadItem(${idx})">⬇</button>
-          <button class="item-action-btn danger" title="Delete" onclick="event.stopPropagation(); deleteItem(${idx})">🗑</button>
-        </div>
-      `;
-
-      const badge = document.createElement('div');
-      badge.className = `gallery-item-badge ${provClass}`;
-      badge.textContent = provLabel.toUpperCase();
-
-      card.appendChild(img);
-      card.appendChild(overlay);
-      card.appendChild(badge);
-
-      card.addEventListener('click', () => openLightbox(idx));
-
-      return card;
-    }
-
-    function esc(str) {
-      return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    // ── Lightbox ──────────────────────────────────────────────────────────────
-    async function openLightbox(idx) {
-      lbIndex = idx;
-      const lb  = document.getElementById('lightbox');
-      lb.classList.add('open');
-      document.body.style.overflow = 'hidden';
-      await renderLightboxItem();
-    }
-
-    function closeLightbox() {
-      document.getElementById('lightbox').classList.remove('open');
-      document.body.style.overflow = '';
-      document.getElementById('lb-img').src = '';
-    }
-
-    async function renderLightboxItem() {
-      const item = filtered[lbIndex];
-      if (!item) return;
-
-      const lbImg = document.getElementById('lb-img');
-      lbImg.style.opacity = '0';
-
-      if (item.src && item.src.startsWith('db:')) {
-        const dataUrl = await ImageDb.get(item.dbKey).catch(() => null);
-        lbImg.src = dataUrl || '';
-      } else {
-        lbImg.src = item.src || '';
-      }
-
-      lbImg.onload = () => { lbImg.style.opacity = '1'; lbImg.style.transition = 'opacity 0.2s'; };
-
-      document.getElementById('lb-prompt').textContent   = item.prompt || '—';
-      document.getElementById('lb-provider').textContent = item.provider || '—';
-      document.getElementById('lb-model').textContent    = item.model   || '—';
-      document.getElementById('lb-size').textContent     =
-        item.width && item.height ? `${item.width} × ${item.height}` : '—';
-      document.getElementById('lb-seed').textContent     = item.seed ?? '—';
-
-      const d = tsOf(item);
-      document.getElementById('lb-date').textContent = d
-        ? new Date(d).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' })
-        : '—';
-
-      // Prev/Next visibility
-      document.getElementById('lb-prev').style.visibility = lbIndex > 0 ? 'visible' : 'hidden';
-      document.getElementById('lb-next').style.visibility = lbIndex < filtered.length - 1 ? 'visible' : 'hidden';
-    }
-
-    // ── Actions ───────────────────────────────────────────────────────────────
-    async function getItemDataUrl(idx) {
-      const item = filtered[idx];
-      if (!item) return null;
-      if (item.src && item.src.startsWith('db:')) {
-        return await ImageDb.get(item.dbKey).catch(() => null);
-      }
-      return item.src;
-    }
-
-    async function downloadItem(idx) {
-      const dataUrl = await getItemDataUrl(idx);
-      if (!dataUrl) { showToast('Image not found'); return; }
-      const a = document.createElement('a');
-      a.href     = dataUrl;
-      a.download = `async-${filtered[idx].provider}-${Date.now()}.png`;
-      a.click();
-    }
-
-    function copyPrompt(idx) {
-      const item = filtered[idx];
-      if (!item) return;
-      navigator.clipboard.writeText(item.prompt || '').then(() => showToast('✓ Prompt copied'));
-    }
-
-    async function deleteItem(idx) {
-      const item = filtered[idx];
-      if (!item) return;
-      if (!confirm(`Delete this image?\n\n"${(item.prompt || '').slice(0, 100)}"`)) return;
-
-      // Delete from IndexedDB
-      if (item.dbKey) {
-        await ImageDb.del(item.dbKey).catch(() => {});
-      }
-
-      // Remove from allItems
-      const globalIdx = allItems.findIndex(i => i.dbKey === item.dbKey && i.src === item.src);
-      if (globalIdx !== -1) allItems.splice(globalIdx, 1);
-
-      // Close lightbox if open
-      const lb = document.getElementById('lightbox');
-      if (lb.classList.contains('open')) closeLightbox();
-
-      applyFiltersAndRender();
-      showToast('🗑 Image deleted');
-    }
-
-    // ── Toast ─────────────────────────────────────────────────────────────────
-    let toastTimer = null;
-    function showToast(msg) {
-      const el = document.getElementById('gallery-toast');
-      el.textContent = msg;
-      el.classList.add('show');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
-    }
-
-    // ── Event wiring ──────────────────────────────────────────────────────────
-    document.getElementById('lb-close').addEventListener('click', closeLightbox);
-    document.getElementById('lightbox').addEventListener('click', e => {
-      if (e.target === document.getElementById('lightbox')) closeLightbox();
+    seen.add(key);
+    items.push({
+      dbKey:    key,
+      isDb:     true,
+      url:      null,
+      prompt:   '',
+      provider: guessProviderFromKey(keyStr),
+      model:    '',
+      width:    null, height: null, seed: null, timingS: null,
+      ts,
+      sessionName: 'Unknown session',
+      sessionId: '',
     });
+  }
 
-    document.getElementById('lb-prev').addEventListener('click', e => {
-      e.stopPropagation();
-      if (lbIndex > 0) { lbIndex--; renderLightboxItem(); }
-    });
-    document.getElementById('lb-next').addEventListener('click', e => {
-      e.stopPropagation();
-      if (lbIndex < filtered.length - 1) { lbIndex++; renderLightboxItem(); }
-    });
+  // ── PHASE 3: validate — remove items whose IDB entry no longer exists ─────
+  const dbKeySet = new Set(allDbKeys.map(k => String(k)));
+  return items.filter(item => {
+    if (!item.isDb) return !!item.url;  // URL-based: keep if has URL
+    return dbKeySet.has(String(item.dbKey));
+  });
+}
 
-    document.getElementById('lb-copy-prompt').addEventListener('click', () => copyPrompt(lbIndex));
-    document.getElementById('lb-download').addEventListener('click', () => downloadItem(lbIndex));
-    document.getElementById('lb-delete').addEventListener('click', () => deleteItem(lbIndex));
+function guessProviderFromKey(key) {
+  if (key.includes('bfl'))       return 'bfl';
+  if (key.includes('fal'))       return 'fal';
+  if (key.includes('replicate')) return 'replicate';
+  if (key.includes('comfy'))     return 'comfyui';
+  return 'unknown';
+}
 
-    // Keyboard nav
-    document.addEventListener('keydown', e => {
-      const lb = document.getElementById('lightbox');
-      if (!lb.classList.contains('open')) return;
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowLeft'  && lbIndex > 0) { lbIndex--; renderLightboxItem(); }
-      if (e.key === 'ArrowRight' && lbIndex < filtered.length - 1) { lbIndex++; renderLightboxItem(); }
-    });
+// ─────────────────────────────────────────────────────────────────────────────
+// State & rendering
+// ─────────────────────────────────────────────────────────────────────────────
+let allItems     = [];
+let filtered     = [];
+let activeFilter = 'all';
+let activeSort   = 'newest';
+let searchQuery  = '';
+let lbIdx        = 0;
 
-    // Filter buttons
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        activeFilter = btn.dataset.filter;
-        applyFiltersAndRender();
-      });
-    });
+async function loadGallery() {
+  const loading = document.getElementById('g-loading');
+  const grid    = document.getElementById('g-grid');
+  const empty   = document.getElementById('g-empty');
 
-    // Sort
-    document.getElementById('sort-select').addEventListener('change', e => {
-      activeSort = e.target.value;
-      applyFiltersAndRender();
-    });
+  try {
+    allItems = await loadAllItems();
+  } catch (e) {
+    console.error('Gallery load error:', e);
+    allItems = [];
+  }
 
-    // Search (debounced)
-    let searchTimer = null;
-    document.getElementById('gallery-search').addEventListener('input', e => {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        searchQuery = e.target.value.trim();
-        applyFiltersAndRender();
-      }, 200);
-    });
+  loading.style.display = 'none';
+  render();
+}
 
-    // ── Boot ──────────────────────────────────────────────────────────────────
-    loadGallery();
-  </script>
+function render() {
+  const grid  = document.getElementById('g-grid');
+  const empty = document.getElementById('g-empty');
+
+  let items = [...allItems];
+
+  if (activeFilter !== 'all')
+    items = items.filter(i => i.provider === activeFilter);
+
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    items = items.filter(i =>
+      (i.prompt || '').toLowerCase().includes(q) ||
+      (i.provider || '').toLowerCase().includes(q) ||
+      (i.model || '').toLowerCase().includes(q) ||
+      (i.sessionName || '').toLowerCase().includes(q)
+    );
+  }
+
+  if (activeSort === 'newest') items.sort((a, b) => b.ts - a.ts);
+  else if (activeSort === 'oldest') items.sort((a, b) => a.ts - b.ts);
+  else items.sort((a, b) => (a.provider || '').localeCompare(b.provider || ''));
+
+  filtered = items;
+  document.getElementById('g-count').textContent = items.length;
+
+  if (!items.length) {
+    grid.style.display  = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+
+  empty.style.display = 'none';
+  grid.style.display  = 'block';
+  grid.innerHTML      = '';
+
+  items.forEach((item, i) => grid.appendChild(buildCard(item, i)));
+}
+
+function buildCard(item, idx) {
+  const card = document.createElement('div');
+  card.className   = 'g-card';
+  card.dataset.idx = idx;
+
+  // Image
+  const img = document.createElement('img');
+  img.alt    = item.prompt || 'Generated image';
+  img.style.opacity = '0';
+
+  loadImg(item).then(src => {
+    if (src) { img.src = src; img.onload = () => { img.style.opacity = '1'; }; }
+    else { card.style.display = 'none'; } // hide if image actually missing
+  });
+
+  // Overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'g-overlay';
+  overlay.innerHTML = `
+    <div class="g-prompt">${esc(item.prompt || '(no prompt)')}</div>
+    <div class="g-actions">
+      <button class="g-action-btn" title="Copy prompt">📋</button>
+      <button class="g-action-btn" title="Download">⬇</button>
+      <button class="g-action-btn del" title="Delete">🗑</button>
+    </div>
+  `;
+
+  overlay.querySelectorAll('.g-action-btn')[0].onclick = e => { e.stopPropagation(); copyPrompt(idx); };
+  overlay.querySelectorAll('.g-action-btn')[1].onclick = e => { e.stopPropagation(); downloadItem(idx); };
+  overlay.querySelectorAll('.g-action-btn')[2].onclick = e => { e.stopPropagation(); deleteItem(idx); };
+
+  // Badge
+  const badge = document.createElement('div');
+  badge.className = `g-badge badge-${item.provider || 'unknown'}`;
+  badge.textContent = (item.provider || '?').toUpperCase();
+
+  card.appendChild(img);
+  card.appendChild(overlay);
+  card.appendChild(badge);
+  card.addEventListener('click', () => openLb(idx));
+  return card;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Image loading helper
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadImg(item) {
+  if (!item.isDb) return item.url || null;
+  try {
+    const data = await ImageDb.get(item.dbKey);
+    return data || null;
+  } catch (_) { return null; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lightbox
+// ─────────────────────────────────────────────────────────────────────────────
+async function openLb(idx) {
+  lbIdx = idx;
+  document.getElementById('lb').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  await renderLb();
+}
+
+function closeLb() {
+  document.getElementById('lb').classList.remove('open');
+  document.body.style.overflow = '';
+  const img = document.getElementById('lb-img');
+  img.src = '';
+}
+
+async function renderLb() {
+  const item = filtered[lbIdx];
+  if (!item) return;
+
+  const lbImg = document.getElementById('lb-img');
+  lbImg.style.opacity = '0';
+
+  const src = await loadImg(item);
+  if (src) { lbImg.src = src; lbImg.onload = () => { lbImg.style.opacity = '1'; }; }
+
+  document.getElementById('lb-prompt').textContent   = item.prompt    || '—';
+  document.getElementById('lb-provider').textContent = item.provider  || '—';
+  document.getElementById('lb-model').textContent    = item.model     || '—';
+  document.getElementById('lb-size').textContent     = (item.width && item.height) ? `${item.width} × ${item.height}` : '—';
+  document.getElementById('lb-seed').textContent     = item.seed !== null ? item.seed : '—';
+  document.getElementById('lb-session').textContent  = item.sessionName || '—';
+  document.getElementById('lb-date').textContent     = item.ts
+    ? new Date(item.ts).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' })
+    : '—';
+
+  document.getElementById('lb-prev').style.visibility = lbIdx > 0 ? 'visible' : 'hidden';
+  document.getElementById('lb-next').style.visibility = lbIdx < filtered.length - 1 ? 'visible' : 'hidden';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Actions
+// ─────────────────────────────────────────────────────────────────────────────
+async function copyPrompt(idx) {
+  const item = filtered[idx];
+  if (!item) return;
+  await navigator.clipboard.writeText(item.prompt || '').catch(() => {});
+  toast('✓ Prompt copied');
+}
+
+async function downloadItem(idx) {
+  const item = filtered[idx];
+  if (!item) return;
+  const src = await loadImg(item);
+  if (!src) { toast('Image not found'); return; }
+  const a = document.createElement('a');
+  a.href     = src;
+  a.download = `async-${item.provider || 'img'}-${item.ts || Date.now()}.png`;
+  a.click();
+}
+
+async function deleteItem(idx) {
+  const item = filtered[idx];
+  if (!item) return;
+  const label = (item.prompt || 'this image').slice(0, 80);
+  if (!confirm(`Delete "${label}"?\n\nThis cannot be undone.`)) return;
+
+  // Remove from IndexedDB
+  if (item.isDb) {
+    await ImageDb.del(item.dbKey).catch(() => {});
+  }
+
+  // Remove from allItems
+  const ai = allItems.findIndex(i => i.dbKey === item.dbKey);
+  if (ai !== -1) allItems.splice(ai, 1);
+
+  const lbOpen = document.getElementById('lb').classList.contains('open');
+  if (lbOpen) closeLb();
+  render();
+  toast('🗑 Deleted');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toast
+// ─────────────────────────────────────────────────────────────────────────────
+let _toastT = null;
+function toast(msg) {
+  const el = document.getElementById('g-toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Events
+// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById('lb-close').onclick  = closeLb;
+document.getElementById('lb').addEventListener('click', e => { if (e.target === document.getElementById('lb')) closeLb(); });
+document.getElementById('lb-prev').onclick   = e => { e.stopPropagation(); if (lbIdx > 0) { lbIdx--; renderLb(); } };
+document.getElementById('lb-next').onclick   = e => { e.stopPropagation(); if (lbIdx < filtered.length-1) { lbIdx++; renderLb(); } };
+document.getElementById('lb-copy').onclick   = () => copyPrompt(lbIdx);
+document.getElementById('lb-dl').onclick     = () => downloadItem(lbIdx);
+document.getElementById('lb-del').onclick    = () => deleteItem(lbIdx);
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lb').classList.contains('open')) return;
+  if (e.key === 'Escape')      closeLb();
+  if (e.key === 'ArrowLeft'  && lbIdx > 0)                   { lbIdx--; renderLb(); }
+  if (e.key === 'ArrowRight' && lbIdx < filtered.length - 1) { lbIdx++; renderLb(); }
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    render();
+  });
+});
+
+document.getElementById('g-sort').addEventListener('change', e => {
+  activeSort = e.target.value; render();
+});
+
+let _searchT = null;
+document.getElementById('g-search').addEventListener('input', e => {
+  clearTimeout(_searchT);
+  _searchT = setTimeout(() => { searchQuery = e.target.value.trim(); render(); }, 180);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────────────────────────────────────
+loadGallery();
+</script>
 </body>
 </html>
