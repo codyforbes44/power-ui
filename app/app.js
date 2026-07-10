@@ -2018,6 +2018,9 @@ function handleSend() {
   const input = document.getElementById('message-input');
   if (!input?.value.trim() && !STATE.attachments?.length) return;
 
+  // Guard: no API key configured
+  if (!checkApiKeyBeforeSend()) return;
+
   const userText = input.value.trim();
 
   // ── /imagine command — image generation shortcut ──────────────
@@ -2498,6 +2501,25 @@ async function sendMessageDirect(session, userText, messageContent = null) {
     renderSessionList();
     updateCostDisplays();
     scrollToBottom();
+    // ── Tab title + browser notification when AI finishes ────────────────
+    if (!document.hasFocus()) {
+      document.title = '✦ Ready — Async';
+      setTimeout(() => { document.title = 'Async'; }, 4000);
+      if (Notification.permission === 'granted') {
+        new Notification('Async — Response ready', {
+          body: getActiveSession()?.title || 'Your AI response is ready',
+          icon: '/public/images/og-image.png',
+          tag:  'async-response',
+        });
+      } else if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+    // ── Follow-up suggestions ─────────────────────────────────────
+    if (typeof renderFollowupSuggestions === 'function') {
+      renderFollowupSuggestions(getActiveSession());
+    }
+    // ─────────────────────────────────────────────────────────────
   }
 }
 
@@ -2758,6 +2780,8 @@ function attachEventListeners() {
     if (session) { session.systemPrompt = e.target.value; saveState(); }
   });
 
+  document.getElementById('shortcuts-btn')?.addEventListener('click', showShortcutsModal);
+
   document.getElementById('new-chat-btn')?.addEventListener('click', () => {
     createSession();
     saveState();
@@ -2845,12 +2869,19 @@ function attachEventListeners() {
   document.getElementById('settings-btn')?.addEventListener('click', () => window.location.href = 'admin.html#settings');
   document.getElementById('export-btn')?.addEventListener('click', exportSession);
   document.getElementById('memory-btn')?.addEventListener('click', openMemoryPanel);
+  document.getElementById('optimize-btn')?.addEventListener('click', optimizeCurrentPrompt);
+
+  // Wire voice input and session search (defined in new_features block below)
+  window._wireVoiceBtn?.();
+  window._wireSessionSearchInput?.();
 
   document.addEventListener('keydown', e => {
+    // Cmd+K → focus session search (overrides old new-chat shortcut)
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault();
-      createSession(); saveState(); renderAll();
-      document.getElementById('message-input')?.focus();
+      const srch = document.getElementById('session-search');
+      if (srch) { srch.focus(); srch.select(); }
+      else { document.getElementById('message-input')?.focus(); }
     }
     if ((e.metaKey || e.ctrlKey) && e.key === '/') {
       e.preventDefault();
@@ -2902,12 +2933,18 @@ function buildHTML() {
           🧠 <span>Memory</span>
         </button>
 
+        <!-- Session search -->
+        <div class="session-search-wrap sidebar-text" id="session-search-wrap">
+          <input class="session-search-input" id="session-search" type="search" placeholder="🔍  Search chats…" autocomplete="off" />
+        </div>
+
         <!-- Session list -->
         <div class="session-list" id="session-list"></div>
 
         <!-- Footer -->
         <div class="sidebar-footer">
           <button class="sidebar-footer-btn sidebar-text" id="settings-btn">⚙ Settings</button>
+          <button class="sidebar-footer-btn sidebar-text" id="shortcuts-btn" title="Keyboard shortcuts">? Help</button>
           <div class="status-cost sidebar-text">
             <span class="status-cost-label">💰</span>
             <span class="status-cost-value" id="status-cost-value">Today: $0</span>
@@ -2985,6 +3022,8 @@ function buildHTML() {
                 <input type="file" id="file-input" style="display:none" multiple accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css,.pdf" />
                 <button class="composer-imagine-btn" id="imagine-btn" title="Generate an image (or type /imagine ...)"
                   onclick="toggleImagePopover()">🎨 Imagine</button>
+                <button class="composer-voice-btn" id="voice-btn" title="Voice input (hold to record)" aria-label="Voice input">🎙</button>
+                <button class="composer-optimize-btn" id="optimize-btn" title="Improve my prompt" aria-label="Improve prompt">✨</button>
                 <div class="composer-spacer"></div>
                 <button class="send-btn" id="send-btn">↑ Send</button>
                 <button class="stop-btn" id="stop-btn" style="display:none">⏹ Stop</button>
@@ -3367,8 +3406,12 @@ async function boot() {
 
   const syncMode = serverUp ? 'server+SSE' : 'localStorage';
   const apiMode  = (typeof ApiRouter !== 'undefined' && ApiRouter.isProxied) ? 'proxy' : 'direct';
-  console.log(`✦ Async v2 ready — ${SKILLS_DATA.totalCount} skills · ${Object.keys(MODELS_DATA.providers).length} providers · ${STATE.sessions.length} sessions · sync:${syncMode} · api:${apiMode}`);
+  console.log(`❆ Async v2 ready — ${SKILLS_DATA.totalCount} skills · ${Object.keys(MODELS_DATA.providers).length} providers · ${STATE.sessions.length} sessions · sync:${syncMode} · api:${apiMode}`);
+
+  // 16. First-run onboarding (shown once per device)
+  setTimeout(() => showOnboardingIfNeeded(), 600);
 }
+
 
 /** Inject a small sync status dot into the header (◉ = server, ◦ = local). */
 function _renderSyncIndicator() {
@@ -3611,5 +3654,422 @@ function generateFromPopover() {
     enable_safety_checker, safety_tolerance
   });
 }
+
+
+// ============================================================
+// Onboarding Modal — shown once on first run
+// ============================================================
+const ONBOARDING_KEY = 'async_onboarded_v1';
+
+function showOnboardingIfNeeded() {
+  if (localStorage.getItem(ONBOARDING_KEY)) return;
+  // Don't show during password-change flow
+  if (document.getElementById('force-pw-overlay')) return;
+  showOnboardingModal();
+}
+
+function showOnboardingModal() {
+  const steps = [
+    {
+      icon: '✦',
+      title: 'Welcome to Async',
+      body: 'Your private AI workspace — bring any model, keep all your conversations, and generate images. Let\'s take a 30-second tour.',
+      action: 'Get Started →',
+    },
+    {
+      icon: '🔑',
+      title: 'Add Your API Keys',
+      body: 'Async connects directly to AI providers using <em>your own API keys</em>. No markup, no hidden costs — you pay providers at their published rates.',
+      action: 'Set Up Keys in Settings',
+      actionHref: 'admin.html#api-keys',
+      skipLabel: 'Skip for now',
+    },
+    {
+      icon: '/',
+      title: 'Slash Commands',
+      body: 'Type <code>/</code> in the composer to open the command menu:<br><br>' +
+            '<code>/imagine</code> — generate images<br>' +
+            '<code>/web</code> — search the web<br>' +
+            '<code>/remember</code> — save a memory<br>' +
+            '<code>/recap</code> — summarise the chat',
+      action: 'Got it →',
+    },
+    {
+      icon: '🖼',
+      title: 'Media Gallery',
+      body: 'Every image you generate is saved to your <strong>Media Gallery</strong> — accessible from the user menu at the top right. Your creative history, always available.',
+      action: 'Open Gallery',
+      actionHref: 'gallery.html',
+      skipLabel: 'Start Chatting',
+    },
+  ];
+
+  let step = 0;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'onboarding-overlay';
+  overlay.className = 'onboarding-overlay';
+
+  function render() {
+    const s = steps[step];
+    overlay.innerHTML = `
+      <div class="onboarding-card" role="dialog" aria-modal="true" aria-label="Welcome to Async">
+        <div class="onboarding-progress">
+          ${steps.map((_, i) => `<div class="onboarding-dot${i <= step ? ' done' : ''}"></div>`).join('')}
+        </div>
+        <button class="onboarding-close" id="onboarding-dismiss" aria-label="Close onboarding">✕</button>
+        <div class="onboarding-icon">${s.icon}</div>
+        <h2 class="onboarding-title">${s.title}</h2>
+        <p class="onboarding-body">${s.body}</p>
+        <div class="onboarding-actions">
+          ${s.actionHref
+            ? `<a class="onboarding-btn-primary" href="${s.actionHref}">${s.action}</a>`
+            : `<button class="onboarding-btn-primary" id="onboarding-next">${s.action}</button>`
+          }
+          ${s.skipLabel ? `<button class="onboarding-btn-skip" id="onboarding-skip">${s.skipLabel}</button>` : ''}
+        </div>
+        <div class="onboarding-step-counter">${step + 1} of ${steps.length}</div>
+      </div>
+    `;
+    overlay.querySelector('#onboarding-dismiss')?.addEventListener('click', closeOnboarding);
+    overlay.querySelector('#onboarding-next')?.addEventListener('click', () => {
+      if (step < steps.length - 1) { step++; render(); }
+      else closeOnboarding();
+    });
+    overlay.querySelector('#onboarding-skip')?.addEventListener('click', closeOnboarding);
+  }
+
+  function closeOnboarding() {
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    overlay.classList.add('onboarding-out');
+    setTimeout(() => overlay.remove(), 300);
+  }
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeOnboarding(); });
+  document.body.appendChild(overlay);
+  render();
+  // Trigger enter animation
+  requestAnimationFrame(() => overlay.classList.add('onboarding-in'));
+}
+
+// ============================================================
+// No-API-Key Interstitial Guard
+// ============================================================
+function checkApiKeyBeforeSend() {
+  const hasAnyKey = STATE.apiKeys && Object.values(STATE.apiKeys).some(v => v?.length > 5);
+  if (hasAnyKey) return true; // all good, proceed with send
+
+  // Show a non-blocking modal pointing to Settings
+  const existing = document.getElementById('no-key-interstitial');
+  if (existing) return false;
+
+  const el = document.createElement('div');
+  el.id = 'no-key-interstitial';
+  el.className = 'no-key-interstitial';
+  el.innerHTML = `
+    <div class="no-key-card" role="alertdialog" aria-label="API key required">
+      <div class="no-key-icon">🔑</div>
+      <h3 class="no-key-title">API Key Required</h3>
+      <p class="no-key-body">
+        Async needs an API key to send messages.<br>
+        Add one in <strong>Settings → API Keys</strong> — it takes under a minute.
+      </p>
+      <div class="no-key-actions">
+        <a class="no-key-btn-primary" href="admin.html#api-keys">Open Settings →</a>
+        <button class="no-key-btn-skip" id="no-key-dismiss">Dismiss</button>
+      </div>
+    </div>
+  `;
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+  el.querySelector('#no-key-dismiss')?.addEventListener('click', () => el.remove());
+  document.body.appendChild(el);
+  // Animate in
+  requestAnimationFrame(() => el.classList.add('no-key-in'));
+  return false;
+}
+
+// ============================================================
+// Session Search
+// ============================================================
+(function wireSessionSearch() {
+  let _searchTimer;
+  function doSessionSearch(q) {
+    const list = document.getElementById('session-list');
+    if (!list) return;
+    if (!q) {
+      // Reset: show all
+      list.querySelectorAll('.session-item').forEach(el => el.style.display = '');
+      return;
+    }
+    const lower = q.toLowerCase();
+    list.querySelectorAll('.session-item').forEach(el => {
+      const text = el.textContent.toLowerCase();
+      el.style.display = text.includes(lower) ? '' : 'none';
+    });
+  }
+
+  // Wire up — called after DOM is ready
+  window._wireSessionSearchInput = function() {
+    const input = document.getElementById('session-search');
+    if (!input) return;
+    input.addEventListener('input', () => {
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(() => doSessionSearch(input.value.trim()), 150);
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { input.value = ''; doSessionSearch(''); input.blur(); }
+    });
+    // Cmd+K or Ctrl+K to focus search
+    document.addEventListener('keydown', ev => {
+      if ((ev.metaKey || ev.ctrlKey) && ev.key === 'k') {
+        ev.preventDefault();
+        input.focus();
+        input.select();
+      }
+    });
+  };
+})();
+
+// ============================================================
+// Keyboard Shortcuts Modal
+// ============================================================
+const SHORTCUTS = [
+  { key: '⌘⏎',      desc: 'Send message' },
+  { key: '⌘K',      desc: 'Search conversations' },
+  { key: '⌘/',      desc: 'Toggle AI Tools panel' },
+  { key: '⌘⇧A',    desc: 'Open Admin Dashboard (admin only)' },
+  { key: '/',         desc: 'Open slash command picker' },
+  { key: '↑↓',       desc: 'Navigate slash command picker' },
+  { key: 'Esc',       desc: 'Close picker / modal' },
+  { key: 'Tab / ↵',  desc: 'Select slash command' },
+  { key: '⌘⇧E',    desc: 'Export conversation (Markdown)' },
+];
+
+function showShortcutsModal() {
+  const existing = document.getElementById('shortcuts-modal-overlay');
+  if (existing) { existing.remove(); return; }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'shortcuts-modal-overlay';
+  overlay.className = 'shortcuts-overlay';
+  overlay.innerHTML = `
+    <div class="shortcuts-card" role="dialog" aria-label="Keyboard shortcuts">
+      <div class="shortcuts-header">
+        <span class="shortcuts-title">⌨ Keyboard Shortcuts</span>
+        <button class="shortcuts-close" id="shortcuts-close" aria-label="Close">✕</button>
+      </div>
+      <div class="shortcuts-list">
+        ${SHORTCUTS.map(s => `
+          <div class="shortcuts-item">
+            <kbd class="shortcuts-key">${s.key}</kbd>
+            <span class="shortcuts-desc">${s.desc}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('#shortcuts-close')?.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('shortcuts-in'));
+
+  // Also wire ? key globally (once)
+  if (!window._shortcutsKeyWired) {
+    window._shortcutsKeyWired = true;
+    document.addEventListener('keydown', e => {
+      if (e.key === '?' && !e.target.closest('input,textarea,[contenteditable]')) {
+        showShortcutsModal();
+      }
+    });
+  }
+}
+
+// ============================================================
+// Voice Input (Web Speech API)
+// ============================================================
+(function wireVoiceInput() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return; // browser doesn't support it
+
+  let recognition;
+  let listening = false;
+
+  function getVoiceBtn() { return document.getElementById('voice-btn'); }
+
+  function startListening() {
+    const input = document.getElementById('message-input');
+    if (!input) return;
+
+    recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    const btn = getVoiceBtn();
+    if (btn) { btn.classList.add('voice-listening'); btn.title = 'Listening… click to stop'; }
+    listening = true;
+
+    let finalTranscript = input.value;
+
+    recognition.addEventListener('result', e => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript;
+        else interim = e.results[i][0].transcript;
+      }
+      input.value = finalTranscript + interim;
+      autoResize(input);
+    });
+
+    recognition.addEventListener('end', () => {
+      input.value = finalTranscript.trim();
+      autoResize(input);
+      stopListening();
+    });
+
+    recognition.addEventListener('error', (e) => {
+      if (e.error !== 'aborted') toast(`🎙 Voice input error: ${e.error}`, 'warning');
+      stopListening();
+    });
+
+    recognition.start();
+  }
+
+  function stopListening() {
+    recognition?.stop();
+    listening = false;
+    const btn = getVoiceBtn();
+    if (btn) { btn.classList.remove('voice-listening'); btn.title = 'Voice input'; }
+  }
+
+  // Wire on DOM ready — called from attachEventListeners via _wireVoiceBtn
+  window._wireVoiceBtn = function() {
+    const btn = document.getElementById('voice-btn');
+    if (!btn || !SpeechRecognition) {
+      btn?.setAttribute('title', 'Voice input not supported in this browser');
+      btn?.setAttribute('disabled', 'true');
+      return;
+    }
+    btn.addEventListener('click', () => {
+      if (listening) stopListening();
+      else startListening();
+    });
+  };
+})();
+
+// ============================================================
+// Prompt Optimizer (✨ Improve button)
+// ============================================================
+async function optimizeCurrentPrompt() {
+  const input = document.getElementById('message-input');
+  if (!input || !input.value.trim()) {
+    toast('✨ Type a prompt first, then click Improve', 'info');
+    return;
+  }
+  const btn = document.getElementById('optimize-btn');
+  const originalPrompt = input.value.trim();
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+  try {
+    const hasKey = STATE.apiKeys && Object.values(STATE.apiKeys).some(v => v?.length > 5);
+    if (!hasKey) { toast('✨ Add an API key in Settings to use prompt optimization', 'warning'); return; }
+
+    const session = getActiveSession();
+    const model   = session?.model || STATE.settings.model || 'claude-3-5-haiku-20241022';
+    const modelDef = MODELS_DATA?.getModel(model);
+    const provider = modelDef?.provider || 'anthropic';
+
+    const improvePrompt =
+      `Rewrite this prompt to be more specific, clear, and effective for an AI assistant. ` +
+      `Return ONLY the improved prompt, nothing else.\n\nOriginal prompt: ${originalPrompt}`;
+
+    const apiKey = STATE.apiKeys[provider] || STATE.apiKeys.anthropic || '';
+    if (!apiKey) { toast('✨ No key for this provider — try adding one in Settings', 'warning'); return; }
+
+    const result = await ApiRouter.chat({
+      provider,
+      model,
+      messages: [{ role: 'user', content: improvePrompt }],
+      apiKey,
+      maxTokens: 300,
+      stream: false,
+    });
+
+    const improved = result?.content?.[0]?.text || result?.choices?.[0]?.message?.content || '';
+    if (improved) {
+      input.value = improved.trim();
+      autoResize(input);
+      toast('✨ Prompt improved!', 'success', 2000);
+    }
+  } catch (err) {
+    toast('✨ Could not improve prompt — ' + (err.message || 'try again'), 'warning');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✨'; }
+  }
+}
+
+// ============================================================
+// Follow-up Suggestions (shown after each AI response)
+// ============================================================
+const FOLLOWUP_KEY = 'async_followups';
+
+function renderFollowupSuggestions(session) {
+  // Remove any existing suggestions bar
+  document.getElementById('followup-bar')?.remove();
+
+  const lastAssistant = [...(session?.messages || [])].reverse().find(m => m.role === 'assistant');
+  if (!lastAssistant || !lastAssistant.content) return;
+
+  // Heuristic: generate 3 contextual suggestions based on last assistant message topic
+  const text = (typeof lastAssistant.content === 'string' ? lastAssistant.content : '').slice(0, 600);
+  const suggestions = generateFollowupHints(text);
+  if (!suggestions.length) return;
+
+  const bar = document.createElement('div');
+  bar.id = 'followup-bar';
+  bar.className = 'followup-bar';
+  bar.innerHTML = `
+    <span class="followup-label">Try asking:</span>
+    ${suggestions.map(s => `
+      <button class="followup-chip" onclick="injectFollowup(${JSON.stringify(s)})">${s}</button>
+    `).join('')}
+    <button class="followup-dismiss" id="followup-dismiss" aria-label="Dismiss suggestions">✕</button>
+  `;
+
+  bar.querySelector('#followup-dismiss')?.addEventListener('click', () => bar.remove());
+
+  const composerInner = document.querySelector('.composer-inner');
+  if (composerInner) composerInner.insertBefore(bar, composerInner.firstChild);
+}
+
+function generateFollowupHints(text) {
+  const lower = text.toLowerCase();
+  // Pattern-match to generate contextual follow-ups
+  const hints = [];
+
+  if (lower.includes('code') || lower.includes('function') || lower.includes('class') || lower.includes('```')) {
+    hints.push('Can you explain this step by step?', 'Add error handling to this', 'Write tests for this');
+  } else if (lower.includes('list') || lower.match(/\d\.\s/)) {
+    hints.push('Tell me more about item 1', 'Which is most important?', 'Summarise in one sentence');
+  } else if (lower.includes('?') || lower.includes('question')) {
+    hints.push('Can you give an example?', 'What are the alternatives?', 'Go deeper on this');
+  } else if (lower.length > 200) {
+    hints.push('Summarise that briefly', 'What should I do first?', 'Any downsides?');
+  } else {
+    hints.push('Tell me more', 'What about edge cases?', 'Can you simplify this?');
+  }
+
+  return hints.slice(0, 3);
+}
+
+function injectFollowup(text) {
+  document.getElementById('followup-bar')?.remove();
+  const input = document.getElementById('message-input');
+  if (!input) return;
+  input.value = text;
+  autoResize(input);
+  input.focus();
+}
+
 
 document.addEventListener('DOMContentLoaded', boot);
