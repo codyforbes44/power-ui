@@ -10,7 +10,6 @@
 
 [build]
   publish = "."
-  ignore  = "exit 0"
 
 
 # ── Security Headers ────────────────────────────────────────────
@@ -38,7 +37,7 @@
 [[headers]]
   for = "/*.js"
   [headers.values]
-    Cache-Control = "public, max-age=3600, stale-while-revalidate=86400"
+    Cache-Control = "no-cache, must-revalidate"
 
 # ── Routing / Redirects ─────────────────────────────────────────
 
