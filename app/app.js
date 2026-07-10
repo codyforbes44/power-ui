@@ -4623,18 +4623,22 @@ window.remixImagePrompt = function(originalPrompt) {
   ];
   
   const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-  const newPrompt = `/imagine ${base}, ${randomStyle} --ar 16:9`;
+  const newPrompt = `${base}, ${randomStyle}`;
   
-  const input = document.getElementById('chat-input');
-  if (input) {
-    input.value = newPrompt;
-    input.style.height = 'auto';
-    input.style.height = input.scrollHeight + 'px';
-    input.focus();
-    
-    // Automatically submit the remixed prompt
-    if (typeof window.handleSend === 'function') {
-      window.handleSend();
+  // Open the image gen modal if it's not already open
+  const pop = document.getElementById('image-popover');
+  if (pop && pop.style.display === 'none') {
+    if (typeof window.toggleImagePopover === 'function') {
+      window.toggleImagePopover();
+    } else {
+      pop.style.display = 'block';
     }
+  }
+
+  // Populate the field in the modal
+  const popPrompt = document.getElementById('imagine-prompt');
+  if (popPrompt) {
+    popPrompt.value = newPrompt;
+    popPrompt.focus();
   }
 };
