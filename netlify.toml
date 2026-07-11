@@ -44,11 +44,11 @@
 
 # ── Routing / Redirects ─────────────────────────────────────────
 
-# Root → public marketing homepage (200 rewrite, not redirect)
+# Root → public marketing homepage (301 redirect so relative paths resolve under /public/)
 [[redirects]]
   from   = "/"
-  to     = "/public/index.html"
-  status = 200
+  to     = "/public/"
+  status = 301
 
 # /login shortcut → public login page
 [[redirects]]
