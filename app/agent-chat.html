@@ -394,6 +394,8 @@
         <span class="jd" aria-hidden="true"></span><span id="jumpb-lbl">Jump to latest</span> <span aria-hidden="true">↓</span>
       </button>
       <form class="comp" onsubmit="return false" aria-label="Message composer">
+        <!-- Attachment bar -->
+        <div class="attachment-bar" id="attachment-bar" style="display:none"></div>
         <label class="sr-only" for="inp">Message Aria</label>
         <textarea id="inp" rows="1" aria-label="Message Aria" placeholder="Ask Aria anything — live tools, memory, and your knowledge base…"></textarea>
         <div class="cfoot">
@@ -406,6 +408,10 @@
             <button type="button" class="hp" onclick="injectCmd('/weather ')">/weather</button>
           </div>
           <div class="cacts">
+            <label class="composer-attach-btn" title="Attach file (image, text, PDF, code)" for="file-input" style="font-size:12px; cursor:pointer; color:var(--text-muted); background:none; border:none; padding:4px 8px; border-radius:4px; align-self:center; display:flex; align-items:center; gap:4px">
+              📎 Attach
+            </label>
+            <input type="file" id="file-input" style="display:none" multiple accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css,.pdf" />
             <button type="button" id="call-btn" onclick="startElevenLabsCall()" title="Start Voice Call" aria-label="Start Voice Call" style="display:none; background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.3); color:var(--indigo-l); border-radius:10px; cursor:pointer; font-size:14px">📞</button>
             <button type="button" id="stp" onclick="stopStream()" title="Stop generating" aria-label="Stop generating">■</button>
             <button type="submit" id="snd" onclick="sendMsg()" title="Send (Enter)" aria-label="Send message">↑</button>
@@ -425,7 +431,7 @@ import { SuperAgent } from './agent.js';
 'use strict';
 
 // ── State ──────────────────────────────────────────────────
-const S = { sessionId: null, title: 'New Chat', msgs: [], streaming: false, abort: null, tc: 0, mc: 0, keys: {} };
+const S = { sessionId: null, title: 'New Chat', msgs: [], attachments: [], streaming: false, abort: null, tc: 0, mc: 0, keys: {} };
 let _booted = false;
 
 // ── ImageDb (IndexedDB for locally generated images) ───────
@@ -530,8 +536,7 @@ window.switchSession = async function switchSession(id) {
       S.msgs.forEach(msg => {
         if (msg.role === 'user') {
           S.mc++;
-          const bid = 'b' + Date.now() + Math.random();
-          addQ(bid, msg.content);
+          addU(msg.content);
         } else if (msg.role === 'assistant' && (msg.content || (msg.toolCalls && msg.toolCalls.length))) {
           S.mc++;
           const bid = 'b' + Date.now() + Math.random();
@@ -689,6 +694,7 @@ async function boot() {
   }
 
   setupComp();
+  attachDragDrop();
   renderSb();
   await refreshSb();
   loadModel();
@@ -831,13 +837,88 @@ function exc(t) {
   return t;
 }
 
+// ── Attachments ────────────────────────────────────────────
+function renderAttachmentBar() {
+  const bar = document.getElementById('attachment-bar');
+  if (!bar) return;
+  if (!S.attachments || !S.attachments.length) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = S.attachments.map(a => `
+    <div class="attachment-pill" style="display:inline-flex; align-items:center; background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:4px; font-size:12px; gap:6px; margin:4px 4px 4px 0">
+      <span class="attachment-icon">${a.type.startsWith('image/') ? '🖼' : a.type === 'application/pdf' ? '📄' : '📝'}</span>
+      <span class="attachment-name" style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${esc(a.name)}</span>
+      <button class="attachment-remove" type="button" onclick="removeAttachment('${a.id}')" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px; line-height:1; padding:0 2px">&times;</button>
+    </div>
+  `).join('');
+}
+
+window.removeAttachment = function removeAttachment(id) {
+  S.attachments = (S.attachments || []).filter(a => a.id !== id);
+  renderAttachmentBar();
+};
+
+function handleFile(file) {
+  if (!file) return;
+  if (!S.attachments) S.attachments = [];
+  const att = { id: 'att_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5), name: file.name, type: file.type };
+  const reader = new FileReader();
+  reader.onload = e => {
+    if (file.type.startsWith('image/')) {
+      att.dataUrl = e.target.result;
+    } else if (file.type.startsWith('text/') || file.name.match(/\.(md|csv|json|js|ts|py|html|css)$/i)) {
+      att.content = e.target.result;
+    } else {
+      att.content = `[Binary file: ${file.name} — ${(file.size/1024).toFixed(0)} KB]`;
+    }
+    S.attachments.push(att);
+    renderAttachmentBar();
+  };
+  if (file.type.startsWith('image/')) reader.readAsDataURL(file);
+  else if (file.type.startsWith('text/') || file.name.match(/\.(md|csv|json|js|ts|py|html|css)$/i)) reader.readAsText(file);
+  else reader.readAsText(file);
+}
+
+function attachDragDrop() {
+  const comp = document.querySelector('.comp');
+  if (!comp) return;
+  
+  const finp = document.getElementById('file-input');
+  if (finp) finp.addEventListener('change', e => Array.from(e.target.files).forEach(handleFile));
+
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => comp.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }));
+  comp.addEventListener('dragover', () => comp.style.border = '1px solid var(--indigo)');
+  comp.addEventListener('dragleave', () => comp.style.border = '');
+  comp.addEventListener('drop', e => {
+    comp.style.border = '';
+    const files = e.dataTransfer?.files;
+    if (files) Array.from(files).forEach(handleFile);
+  });
+}
+
+function buildMessageContent(userText) {
+  if (!S.attachments || !S.attachments.length) return userText;
+  const parts = [];
+  S.attachments.forEach(a => {
+    if (a.dataUrl && a.type.startsWith('image/')) {
+      parts.push({ _type: 'image', dataUrl: a.dataUrl, mediaType: a.type });
+    } else if (a.content) {
+      parts.push({ _type: 'text', text: `\n\n--- Attached File: ${a.name} ---\n${a.content}\n--- End File ---\n\n` });
+    }
+  });
+  if (userText) parts.push({ _type: 'text', text: userText });
+  S.attachments = [];
+  renderAttachmentBar();
+  return parts.length === 1 && parts[0]._type === 'text' ? parts[0].text : parts;
+}
+
 // ── Send ───────────────────────────────────────────────────
 async function sendMsg() {
   if (S.streaming) return;
   const ta  = document.getElementById('inp');
   const raw = ta.value.trim();
-  if (!raw) return;
-  const txt = exc(raw);
+  if (!raw && (!S.attachments || !S.attachments.length)) return;
+  const txt = raw ? exc(raw) : '';
+  const finalContent = buildMessageContent(txt);
 
   const welc = document.getElementById('welc');
   if (welc) welc.classList.add('hid');
@@ -845,9 +926,9 @@ async function sendMsg() {
   ta.style.height = 'auto';
   updateSendState();
 
-  S.msgs.push({ role: 'user', content: txt });
+  S.msgs.push({ role: 'user', content: finalContent });
   S.mc++;
-  addU(txt);
+  addU(finalContent);
   scroll2b(true);
 
   const mid  = document.getElementById('msel').value;
@@ -1003,7 +1084,23 @@ function buildMsgs(ms, prov) {
   const out = [];
   for (const m of ms) {
     if (m.role === 'user') {
-      out.push({ role: 'user', content: m.content });
+      if (Array.isArray(m.content)) {
+        if (prov === 'anthropic') {
+          const content = m.content.map(p => {
+            if (p._type === 'image') return { type: 'image', source: { type: 'base64', media_type: p.mediaType, data: p.dataUrl.split(',')[1] } };
+            return { type: 'text', text: p._type === 'text' ? p.text : p };
+          });
+          out.push({ role: 'user', content });
+        } else {
+          const content = m.content.map(p => {
+            if (p._type === 'image') return { type: 'image_url', image_url: { url: p.dataUrl } };
+            return { type: 'text', text: p._type === 'text' ? p.text : p };
+          });
+          out.push({ role: 'user', content });
+        }
+      } else {
+        out.push({ role: 'user', content: m.content });
+      }
     } else if (m.role === 'assistant') {
       if (prov === 'anthropic') {
         const pts = [];
@@ -1073,13 +1170,26 @@ function esc(s) {
 }
 
 function addU(txt) {
+  let html = '';
+  if (Array.isArray(txt)) {
+    html = txt.map(p => {
+      if (p._type === 'image' && p.dataUrl) {
+        return `<img src="${p.dataUrl}" style="max-width:300px; max-height:300px; border-radius:8px; display:block; margin-bottom:8px" />`;
+      }
+      if (p.text) return esc(p.text).replace(/\n/g, '<br>');
+      return '';
+    }).join('');
+  } else {
+    html = esc(txt).replace(/\n/g, '<br>');
+  }
+
   const ms  = document.getElementById('msgs');
   const row = document.createElement('div');
   row.className = 'mrow u';
   row.innerHTML =
     `<div class="mav hu">👤</div>` +
     `<div class="mbody"><div class="msndr"><span>You</span><span class="mtime">${esc(nowTime())}</span></div>` +
-    `<div class="mbub">${esc(txt).replace(/\n/g, '<br>')}</div></div>`;
+    `<div class="mbub">${html}</div></div>`;
   ms.appendChild(row);
 }
 
