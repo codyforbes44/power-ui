@@ -3143,6 +3143,14 @@ function closeMobileDrawers() {
 // Event listeners
 // ============================================================
 function attachEventListeners() {
+  window.addEventListener('cpu:memory-ready', () => {
+    if (typeof renderWorkspaceBar === 'function') renderWorkspaceBar();
+    const skillsPanel = document.getElementById('skills-panel');
+    if (skillsPanel && skillsPanel.classList.contains('open')) {
+      if (typeof renderMemoryList === 'function') renderMemoryList();
+    }
+  });
+
   document.getElementById('send-btn')?.addEventListener('click', handleSend);
   document.getElementById('stop-btn')?.addEventListener('click', stopStreaming);
 

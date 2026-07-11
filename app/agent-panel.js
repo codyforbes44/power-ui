@@ -178,6 +178,7 @@ export async function renderAgentPanel() {
             {k:'news',           i:'📰', l:'News Headlines',          d:'Latest articles on any topic'},
             {k:'knowledgeBase',  i:'📚', l:'Knowledge Base Search',   d:'Search your uploaded documents'},
             {k:'crossMemory',    i:'🧠', l:'Cross-Session Memory',    d:'Remember facts across all sessions'},
+            {k:'imageGen',       i:'🎨', l:'Image Generation',        d:'Create images and video inline'},
             {k:'calculator',     i:'🧮', l:'Calculator',              d:'Math expressions and formulas'},
             {k:'codeRunner',     i:'⚙', l:'Code Runner',             d:'Sandboxed JS execution (advanced)'},
             {k:'createNote',     i:'📝', l:'Create Note',             d:'Save notes directly to KB from chat'},

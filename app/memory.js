@@ -13,12 +13,47 @@ export const MemorySystem = (() => {
   function loadWS() {
     try { return JSON.parse(localStorage.getItem(WS_KEY)) || []; } catch { return []; }
   }
-  function saveWS(arr) { localStorage.setItem(WS_KEY, JSON.stringify(arr)); }
+  function saveWS(arr) { 
+    localStorage.setItem(WS_KEY, JSON.stringify(arr)); 
+    _syncToFirestore();
+  }
 
   function loadMem() {
     try { return JSON.parse(localStorage.getItem(MEM_KEY)) || []; } catch { return []; }
   }
-  function saveMem(arr) { localStorage.setItem(MEM_KEY, JSON.stringify(arr)); }
+  function saveMem(arr) { 
+    localStorage.setItem(MEM_KEY, JSON.stringify(arr)); 
+    _syncToFirestore();
+  }
+
+  let _syncDebounce = null;
+  function _syncToFirestore() {
+    if (!window.db || !window.AuthSystem) return;
+    const uid = window.AuthSystem.getFirebaseUid();
+    if (!uid) return;
+    clearTimeout(_syncDebounce);
+    _syncDebounce = setTimeout(() => {
+      // Save workspaces as a single doc for now (metadata)
+      const data = {
+        workspaces: loadWS(),
+        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+      };
+      window.db.collection('users').doc(uid).collection('state').doc('memory_v1').set(data, { merge: true }).catch(console.error);
+      
+      // Save each memory as an individual document for future Vector Search
+      const memRef = window.db.collection('users').doc(uid).collection('memories');
+      const memories = loadMem();
+      // Use a batch to write them safely
+      const batch = window.db.batch();
+      memories.forEach(mem => {
+        batch.set(memRef.doc(mem.id), {
+          ...mem,
+          updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      });
+      batch.commit().catch(console.error);
+    }, 1000);
+  }
 
   function uid() { return Math.random().toString(36).slice(2,9) + Date.now().toString(36); }
 
@@ -244,6 +279,46 @@ ${transcript}`;
   // Boot / migration
   // ────────────────────────────────────────────────────────
   function init() {
+    function hydrateFromFirestore(uid) {
+      if (!window.db) return;
+      Promise.all([
+        window.db.collection('users').doc(uid).collection('state').doc('memory_v1').get(),
+        window.db.collection('users').doc(uid).collection('memories').get()
+      ]).then(([wsDoc, memSnap]) => {
+        if (wsDoc.exists) {
+          const data = wsDoc.data();
+          if (data.workspaces) localStorage.setItem(WS_KEY, JSON.stringify(data.workspaces));
+        }
+        
+        if (!memSnap.empty) {
+          const memories = [];
+          memSnap.forEach(doc => memories.push(doc.data()));
+          localStorage.setItem(MEM_KEY, JSON.stringify(memories));
+        }
+        
+        workspaces.ensureDefault();
+        // Dispatch an event so the UI knows memory is ready and re-renders if necessary
+        window.dispatchEvent(new Event('cpu:memory-ready'));
+      }).catch((err) => {
+        console.warn("Failed to hydrate memory from Firestore:", err);
+        workspaces.ensureDefault();
+      });
+    }
+
+    // Attempt synchronous hydration if already loaded
+    if (window.db && window.AuthSystem) {
+      const uid = window.AuthSystem.getFirebaseUid();
+      if (uid) {
+        hydrateFromFirestore(uid);
+        return;
+      }
+    }
+    
+    // Auth loads async, listen for it
+    window.addEventListener('cpu:firebase-auth-ready', (e) => {
+      hydrateFromFirestore(e.detail.uid);
+    });
+
     workspaces.ensureDefault();
   }
 
