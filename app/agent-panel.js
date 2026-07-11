@@ -366,12 +366,12 @@ export async function renderAgentPanel() {
                     ${m.tags?.length ? m.tags.map(t => `<span style="font-size:10px;color:var(--admin-text-dim)">#${_escAP(t)}</span>`).join('') : ''}
                   </div>
                   <div class="memory-row-value" id="agmem-val-${i}" role="textbox" aria-label="Memory value for ${_escAP(m.key || 'fact')}" contenteditable="true"
-                    onblur="AgentPanel.updateMemory('${_escAP(m.key)}', this.textContent)">${_escAP(m.value)}</div>
+                    data-mem-key="${_escAP(m.key)}">${_escAP(m.value)}</div>
                   <div class="memory-row-meta">
                     ${m.timestamp ? `<span>${new Date(m.timestamp).toLocaleDateString()}</span>` : ''}
                   </div>
                 </div>
-                <button class="memory-row-delete" onclick="AgentPanel.deleteMemory('${_escAP(m.key)}')" aria-label="Delete memory ${_escAP(m.key || 'fact')}">✕</button>
+                <button class="memory-row-delete" data-mem-key="${_escAP(m.key)}" aria-label="Delete memory ${_escAP(m.key || 'fact')}">✕</button>
               </div>
             `).join('')}
           </div>
@@ -502,6 +502,21 @@ export async function renderAgentPanel() {
       e.preventDefault();
       dropzone.classList.remove('kb-drag-over');
       AgentPanel.handleFileUpload(e.dataTransfer.files);
+    });
+  }
+
+  // Delegated memory handlers — keys live in data-mem-key, never in inline
+  // handlers, so arbitrary key text can't inject/break JS. #mem-list is
+  // recreated on every render, so fresh listeners here never duplicate.
+  const memList = _ap_el('mem-list');
+  if (memList) {
+    memList.addEventListener('click', e => {
+      const btn = e.target.closest('.memory-row-delete');
+      if (btn) AgentPanel.deleteMemory(btn);
+    });
+    memList.addEventListener('focusout', e => {
+      const val = e.target.closest('.memory-row-value');
+      if (val) AgentPanel.updateMemory(val);
     });
   }
 }
@@ -726,15 +741,22 @@ export const AgentPanel = {
     renderAgentPanel();
   },
 
-  updateMemory(key, newValue) {
-    const val = (newValue || '').trim();
+  updateMemory(el) {
+    const key = el?.dataset?.memKey;
+    if (key == null) return;
+    const val = (el.textContent || '').trim();
     if (!val) return;
     const mems  = SuperAgent.memory.getAll();
     const entry = mems.find(m => m.key === key);
     if (entry) SuperAgent.memory.add(key, val, entry.tags || [], entry.category || 'general');
   },
 
-  deleteMemory(key) { SuperAgent.memory.delete(key); renderAgentPanel(); },
+  deleteMemory(el) {
+    const key = el?.dataset?.memKey;
+    if (key == null) return;
+    SuperAgent.memory.delete(key);
+    renderAgentPanel();
+  },
 
   clearMemory() {
     if (!confirm('Clear ALL agent memories? This cannot be undone.')) return;
@@ -842,11 +864,10 @@ export const AgentPanel = {
     const res  = _ap_el('calc-result');
     if (!expr || !res) return;
     try {
-      if (/[^0-9+\-*/.()%^ Math.,\s_a-zA-Z]/.test(expr)) throw new Error('Invalid characters in expression');
-      const val = Function('"use strict"; return (' + expr + ')')();
+      const val = SuperAgent.calc(expr);
       res.style.display = '';
       res.style.color   = '#10b981';
-      res.textContent   = expr + ' = ' + (typeof val === 'number' ? val.toLocaleString(undefined, { maximumFractionDigits: 12 }) : JSON.stringify(val));
+      res.textContent   = expr + ' = ' + val.toLocaleString(undefined, { maximumFractionDigits: 12 });
     } catch (e) {
       res.style.display = '';
       res.style.color   = '#f87171';
