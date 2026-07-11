@@ -349,6 +349,133 @@ export const AuthSystem = (() => {
   function generateToken() { return randomHex(32); }
 
   // ──────────────────────────────────────────────────────────
+  // Firebase Auth bridge (best-effort, local-first)
+  // ──────────────────────────────────────────────────────────
+  // The primary AuthSystem is local (localStorage). We ALSO sign the same
+  // credentials into Firebase Email/Password Auth so that request.auth.uid
+  // is populated and firestore.rules can enforce per-user isolation.
+  //
+  // The synthetic email is DETERMINISTIC: same username → same email → same
+  // Firebase UID on every device, which is what preserves cross-device sync.
+  // Usernames are therefore treated as IMMUTABLE for sync stability — renaming
+  // a username would change its Firebase UID and orphan the synced state.
+  // (AuthSystem exposes no rename path, so this holds today.)
+  //
+  // Every call here is guarded and time-bounded: a Firebase failure or a slow
+  // network must NEVER block or delay the local AuthSystem flow (tests also
+  // run with no Firebase SDK loaded at all).
+  const FIREBASE_EMAIL_DOMAIN = 'async-power-ui-2026.firebaseapp.com';
+  const FIREBASE_MIN_PASSWORD = 6; // Firebase Email/Password minimum length
+
+  async function sha256Hex(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // Build a deterministic, COLLISION-SAFE synthetic email for a username.
+  // A readable sanitized prefix ([a-z0-9._-], ≤24 chars) is ALWAYS combined
+  // with a sha-256 suffix of the full lowercased username, so distinct
+  // usernames that sanitize to the same prefix (e.g. "john+doe" and "johndoe"
+  // both → "johndoe") still map to DIFFERENT emails → different Firebase UIDs.
+  // Without the always-on hash suffix those two accounts would merge into one
+  // Firebase UID and share state. Deterministic across devices; local-part is
+  // ≤24+1+16 = 41 chars, well within the 64-char RFC limit.
+  async function firebaseSyntheticEmail(username) {
+    const lower = String(username == null ? '' : username).trim().toLowerCase();
+    const sanitized = lower.replace(/[^a-z0-9._-]/g, '').replace(/^\.+/, '').replace(/\.+$/, '');
+    const safe = sanitized.slice(0, 24) || 'u';
+    const suffix = (await sha256Hex(lower)).slice(0, 16);
+    return `${safe}_${suffix}@${FIREBASE_EMAIL_DOMAIN}`;
+  }
+
+  // Resolve once window.firebaseAuth exists (the Auth SDK loads dynamically
+  // after page load), bounded by timeoutMs so it never hangs. Resolves null
+  // if the SDK never becomes available in time.
+  function waitForFirebaseAuth(timeoutMs = 5000) {
+    if (window.firebaseAuth) return Promise.resolve(window.firebaseAuth);
+    return new Promise(resolve => {
+      const start = Date.now();
+      const iv = setInterval(() => {
+        if (window.firebaseAuth) { clearInterval(iv); resolve(window.firebaseAuth); }
+        else if (Date.now() - start >= timeoutMs) { clearInterval(iv); resolve(null); }
+      }, 100);
+    });
+  }
+
+  async function _ensureFirebaseUserInner(username, password, oldUserId) {
+    const fb = await waitForFirebaseAuth(5000);
+    if (!fb) return null; // Auth SDK not ready in time — best-effort no-op
+    const email = await firebaseSyntheticEmail(username);
+    let fbUser = null;
+    try {
+      const cred = await fb.signInWithEmailAndPassword(email, password);
+      fbUser = (cred && cred.user) ? cred.user : (fb.currentUser || null);
+    } catch (err) {
+      const code = err && err.code;
+      if (code === 'auth/user-not-found' ||
+          code === 'auth/invalid-login-credentials' ||
+          code === 'auth/invalid-credential') {
+        // No Firebase account yet — create one with the same credentials.
+        if (!password || password.length < FIREBASE_MIN_PASSWORD) {
+          console.warn(`ensureFirebaseUser: password shorter than Firebase minimum (${FIREBASE_MIN_PASSWORD}) — skipping cloud account creation`);
+          return null;
+        }
+        try {
+          const cred = await fb.createUserWithEmailAndPassword(email, password);
+          fbUser = (cred && cred.user) ? cred.user : (fb.currentUser || null);
+        } catch (createErr) {
+          const ccode = createErr && createErr.code;
+          if (ccode === 'auth/email-already-in-use') {
+            // Race: account created between our sign-in and create attempts.
+            try {
+              const cred = await fb.signInWithEmailAndPassword(email, password);
+              fbUser = (cred && cred.user) ? cred.user : (fb.currentUser || null);
+            } catch (e2) {
+              console.warn('ensureFirebaseUser: retry sign-in failed', e2 && e2.code);
+              return null;
+            }
+          } else if (ccode === 'auth/weak-password') {
+            console.warn('ensureFirebaseUser: firebase rejected weak password — cloud auth unavailable for this account');
+            return null;
+          } else {
+            console.warn('ensureFirebaseUser: create failed', ccode);
+            return null;
+          }
+        }
+      } else {
+        // Wrong password on an existing Firebase account, network error,
+        // provider disabled, etc. — log and continue with local auth only.
+        console.warn('ensureFirebaseUser: sign-in failed', code || (err && err.message));
+        return null;
+      }
+    }
+
+    // Signed into Firebase — kick off the one-time Firestore state migration
+    // (old AuthSystem-id doc → Firebase-UID doc) in the BACKGROUND.
+    if (fbUser && oldUserId && typeof window.__cpuMigrateFirestoreState === 'function') {
+      Promise.resolve(window.__cpuMigrateFirestoreState(oldUserId)).catch(() => {});
+    }
+    return fbUser;
+  }
+
+  // Public entry point: bounded by a timeout so a hung Firebase network can
+  // never leave a pending promise around. login() fires this WITHOUT awaiting
+  // (local-first). Note: the loser of the race is NOT cancelled, so a slow
+  // sign-in that completes after the timeout still triggers the background
+  // migration above — the timeout only caps what the caller could await.
+  function ensureFirebaseUser(username, password, oldUserId) {
+    const work = _ensureFirebaseUserInner(username, password, oldUserId)
+      .catch(e => { console.warn('ensureFirebaseUser: error', e && (e.code || e.message)); return null; });
+    const timeout = new Promise(resolve => setTimeout(() => resolve(null), 6000));
+    return Promise.race([work, timeout]);
+  }
+
+  function getFirebaseUid() {
+    try { return (window.firebaseAuth && window.firebaseAuth.currentUser && window.firebaseAuth.currentUser.uid) || null; }
+    catch { return null; }
+  }
+
+  // ──────────────────────────────────────────────────────────
   // User operations
   // ──────────────────────────────────────────────────────────
   async function createUser({ username, password, displayName = '', role = 'user' }) {
@@ -380,6 +507,12 @@ export const AuthSystem = (() => {
     };
     users.push(user);
     saveUsers(users);
+    // NOTE: intentionally NO Firebase call here. createUser can be invoked by
+    // an admin creating OTHER users; signInWithEmailAndPassword /
+    // createUserWithEmailAndPassword would hijack window.firebaseAuth.currentUser
+    // (Firebase is a singleton per tab), corrupting the admin's own sync UID.
+    // The Firebase account is created/linked lazily in login(), where the
+    // acting user is signing in as themselves.
     return sanitize(user);
   }
 
@@ -393,6 +526,29 @@ export const AuthSystem = (() => {
     users[idx].passwordHash = await hashPassword(newPassword, salt); // pbkdf2
     users[idx].hashAlgo     = 'pbkdf2';
     saveUsers(users);
+    // Best-effort: keep the Firebase Auth password in sync — but ONLY when the
+    // caller is changing THEIR OWN password. An admin resetting another user's
+    // password must never mutate the admin's own Firebase credential. Guard on
+    // both (a) the target userId matching the current session and (b) the
+    // signed-in Firebase account's email matching that user's synthetic email.
+    try {
+      const session = loadSession();
+      const fbUser  = window.firebaseAuth && window.firebaseAuth.currentUser;
+      if (!fbUser) {
+        console.warn('updatePassword: not signed into Firebase — cloud password not updated');
+      } else if (!session || session.userId !== userId) {
+        console.warn('updatePassword: target is not the current session user — skipping Firebase password sync');
+      } else {
+        const expectedEmail = await firebaseSyntheticEmail(session.username);
+        if (fbUser.email && fbUser.email.toLowerCase() === expectedEmail.toLowerCase()) {
+          await fbUser.updatePassword(newPassword);
+        } else {
+          console.warn('updatePassword: Firebase currentUser email does not match session user — skipping Firebase password sync');
+        }
+      }
+    } catch (e) {
+      console.warn('updatePassword: firebase sync skipped', e && (e.code || e.message));
+    }
     return salt; // returned so callers can re-derive the vault key
   }
 
@@ -466,11 +622,26 @@ export const AuthSystem = (() => {
       expiresAt: Date.now() + (8 * 60 * 60 * 1000), // 8-hour session
     };
     saveSession(session);
+
+    // Local-first: the session + vault key are already established, so login()
+    // returns immediately. Signing into Firebase Auth (which populates
+    // request.auth.uid for firestore.rules) and the one-time Firestore state
+    // migration run in the BACKGROUND — fire-and-forget, NOT awaited. This is
+    // deliberate: a slow or blocked Firebase network must never delay login.
+    // ensureFirebaseUser waits for the Auth SDK (bounded), races a ~6s timeout,
+    // and triggers window.__cpuMigrateFirestoreState(user.id) internally after
+    // a successful sign-in, so the migration is not duplicated here.
+    ensureFirebaseUser(uname, password, user.id).catch(() => {});
+
     return sanitize(user);
   }
 
   function logout() {
     clearSession();
+    // Best-effort: also sign out of Firebase Auth.
+    try {
+      if (window.firebaseAuth) window.firebaseAuth.signOut().catch(() => {});
+    } catch (e) { /* ignore */ }
   }
 
   // ──────────────────────────────────────────────────────────
@@ -967,6 +1138,7 @@ export const AuthSystem = (() => {
     renderLoginScreen,
     refreshVaultKey,   // for re-deriving vault key after external password change
     netlifyIdentityLogin,   // Google OAuth bridge
+    getFirebaseUid,    // Firebase Auth UID (null if not signed into Firebase)
   };
 
 })();
@@ -1042,7 +1214,74 @@ export const ApiKeyVault = (() => {
   /** Returns true if a vault blob exists (regardless of lock state). */
   function hasVault() { return !!localStorage.getItem(VAULT_LS); }
 
-  return { save, load, migrateFromPlaintext, hasVault };
+  // ──────────────────────────────────────────────────────────
+  // Per-item encrypted storage (agent integration & web-search keys)
+  // Each secret is encrypted individually under its own localStorage
+  // key, reusing the same session vault key as the provider-key blob.
+  // ──────────────────────────────────────────────────────────
+  const INTKEY_PREFIX = 'cpu_intkey_';    // + integration id
+  const WEBSEARCH_KEY = 'cpu_websearch_key';
+  const LOCKED_MSG    = 'API key vault is locked — unlock it (re-enter your password) before saving or reading agent keys.';
+
+  async function _encItem(value) {
+    const key = await _getKey();
+    if (!key) throw new Error(LOCKED_MSG);
+    const iv     = crypto.getRandomValues(new Uint8Array(12));
+    const cipher = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv }, key, new TextEncoder().encode(String(value))
+    );
+    return JSON.stringify({ v: 2, iv: Array.from(iv), data: Array.from(new Uint8Array(cipher)) });
+  }
+
+  async function _decItem(stored) {
+    const key = await _getKey();
+    if (!key) throw new Error(LOCKED_MSG);
+    const { iv, data } = JSON.parse(stored);
+    const plain = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: new Uint8Array(iv) }, key, new Uint8Array(data)
+    );
+    return new TextDecoder().decode(plain);
+  }
+
+  /** Encrypt & store an integration key. Empty value removes it. Throws if vault locked. */
+  async function setIntegrationKey(id, keyStr) {
+    if (!id) throw new Error('setIntegrationKey: integration id required');
+    if (!keyStr) { localStorage.removeItem(INTKEY_PREFIX + id); return; }
+    localStorage.setItem(INTKEY_PREFIX + id, await _encItem(keyStr));
+  }
+
+  /** Decrypt & return an integration key, '' if none, throws if vault locked. */
+  async function getIntegrationKey(id) {
+    const stored = localStorage.getItem(INTKEY_PREFIX + id);
+    if (!stored) return '';
+    return _decItem(stored);
+  }
+
+  function removeIntegrationKey(id) { localStorage.removeItem(INTKEY_PREFIX + id); }
+
+  /** Encrypt & store the web-search key. Empty value removes it. Throws if vault locked. */
+  async function setWebSearchKey(keyStr) {
+    if (!keyStr) { localStorage.removeItem(WEBSEARCH_KEY); return; }
+    localStorage.setItem(WEBSEARCH_KEY, await _encItem(keyStr));
+  }
+
+  /** Decrypt & return the web-search key, '' if none, throws if vault locked. */
+  async function getWebSearchKey() {
+    const stored = localStorage.getItem(WEBSEARCH_KEY);
+    if (!stored) return '';
+    return _decItem(stored);
+  }
+
+  /** True if an integration key ciphertext exists (regardless of lock state). */
+  function hasIntegrationKey(id) { return !!localStorage.getItem(INTKEY_PREFIX + id); }
+  /** True if a web-search key ciphertext exists (regardless of lock state). */
+  function hasWebSearchKey() { return !!localStorage.getItem(WEBSEARCH_KEY); }
+
+  return {
+    save, load, migrateFromPlaintext, hasVault,
+    setIntegrationKey, getIntegrationKey, removeIntegrationKey, hasIntegrationKey,
+    setWebSearchKey, getWebSearchKey, hasWebSearchKey,
+  };
 })();
 window.AuthSystem = AuthSystem;
 window.ApiKeyVault = ApiKeyVault;

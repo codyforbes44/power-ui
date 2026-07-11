@@ -220,6 +220,65 @@ const SessionDb = (() => {
 })();
 
 // ============================================================
+// Firestore state-doc resolution
+// ============================================================
+// The synced state doc lives at users/{id}/state/current. We prefer the
+// Firebase Auth UID as {id} so it matches firestore.rules (request.auth.uid),
+// falling back to the AuthSystem user id when Firebase Auth is unavailable
+// (degraded path — keeps sync working locally even if the auth SDK failed).
+function cpuFirebaseUid() {
+  try {
+    if (typeof AuthSystem !== 'undefined' && typeof AuthSystem.getFirebaseUid === 'function') {
+      return AuthSystem.getFirebaseUid();
+    }
+  } catch { /* ignore */ }
+  try { return (window.firebaseAuth && window.firebaseAuth.currentUser && window.firebaseAuth.currentUser.uid) || null; }
+  catch { return null; }
+}
+
+function cpuStateDocRef(session) {
+  if (typeof window.db === 'undefined') return null;
+  const docId = cpuFirebaseUid() || (session && session.userId) || null;
+  if (!docId) return null;
+  return window.db.collection('users').doc(docId).collection('state').doc('current');
+}
+
+// One-time migration: when a user first signs into Firebase, their synced
+// state lives under the old AuthSystem-id path. Copy it into the new
+// Firebase-UID path (while firestore.rules are still open) so cloud sync
+// survives the cutover. Guarded per-UID via a localStorage flag; best-effort.
+async function cpuMigrateFirestoreState(oldUserId) {
+  try {
+    if (typeof window.db === 'undefined') return;
+    const uid = cpuFirebaseUid();
+    if (!uid || !oldUserId || uid === oldUserId) return; // nothing to migrate
+    const flag = 'cpu_fs_migrated_' + uid;
+    if (localStorage.getItem(flag)) return; // already migrated for this UID
+
+    const newRef = window.db.collection('users').doc(uid).collection('state').doc('current');
+    const newDoc = await newRef.get();
+    const newData = newDoc.exists ? newDoc.data() : null;
+    const newHasData = !!(newData && newData.data);
+
+    if (!newHasData) {
+      const oldRef = window.db.collection('users').doc(oldUserId).collection('state').doc('current');
+      const oldDoc = await oldRef.get();
+      if (oldDoc.exists) {
+        const oldData = oldDoc.data();
+        if (oldData && oldData.data) {
+          await newRef.set(oldData, { merge: true });
+          console.log(`✦ Firestore: migrated state ${oldUserId} → ${uid}`);
+        }
+      }
+    }
+    localStorage.setItem(flag, String(Date.now()));
+  } catch (e) {
+    console.warn('Firestore migration skipped:', e && e.message);
+  }
+}
+window.__cpuMigrateFirestoreState = cpuMigrateFirestoreState;
+
+// ============================================================
 // ServerSync — detect local server, persist to disk, SSE sync
 // ============================================================
 const ServerSync = (() => {
@@ -228,6 +287,9 @@ const ServerSync = (() => {
   let _evtSource   = null;
   let _indicator   = null;
   let _firebaseUnsub = null;
+  let _onStateChange = null;   // remembered so we can rebind after auth-ready
+  let _boundDocId    = null;   // doc id the current onSnapshot is bound to
+  let _authReadyBound = false; // guard: attach the auth-ready listener only once
 
   async function probe() {
     // 1. Probe local server for MCP features
@@ -257,9 +319,10 @@ const ServerSync = (() => {
 
     // Use Firebase if available
     const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
-    if (typeof window.db !== 'undefined' && session && session.userId) {
+    const pushRef = (session && session.userId) ? cpuStateDocRef(session) : null;
+    if (pushRef) {
       try {
-        await window.db.collection('users').doc(session.userId).collection('state').doc('current').set({
+        await pushRef.set({
           data: JSON.stringify(data),
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -286,9 +349,10 @@ const ServerSync = (() => {
     if (!_available) return null;
 
     const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
-    if (typeof window.db !== 'undefined' && session && session.userId) {
+    const pullRef = (session && session.userId) ? cpuStateDocRef(session) : null;
+    if (pullRef) {
       try {
-        const doc = await window.db.collection('users').doc(session.userId).collection('state').doc('current').get();
+        const doc = await pullRef.get();
         if (doc.exists) {
           const d = doc.data();
           if (d && d.data) return JSON.parse(d.data);
@@ -309,9 +373,18 @@ const ServerSync = (() => {
     if (!_available) return;
 
     const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
-    if (typeof window.db !== 'undefined' && session && session.userId) {
+    const subRef = (session && session.userId) ? cpuStateDocRef(session) : null;
+    if (subRef) {
+      _onStateChange = onStateChange;
+      // login() signs into Firebase asynchronously, so this first subscription
+      // is usually bound to the OLD AuthSystem-id doc path (Firebase UID not
+      // ready yet). Attach a one-time listener that rebinds to the Firebase-UID
+      // path once auth becomes ready — otherwise, after strict rules deploy,
+      // this subscription keeps reading a now-denied path.
+      _bindAuthReadyRebind();
       if (_firebaseUnsub) return;
-      _firebaseUnsub = window.db.collection('users').doc(session.userId).collection('state').doc('current')
+      _boundDocId = cpuFirebaseUid() || (session && session.userId) || null;
+      _firebaseUnsub = subRef
         .onSnapshot((doc) => {
           if (doc.exists && !doc.metadata.hasPendingWrites) {
             onStateChange();
@@ -322,6 +395,43 @@ const ServerSync = (() => {
 
     if (_mcpAvailable && !_evtSource) {
       _connect(onStateChange);
+    }
+  }
+
+  // Attach the one-time cpu:firebase-auth-ready listener (dispatched by
+  // firebase-config.js's onAuthStateChanged) that rebinds the Firestore
+  // subscription to the Firebase-UID doc path. Idempotent.
+  function _bindAuthReadyRebind() {
+    if (_authReadyBound) return;
+    _authReadyBound = true;
+    try {
+      window.addEventListener('cpu:firebase-auth-ready', _rebindFirebaseSync);
+    } catch { /* ignore */ }
+  }
+
+  // Tear down the existing onSnapshot subscription and re-create it against the
+  // current doc path (Firebase UID, falling back to session.userId). No-op when
+  // there is nothing subscribed yet or we're already bound to the target doc id
+  // (keeps it idempotent across repeated auth-ready events). Best-effort.
+  function _rebindFirebaseSync() {
+    try {
+      if (!_onStateChange) return; // nothing subscribed yet
+      const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
+      const targetId = cpuFirebaseUid() || (session && session.userId) || null;
+      if (!targetId || targetId === _boundDocId) return; // already bound correctly
+      const subRef = cpuStateDocRef(session);
+      if (!subRef) return;
+      if (_firebaseUnsub) { try { _firebaseUnsub(); } catch { /* ignore */ } _firebaseUnsub = null; }
+      _boundDocId = targetId;
+      _firebaseUnsub = subRef
+        .onSnapshot((doc) => {
+          if (doc.exists && !doc.metadata.hasPendingWrites) {
+            _onStateChange();
+          }
+        });
+      console.log('✦ Firestore: rebound sync → ' + targetId);
+    } catch (e) {
+      console.warn('Firestore rebind skipped:', e && e.message);
     }
   }
 
@@ -2209,6 +2319,7 @@ function openArtifactPreview(content) {
   let srcdoc = artifact.code;
   if (artifact.type === 'jsx') {
     srcdoc = `<!DOCTYPE html><html><head>
+<meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-eval' 'unsafe-inline' 'self' https://unpkg.com; style-src 'unsafe-inline'">
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -2484,23 +2595,9 @@ async function executeTool(toolName, input, session) {
 
     case 'calculate': {
       try {
-        // Strip anything that isn't safe math
-        const safe = (input.expression || '')
-          .replace(/sqrt/g, 'Math.sqrt')
-          .replace(/pow/g,  'Math.pow')
-          .replace(/abs/g,  'Math.abs')
-          .replace(/floor/g,'Math.floor')
-          .replace(/ceil/g, 'Math.ceil')
-          .replace(/round/g,'Math.round')
-          .replace(/log/g,  'Math.log')
-          .replace(/sin/g,  'Math.sin')
-          .replace(/cos/g,  'Math.cos')
-          .replace(/tan/g,  'Math.tan')
-          .replace(/pi/gi,  'Math.PI')
-          .replace(/e(?![a-zA-Z])/g, 'Math.E')
-          .replace(/[^0-9+\-*/().,%\s^Math.A-Z_]/g, '');
-         
-        const result = Function('"use strict"; return (' + safe + ')')();
+        // Reuse SuperAgent's dependency-free, eval-free math evaluator
+        // (strict Math.* allowlist, ^ = exponent). See app/agent.js.
+        const result = SuperAgent.calc(input.expression || '');
         return `${input.expression} = ${result}`;
       } catch (e) {
         return `Calculation error: ${e.message}`;
@@ -4867,9 +4964,10 @@ window.setAgentBackground = function(url) {
     localStorage.setItem('async_ai_v2', JSON.stringify(state));
     
     // Also save to firebase if we have it open in app.js
-    if (window.db && window.AuthSystem && AuthSystem.getCurrentSession()?.userId) {
-       window.db.collection('users').doc(AuthSystem.getCurrentSession().userId)
-         .collection('state').doc('current').set({ settings: state.settings }, { merge: true });
+    if (window.db && window.AuthSystem) {
+       const session = AuthSystem.getCurrentSession();
+       const ref = (session && session.userId) ? cpuStateDocRef(session) : null;
+       if (ref) ref.set({ settings: state.settings }, { merge: true });
     }
     toast('Agent background set! Open Aria to see it.', 'success');
   } catch(e) {
