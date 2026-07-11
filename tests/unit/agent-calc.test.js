@@ -91,3 +91,15 @@ test('rejects empty and malformed expressions', () => {
 test('rejects overly long input', () => {
   assert.throws(() => calc('1+'.repeat(300) + '1'), /too long/);
 });
+
+// ── Regression: the app.js `calculate` tool now reuses this evaluator ──
+// The old Function()-based sanitizer mangled Math.sqrt/pow/log (stripping
+// stray letters) and treated `^` as JS XOR instead of exponent. These
+// cases lock in the corrected behavior now shared by the calculate tool.
+test('correctly evaluates cases the old char-class sanitizer broke', () => {
+  assert.equal(calc('Math.sqrt(16)'), 4);
+  assert.equal(calc('Math.pow(2, 5)'), 32);
+  assert.ok(Math.abs(calc('Math.log(Math.E)') - 1) < 1e-12);
+  assert.equal(calc('2^3'), 8);          // ^ is exponent, not XOR (would be 1)
+  assert.equal(calc('5 ^ 2'), 25);
+});
