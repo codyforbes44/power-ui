@@ -1,8 +1,41 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ── Helpers ───────────────────────────────────────────────────
+    // Baseline: a caller must be authenticated. NOTE: this app currently
+    // signs users in via a custom AuthSystem (app/auth.js) and does NOT
+    // use Firebase Authentication, so request.auth is null in production
+    // today. These rules deliberately lock everything down to the safe
+    // least-privilege baseline; enabling Firebase Auth sign-in (so
+    // request.auth is populated) is a deferred product decision.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    // Admin custom claim, if/when Firebase Auth issues one.
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // ── users/{userId} — per-user profile + synced app state ───────
+    // Data model in use: users/{userId}/state/{stateDoc} (see app/app.js).
+    match /users/{userId} {
+      // A signed-in user may read/write only their own document.
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      // Admins may read any user document (user management dashboard).
+      allow read: if isAdmin();
+
+      // Per-user subcollections (state, and any future ones).
+      match /{subcollection}/{docId=**} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+        allow read: if isAdmin();
+      }
+    }
+
+    // ── Default deny ──────────────────────────────────────────────
+    // Any collection not explicitly matched above is inaccessible.
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

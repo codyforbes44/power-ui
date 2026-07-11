@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /app/
+
+Sitemap: https://claude-power-ui.netlify.app/sitemap.xml

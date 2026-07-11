@@ -19,6 +19,9 @@
 
 'use strict';
 
+const net = require('net');
+const dnsPromises = require('dns').promises;
+
 const PROVIDER_BASE = {
   anthropic: 'https://api.anthropic.com',
   openai:    'https://api.openai.com',
@@ -41,18 +44,150 @@ const PROVIDER_BASE = {
   wikipedia:    'https://en.wikipedia.org',
 };
 
-const CORS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-
-function response(statusCode, body, extra = {}) {
+// CORS headers are built per-request against the validated caller Origin —
+// never '*'. This is a credentialed relay (it forwards the user's API key),
+// so a wildcard ACAO would let any site read the responses.
+function corsHeaders(origin) {
   return {
-    statusCode,
-    headers: { ...CORS, 'Content-Type': 'application/json', ...extra },
-    body: typeof body === 'string' ? body : JSON.stringify(body),
+    'Access-Control-Allow-Origin':      origin,
+    'Access-Control-Allow-Methods':     'POST, OPTIONS',
+    'Access-Control-Allow-Headers':     'Content-Type',
+    'Access-Control-Allow-Credentials': 'true',
+    'Vary':                             'Origin',
   };
+}
+
+function makeResponder(cors) {
+  return function response(statusCode, body, extra = {}) {
+    return {
+      statusCode,
+      headers: { ...cors, 'Content-Type': 'application/json', ...extra },
+      body: typeof body === 'string' ? body : JSON.stringify(body),
+    };
+  };
+}
+
+// ── SSRF guards ───────────────────────────────────────────────────
+// Reject any address that points back into the deployment's own network:
+// RFC1918 private ranges, loopback, link-local (incl. the 169.254.169.254
+// cloud metadata endpoint), and other non-public ranges.
+function isPrivateIp(ip) {
+  if (net.isIPv4(ip)) {
+    const p = ip.split('.').map(Number);
+    if (p[0] === 10) return true;                              // 10/8
+    if (p[0] === 172 && p[1] >= 16 && p[1] <= 31) return true; // 172.16-31/12
+    if (p[0] === 192 && p[1] === 168) return true;             // 192.168/16
+    if (p[0] === 127) return true;                             // loopback
+    if (p[0] === 169 && p[1] === 254) return true;             // link-local + metadata
+    if (p[0] === 0) return true;                               // 0.0.0.0/8
+    if (p[0] === 100 && p[1] >= 64 && p[1] <= 127) return true; // CGNAT 100.64/10
+    if (p[0] >= 224) return true;                              // multicast/reserved
+    return false;
+  }
+  if (net.isIPv6(ip)) {
+    const v = ip.toLowerCase();
+    if (v === '::1' || v === '::') return true;                // loopback / unspecified
+    if (v.startsWith('fe80')) return true;                     // link-local
+    if (v.startsWith('fc') || v.startsWith('fd')) return true; // unique-local
+    const mapped = v.match(/(?:::ffff:)(\d+\.\d+\.\d+\.\d+)$/); // IPv4-mapped
+    if (mapped) return isPrivateIp(mapped[1]);
+    return false;
+  }
+  return true; // unparseable → treat as unsafe
+}
+
+function isBlockedHostname(hostname) {
+  const h = hostname.toLowerCase().replace(/\.$/, '');
+  if (h === 'localhost' || h.endsWith('.localhost')) return true;
+  if (h.endsWith('.internal')) return true;
+  return false;
+}
+
+// Validate that a URL is https and does not resolve to a private/internal
+// address. Throws Error on any violation. Returns the parsed URL.
+async function assertPublicHttpsUrl(urlStr) {
+  let u;
+  try { u = new URL(urlStr); } catch { throw new Error('Invalid URL'); }
+  if (u.protocol !== 'https:') throw new Error('Only https:// URLs are allowed');
+  if (isBlockedHostname(u.hostname)) throw new Error('Host not allowed');
+
+  const host = u.hostname.replace(/^\[|\]$/g, ''); // strip IPv6 brackets
+  if (net.isIP(host)) {
+    if (isPrivateIp(host)) throw new Error('Target resolves to a private address');
+  } else {
+    let records;
+    try {
+      records = await dnsPromises.lookup(host, { all: true });
+    } catch {
+      throw new Error('DNS resolution failed');
+    }
+    if (!records.length) throw new Error('DNS resolution failed');
+    for (const r of records) {
+      if (isPrivateIp(r.address)) throw new Error('Target resolves to a private address');
+    }
+  }
+  return u;
+}
+
+// GET a URL as a Buffer, manually following up to maxRedirects hops and
+// re-validating every hop against assertPublicHttpsUrl (so a redirect to a
+// private IP or non-https scheme is rejected). Node's http(s).get does not
+// auto-follow redirects, which is exactly what we want here.
+async function safeFetchBuffer(startUrl, { headers = {}, timeout = 20000, maxRedirects = 3 } = {}) {
+  const https = require('https');
+  let current = startUrl;
+  for (let hop = 0; hop <= maxRedirects; hop++) {
+    await assertPublicHttpsUrl(current);
+    const step = await new Promise((resolve, reject) => {
+      const r = https.get(current, { headers, timeout }, (res) => {
+        const status = res.statusCode;
+        if (status >= 300 && status < 400 && res.headers.location) {
+          res.resume(); // discard redirect body
+          let next;
+          try { next = new URL(res.headers.location, current).toString(); }
+          catch { reject(new Error('Invalid redirect target')); return; }
+          resolve({ redirect: next });
+          return;
+        }
+        const chunks = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => resolve({ status, buffer: Buffer.concat(chunks) }));
+      });
+      r.on('error', reject);
+      r.on('timeout', () => { r.destroy(); reject(new Error('Request timed out')); });
+    });
+    if (step.redirect) { current = step.redirect; continue; }
+    return step;
+  }
+  throw new Error('Too many redirects');
+}
+
+// Validate a caller-supplied API path can never change the upstream host.
+function isSafeApiPath(apiPath) {
+  return typeof apiPath === 'string'
+    && apiPath.startsWith('/')
+    && !apiPath.startsWith('//')
+    && !apiPath.includes('..')
+    && !apiPath.includes('@')
+    && !apiPath.includes('\\')
+    && !/[\s]/.test(apiPath);
+}
+
+// Return the validated caller Origin (scheme://host) or null. Requires a
+// same-origin request: the Origin's host must equal the request Host (the
+// Netlify site host). Absent/mismatched/unparseable Origin → null (rejected).
+function resolveAllowedOrigin(event) {
+  const headers = event.headers || {};
+  const origin  = headers.origin || headers.Origin;
+  const host    = headers.host   || headers.Host;
+  if (!origin || !host) return null;
+  try {
+    const o = new URL(origin);
+    if (o.host !== host) return null;
+    return o.origin;
+  } catch {
+    return null;
+  }
 }
 
 async function fetchProvider(url, upstreamHeaders, payload, method = 'POST') {
@@ -95,41 +230,29 @@ async function fetchProvider(url, upstreamHeaders, payload, method = 'POST') {
   });
 }
 
-// This function is meant to be called only by this app's own browser JS
-// (it exists purely to dodge browser CORS — see file header). It has no
-// other authentication, so it's otherwise an open relay: anyone who finds
-// the URL could use it to send arbitrary-but-attacker-supplied API keys to
-// any of PROVIDER_BASE's hosts. A real same-origin browser POST always
-// carries an Origin header matching the request's own Host (the Fetch
-// standard sends Origin on POST regardless of same/cross-origin, for
-// exactly this kind of server-side check) — reject anything else that
-// *does* present an Origin. Requests with no Origin at all (curl, server-
-// to-server, older clients) are still let through unchanged from before,
-// so this doesn't require new configuration or break existing deploys.
-function isAllowedOrigin(event) {
-  const headers = event.headers || {};
-  const origin  = headers.origin || headers.Origin;
-  const host    = headers.host   || headers.Host;
-  if (!origin || !host) return true;
-  try {
-    return new URL(origin).host === host;
-  } catch {
-    return false;
-  }
-}
-
 exports.handler = async function(event) {
   const startedAt = Date.now();
+
+  // This is a credentialed relay (it forwards the user's API key upstream),
+  // so it must only serve its own browser front-end. Require a same-origin
+  // Origin header matching the request Host; reject when absent or mismatched
+  // (curl / cross-site / server-to-server no longer get a free pass). The
+  // validated Origin is echoed back in Access-Control-Allow-Origin — never '*'.
+  const allowedOrigin = resolveAllowedOrigin(event);
+  const cors = corsHeaders(allowedOrigin || 'null');
+  const response = makeResponder(cors);
+
   // CORS preflight
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: CORS, body: '' };
+    if (!allowedOrigin) return { statusCode: 403, headers: cors, body: '' };
+    return { statusCode: 204, headers: cors, body: '' };
   }
 
   if (event.httpMethod !== 'POST') {
     return response(405, { error: 'Method not allowed' });
   }
 
-  if (!isAllowedOrigin(event)) {
+  if (!allowedOrigin) {
     console.warn(JSON.stringify({ fn: 'proxy', event: 'origin_rejected', origin: event.headers?.origin, host: event.headers?.host }));
     return response(403, { error: 'Forbidden' });
   }
@@ -165,53 +288,42 @@ exports.handler = async function(event) {
   }
 
   // ── fetch_url — proxy-CORS-bypass for KB URL ingestion ────────
+  // SSRF-hardened: https-only, DNS-validated against private/internal ranges,
+  // with redirect hops (max 3) re-validated the same way.
   if (provider === 'fetch_url') {
     const targetUrl = payload?.url;
-    if (!targetUrl || !targetUrl.startsWith('http')) {
-      return response(400, { error: 'fetch_url requires payload.url to be a valid http/https URL' });
+    if (typeof targetUrl !== 'string' || !targetUrl.startsWith('https://')) {
+      return response(400, { error: 'fetch_url requires payload.url to be an https:// URL' });
     }
-    const https = require('https');
-    const http  = require('http');
-    const urlMod = require('url');
-    const parsed = urlMod.parse(targetUrl);
-    const client = parsed.protocol === 'https:' ? https : http;
-    return new Promise((resolve) => {
-      const req2 = client.get(targetUrl, {
+    let step;
+    try {
+      step = await safeFetchBuffer(targetUrl, {
         headers: {
           'User-Agent': 'AsyncAI-KnowledgeBase/1.0 (document ingestion)',
           'Accept': 'text/html,text/plain,application/json,*/*',
         },
         timeout: 20000,
-      }, (res) => {
-        const chunks = [];
-        res.on('data', c => chunks.push(c));
-        res.on('end', () => {
-          let text = Buffer.concat(chunks).toString('utf8');
-          // Strip HTML tags for cleaner text
-          text = text
-            .replace(/<script[\s\S]*?<\/script>/gi, '')
-            .replace(/<style[\s\S]*?<\/style>/gi, '')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .slice(0, 100000);
-          log({ event: 'fetch_url_done', targetUrl: targetUrl.slice(0, 80), bytes: text.length, status: res.statusCode });
-          resolve({
-            statusCode: 200,
-            headers: { ...CORS, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, url: targetUrl, status: res.statusCode }),
-          });
-        });
+        maxRedirects: 3,
       });
-      req2.on('error', (e) => {
-        resolve(response(502, { error: `fetch_url failed: ${e.message}` }));
-      });
-      req2.on('timeout', () => {
-        req2.destroy();
-        resolve(response(504, { error: 'fetch_url timed out' }));
-      });
-    });
+    } catch (e) {
+      const ssrf = /https|private|Host not allowed|Invalid URL|redirect/i.test(e.message);
+      log({ event: 'fetch_url_blocked', reason: e.message });
+      return response(ssrf ? 400 : 502, { error: `fetch_url failed: ${e.message}` });
+    }
+    let text = step.buffer.toString('utf8')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 100000);
+    log({ event: 'fetch_url_done', targetUrl: targetUrl.slice(0, 80), bytes: text.length, status: step.status });
+    return {
+      statusCode: 200,
+      headers: { ...cors, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, url: targetUrl, status: step.status }),
+    };
   }
 
   // ── DuckDuckGo instant answers (GET, no auth) ────────────
@@ -227,7 +339,7 @@ exports.handler = async function(event) {
           log({ event: 'upstream_response', status: res.statusCode, durationMs: Date.now() - startedAt });
           resolve({
             statusCode: res.statusCode,
-            headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' },
+            headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' },
             body: Buffer.concat(chunks).toString('utf8'),
           });
         });
@@ -279,7 +391,7 @@ exports.handler = async function(event) {
           log({ event: 'web_search_response', searchProvider, status: res.statusCode, durationMs: Date.now() - startedAt });
           resolve({
             statusCode: res.statusCode,
-            headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30' },
+            headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30' },
             body: Buffer.concat(chunks).toString('utf8'),
           });
         });
@@ -308,7 +420,7 @@ exports.handler = async function(event) {
           log({ event: 'gnews_response', status: res.statusCode, durationMs: Date.now() - startedAt });
           resolve({
             statusCode: res.statusCode,
-            headers: { ...CORS, 'Content-Type': 'application/json' },
+            headers: { ...cors, 'Content-Type': 'application/json' },
             body: Buffer.concat(chunks).toString('utf8'),
           });
         });
@@ -320,13 +432,30 @@ exports.handler = async function(event) {
   }
 
 
-  // Build upstream URL
+  // Build upstream URL. apiPath is attacker-controllable, so it must not be
+  // able to change the host we talk to (e.g. '//evil.com', '/@evil.com',
+  // backslash tricks, or path traversal). Validate the shape, then verify the
+  // assembled URL's host still equals the fixed provider base host.
+  if (!isSafeApiPath(apiPath)) {
+    log({ event: 'invalid_path' });
+    return response(400, { error: 'Invalid path' });
+  }
   let url = base + apiPath;
   if (queryParams && Object.keys(queryParams).length) {
     const qs = Object.entries(queryParams)
       .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
       .join('&');
     url += '?' + qs;
+  }
+  try {
+    const built = new URL(url);
+    const baseHost = new URL(base).host;
+    if (built.protocol !== 'https:' || built.host !== baseHost) {
+      log({ event: 'invalid_path', builtHost: built.host });
+      return response(400, { error: 'Invalid path' });
+    }
+  } catch {
+    return response(400, { error: 'Invalid path' });
   }
 
   // Build upstream headers
@@ -388,7 +517,7 @@ exports.handler = async function(event) {
     const b64 = rawBuffer.toString('base64');
     return {
       statusCode: 200,
-      headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+      headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
       body: JSON.stringify({ base64: b64, contentType }),
     };
   }
@@ -397,7 +526,7 @@ exports.handler = async function(event) {
   return {
     statusCode: upstream.status,
     headers: {
-      ...CORS,
+      ...cors,
       'Content-Type':  contentType,
       'Cache-Control': 'no-cache',
     },
