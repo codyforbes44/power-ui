@@ -220,6 +220,65 @@ const SessionDb = (() => {
 })();
 
 // ============================================================
+// Firestore state-doc resolution
+// ============================================================
+// The synced state doc lives at users/{id}/state/current. We prefer the
+// Firebase Auth UID as {id} so it matches firestore.rules (request.auth.uid),
+// falling back to the AuthSystem user id when Firebase Auth is unavailable
+// (degraded path — keeps sync working locally even if the auth SDK failed).
+function cpuFirebaseUid() {
+  try {
+    if (typeof AuthSystem !== 'undefined' && typeof AuthSystem.getFirebaseUid === 'function') {
+      return AuthSystem.getFirebaseUid();
+    }
+  } catch { /* ignore */ }
+  try { return (window.firebaseAuth && window.firebaseAuth.currentUser && window.firebaseAuth.currentUser.uid) || null; }
+  catch { return null; }
+}
+
+function cpuStateDocRef(session) {
+  if (typeof window.db === 'undefined') return null;
+  const docId = cpuFirebaseUid() || (session && session.userId) || null;
+  if (!docId) return null;
+  return window.db.collection('users').doc(docId).collection('state').doc('current');
+}
+
+// One-time migration: when a user first signs into Firebase, their synced
+// state lives under the old AuthSystem-id path. Copy it into the new
+// Firebase-UID path (while firestore.rules are still open) so cloud sync
+// survives the cutover. Guarded per-UID via a localStorage flag; best-effort.
+async function cpuMigrateFirestoreState(oldUserId) {
+  try {
+    if (typeof window.db === 'undefined') return;
+    const uid = cpuFirebaseUid();
+    if (!uid || !oldUserId || uid === oldUserId) return; // nothing to migrate
+    const flag = 'cpu_fs_migrated_' + uid;
+    if (localStorage.getItem(flag)) return; // already migrated for this UID
+
+    const newRef = window.db.collection('users').doc(uid).collection('state').doc('current');
+    const newDoc = await newRef.get();
+    const newData = newDoc.exists ? newDoc.data() : null;
+    const newHasData = !!(newData && newData.data);
+
+    if (!newHasData) {
+      const oldRef = window.db.collection('users').doc(oldUserId).collection('state').doc('current');
+      const oldDoc = await oldRef.get();
+      if (oldDoc.exists) {
+        const oldData = oldDoc.data();
+        if (oldData && oldData.data) {
+          await newRef.set(oldData, { merge: true });
+          console.log(`✦ Firestore: migrated state ${oldUserId} → ${uid}`);
+        }
+      }
+    }
+    localStorage.setItem(flag, String(Date.now()));
+  } catch (e) {
+    console.warn('Firestore migration skipped:', e && e.message);
+  }
+}
+window.__cpuMigrateFirestoreState = cpuMigrateFirestoreState;
+
+// ============================================================
 // ServerSync — detect local server, persist to disk, SSE sync
 // ============================================================
 const ServerSync = (() => {
@@ -257,9 +316,10 @@ const ServerSync = (() => {
 
     // Use Firebase if available
     const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
-    if (typeof window.db !== 'undefined' && session && session.userId) {
+    const pushRef = (session && session.userId) ? cpuStateDocRef(session) : null;
+    if (pushRef) {
       try {
-        await window.db.collection('users').doc(session.userId).collection('state').doc('current').set({
+        await pushRef.set({
           data: JSON.stringify(data),
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -286,9 +346,10 @@ const ServerSync = (() => {
     if (!_available) return null;
 
     const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
-    if (typeof window.db !== 'undefined' && session && session.userId) {
+    const pullRef = (session && session.userId) ? cpuStateDocRef(session) : null;
+    if (pullRef) {
       try {
-        const doc = await window.db.collection('users').doc(session.userId).collection('state').doc('current').get();
+        const doc = await pullRef.get();
         if (doc.exists) {
           const d = doc.data();
           if (d && d.data) return JSON.parse(d.data);
@@ -309,9 +370,10 @@ const ServerSync = (() => {
     if (!_available) return;
 
     const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
-    if (typeof window.db !== 'undefined' && session && session.userId) {
+    const subRef = (session && session.userId) ? cpuStateDocRef(session) : null;
+    if (subRef) {
       if (_firebaseUnsub) return;
-      _firebaseUnsub = window.db.collection('users').doc(session.userId).collection('state').doc('current')
+      _firebaseUnsub = subRef
         .onSnapshot((doc) => {
           if (doc.exists && !doc.metadata.hasPendingWrites) {
             onStateChange();
@@ -4854,9 +4916,10 @@ window.setAgentBackground = function(url) {
     localStorage.setItem('async_ai_v2', JSON.stringify(state));
     
     // Also save to firebase if we have it open in app.js
-    if (window.db && window.AuthSystem && AuthSystem.getCurrentSession()?.userId) {
-       window.db.collection('users').doc(AuthSystem.getCurrentSession().userId)
-         .collection('state').doc('current').set({ settings: state.settings }, { merge: true });
+    if (window.db && window.AuthSystem) {
+       const session = AuthSystem.getCurrentSession();
+       const ref = (session && session.userId) ? cpuStateDocRef(session) : null;
+       if (ref) ref.set({ settings: state.settings }, { merge: true });
     }
     toast('Agent background set! Open Aria to see it.', 'success');
   } catch(e) {
