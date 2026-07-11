@@ -724,8 +724,8 @@ async function runTool(name, inp) {
     }
     case 'calculate': {
       try {
-        // eslint-disable-next-line no-new-func
-        return inp.expression + ' = ' + Function("'use strict';return(" + inp.expression + ")")();
+        const val = SuperAgent.calc(inp.expression || '');
+        return (inp.expression || '') + ' = ' + val.toLocaleString(undefined, { maximumFractionDigits: 12 });
       } catch (er) { return 'Calc error: ' + er.message; }
     }
     default:

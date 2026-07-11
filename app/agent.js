@@ -4,7 +4,7 @@
  * Access restricted to isSuperAdmin() users only.
  *
  * New in v2:
- *   Tools:   web_search, calculate, run_code, create_note, list_kb_docs, analyze_image
+ *   Tools:   web_search, calculate, run_code, create_note, list_kb_docs
  *   Config:  webSearchProvider, webSearchApiKey, memoryCategories, apiIntegrations[]
  */
 
@@ -20,6 +20,147 @@ export const SuperAgent = (() => {
   const KB_DB_NAME       = 'async_kb_v1';
   const KB_STORE         = 'documents';
   const AGENT_MEM_KEY    = 'async_agent_memories_v1';
+
+  // ──────────────────────────────────────────────────────────
+  // Storage-full notifier
+  // ──────────────────────────────────────────────────────────
+  function _warnStorageFull() {
+    const msg = 'Save failed: storage full';
+    try {
+      if (typeof AdminApp !== 'undefined' && AdminApp?.toast) AdminApp.toast(msg, 'error');
+      else if (typeof alert === 'function') alert(msg);
+    } catch { /* nothing we can do */ }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Safe math expression evaluator (no eval / no Function)
+  // Tokenizer + recursive-descent parser. Only numbers, the
+  // operators + - * / % ^ (and **), parens, commas, and an
+  // explicit allowlist of Math.* functions/constants are accepted.
+  // Any other identifier (fetch, document, String, constructor,
+  // window, globalThis, self, import, …) is rejected.
+  // ──────────────────────────────────────────────────────────
+  // EVALUATOR-START
+  function evalMathExpression(input) {
+    const expr = String(input == null ? '' : input).trim();
+    if (!expr) throw new Error('Empty expression');
+    if (expr.length > 500) throw new Error('Expression too long');
+
+    const MATH_FUNCS = new Set([
+      'sqrt', 'cbrt', 'abs', 'floor', 'ceil', 'round', 'trunc', 'sign',
+      'exp', 'expm1', 'log', 'log2', 'log10', 'log1p',
+      'sin', 'cos', 'tan', 'asin', 'acos', 'atan',
+      'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh',
+      'atan2', 'pow', 'max', 'min', 'hypot',
+    ]);
+    const MATH_CONSTS = {
+      PI: Math.PI, E: Math.E, LN2: Math.LN2, LN10: Math.LN10,
+      LOG2E: Math.LOG2E, LOG10E: Math.LOG10E, SQRT2: Math.SQRT2, SQRT1_2: Math.SQRT1_2,
+    };
+
+    // ── Tokenize ──────────────────────────────────────────
+    const numRe = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/;
+    const idRe  = /^[A-Za-z][A-Za-z0-9_.]*/;
+    const tokens = [];
+    let i = 0;
+    const n = expr.length;
+    while (i < n) {
+      const c = expr[i];
+      if (c === ' ' || c === '\t' || c === '\n' || c === '\r') { i++; continue; }
+      if ((c >= '0' && c <= '9') || (c === '.' && expr[i + 1] >= '0' && expr[i + 1] <= '9')) {
+        const m = expr.slice(i).match(numRe);
+        if (!m) throw new Error(`Invalid number at position ${i}`);
+        tokens.push({ t: 'num', v: parseFloat(m[0]) });
+        i += m[0].length;
+        continue;
+      }
+      if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+        const name = expr.slice(i).match(idRe)[0];
+        i += name.length;
+        if (!/^Math\.[A-Za-z0-9_]+$/.test(name)) throw new Error(`Unknown identifier: ${name}`);
+        const suffix = name.slice(5);
+        if (MATH_FUNCS.has(suffix)) tokens.push({ t: 'func', v: suffix });
+        else if (Object.prototype.hasOwnProperty.call(MATH_CONSTS, suffix)) tokens.push({ t: 'num', v: MATH_CONSTS[suffix] });
+        else throw new Error(`Unknown identifier: ${name}`);
+        continue;
+      }
+      if (c === '*' && expr[i + 1] === '*') { tokens.push({ t: 'op', v: '^' }); i += 2; continue; }
+      if ('+-*/%^(),'.includes(c)) { tokens.push({ t: 'op', v: c }); i += 1; continue; }
+      throw new Error(`Unexpected character: "${c}"`);
+    }
+    if (!tokens.length) throw new Error('Empty expression');
+
+    // ── Parse (recursive descent) ─────────────────────────
+    let p = 0;
+    const peek = () => tokens[p];
+    const eat  = () => tokens[p++];
+
+    function parseExpr() {   // + -
+      let left = parseTerm();
+      while (peek() && peek().t === 'op' && (peek().v === '+' || peek().v === '-')) {
+        const op = eat().v;
+        const right = parseTerm();
+        left = op === '+' ? left + right : left - right;
+      }
+      return left;
+    }
+    function parseTerm() {   // * / %
+      let left = parseFactor();
+      while (peek() && peek().t === 'op' && (peek().v === '*' || peek().v === '/' || peek().v === '%')) {
+        const op = eat().v;
+        const right = parseFactor();
+        left = op === '*' ? left * right : op === '/' ? left / right : left % right;
+      }
+      return left;
+    }
+    function parseFactor() { // ^ (right-associative), after unary
+      const base = parseUnary();
+      if (peek() && peek().t === 'op' && peek().v === '^') {
+        eat();
+        return Math.pow(base, parseFactor());
+      }
+      return base;
+    }
+    function parseUnary() {
+      const tk = peek();
+      if (tk && tk.t === 'op' && (tk.v === '+' || tk.v === '-')) {
+        eat();
+        const val = parseUnary();
+        return tk.v === '-' ? -val : val;
+      }
+      return parsePrimary();
+    }
+    function parsePrimary() {
+      const tk = eat();
+      if (!tk) throw new Error('Unexpected end of expression');
+      if (tk.t === 'num') return tk.v;
+      if (tk.t === 'func') {
+        if (!peek() || peek().v !== '(') throw new Error(`Expected ( after Math.${tk.v}`);
+        eat(); // (
+        const args = [];
+        if (peek() && peek().v !== ')') {
+          args.push(parseExpr());
+          while (peek() && peek().v === ',') { eat(); args.push(parseExpr()); }
+        }
+        if (!peek() || peek().v !== ')') throw new Error('Expected ) after arguments');
+        eat(); // )
+        return Math[tk.v](...args);
+      }
+      if (tk.t === 'op' && tk.v === '(') {
+        const val = parseExpr();
+        if (!peek() || peek().v !== ')') throw new Error('Expected )');
+        eat(); // )
+        return val;
+      }
+      throw new Error(`Unexpected token: ${tk.v}`);
+    }
+
+    const result = parseExpr();
+    if (p < tokens.length) throw new Error(`Unexpected trailing input near "${peek().v}"`);
+    if (typeof result !== 'number') throw new Error('Expression did not evaluate to a number');
+    return result;
+  }
+  // EVALUATOR-END
 
   // ──────────────────────────────────────────────────────────
   // Default config
@@ -39,7 +180,6 @@ export const SuperAgent = (() => {
 - Persistent cross-session memory (facts stored across ALL conversations, organized by category)
 - Document knowledge base (uploaded PDFs, text files, notes, and ingested web pages)
 - Custom API integrations (call configured external services on demand)
-- Image analysis (analyze images using vision capabilities)
 - Note creation (save information directly to your knowledge base)
 
 Always be proactive about using your tools. When asked about current events, search the web. When asked about past conversations, check your memory. When relevant documents are in the knowledge base, cite them. For math, use the calculator. You have full API access to all configured providers.
@@ -59,7 +199,6 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       crossMemory:    true,
       calculator:     true,   // NEW
       codeRunner:     false,  // NEW (off by default — runs JS)
-      imageAnalysis:  false,  // NEW (requires vision model)
       createNote:     true,   // NEW
       listKbDocs:     true,   // NEW
       apiIntegrations:false,  // NEW (enabled when integrations configured)
@@ -128,7 +267,9 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
     },
     save(cfg) {
       cfg.updatedAt = new Date().toISOString();
-      localStorage.setItem(AGENT_CONFIG_KEY, JSON.stringify(cfg));
+      try {
+        localStorage.setItem(AGENT_CONFIG_KEY, JSON.stringify(cfg));
+      } catch { _warnStorageFull(); }
     },
     reset() { localStorage.removeItem(AGENT_CONFIG_KEY); },
     isEnabled() {
@@ -144,7 +285,10 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
     _load() {
       try { return JSON.parse(localStorage.getItem(AGENT_MEM_KEY)) || []; } catch { return []; }
     },
-    _save(mems) { localStorage.setItem(AGENT_MEM_KEY, JSON.stringify(mems)); },
+    _save(mems) {
+      try { localStorage.setItem(AGENT_MEM_KEY, JSON.stringify(mems)); }
+      catch { _warnStorageFull(); }
+    },
 
     add(key, value, tags = [], category = 'general') {
       const mems = this._load();
@@ -202,7 +346,8 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
           }
         };
         req.onsuccess = e => resolve(e.target.result);
-        req.onerror   = e => reject(e.target.error);
+        req.onerror   = e => { this._dbPromise = null; reject(e.target.error); };
+        req.onblocked = () => { this._dbPromise = null; reject(new Error('IndexedDB open blocked — close other tabs using this app and retry.')); };
       });
       return this._dbPromise;
     },
@@ -803,18 +948,11 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       case 'calculate': {
         try {
           const expr   = (input.expression || '').trim();
-          // Security: only allow math-safe characters
-          if (/[^0-9+\-*/.()%^ Math.,\s_a-zA-Z]/.test(expr)) {
-            return 'Invalid expression — only math expressions are allowed.';
-          }
-          const result = Function('"use strict"; return (' + expr + ')')();
-          if (typeof result === 'number') {
-            const formatted = Number.isInteger(result)
-              ? result.toLocaleString()
-              : parseFloat(result.toPrecision(12)).toLocaleString(undefined, { maximumFractionDigits: 10 });
-            return `**${expr}** = **${formatted}**`;
-          }
-          return `**${expr}** = ${JSON.stringify(result)}`;
+          const result = evalMathExpression(expr);
+          const formatted = Number.isInteger(result)
+            ? result.toLocaleString()
+            : parseFloat(result.toPrecision(12)).toLocaleString(undefined, { maximumFractionDigits: 10 });
+          return `**${expr}** = **${formatted}**`;
         } catch (e) { return `Calculation error: ${e.message}`; }
       }
 
@@ -825,6 +963,7 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
         return new Promise(resolve => {
           const logs  = [];
           const blob  = new Blob([`
+            self.fetch = self.XMLHttpRequest = self.WebSocket = self.EventSource = self.importScripts = undefined;
             const _log = [];
             const console = { log: (...a) => _log.push(a.map(x=>JSON.stringify(x)).join(' ')), error: (...a) => _log.push('ERROR: '+a.join(' ')), warn: (...a) => _log.push('WARN: '+a.join(' ')) };
             try {
@@ -980,7 +1119,6 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       crossMemory:    'agent_memory_recall / agent_memory_save (cross-session memory by category)',
       calculator:     'calculate (math expressions)',
       codeRunner:     'run_code (JavaScript sandbox)',
-      imageAnalysis:  'analyze_image (vision — analyze images)',
       createNote:     'create_note (save notes to KB)',
       listKbDocs:     'list_kb_docs (list all KB documents)',
     };
@@ -1036,6 +1174,7 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
     memory:      AgentMemory,
     kb:          KnowledgeBase,
     tools:       SUPER_TOOLS,
+    calc:        evalMathExpression,
     getSuperTools,
     executeSuperTool,
     buildSuperAgentSystemPrompt,
