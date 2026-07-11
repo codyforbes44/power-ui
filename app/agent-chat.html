@@ -1167,6 +1167,38 @@ function buildMsgs(ms, prov) {
       }
     }
   }
+
+  // Token limit safeguard (approximate by character length)
+  const CHAR_LIMIT = 400000;
+  let totalChars = JSON.stringify(out).length;
+  if (totalChars > CHAR_LIMIT) {
+    while (out.length > 2 && totalChars > CHAR_LIMIT) {
+      totalChars -= JSON.stringify(out.shift()).length;
+    }
+    while (out.length > 1) {
+      if (out[0].role === 'user') {
+        let isTR = false;
+        if (prov === 'anthropic' && Array.isArray(out[0].content)) {
+          isTR = out[0].content.some(c => c.type === 'tool_result');
+        }
+        if (!isTR) break;
+      }
+      out.shift();
+    }
+    if (out.length === 1 && totalChars > CHAR_LIMIT) {
+      const m = out[0];
+      if (typeof m.content === 'string') {
+        m.content = m.content.substring(0, CHAR_LIMIT) + '\n...[TRUNCATED]';
+      } else if (Array.isArray(m.content)) {
+        for (const p of m.content) {
+          if (p.type === 'text' && typeof p.text === 'string' && p.text.length > CHAR_LIMIT) {
+            p.text = p.text.substring(0, CHAR_LIMIT) + '\n...[TRUNCATED]';
+          }
+        }
+      }
+    }
+  }
+
   return out;
 }
 
