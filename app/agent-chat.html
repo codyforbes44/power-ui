@@ -1259,7 +1259,10 @@ function addTRC(bid, tc, res) {
   if (typeof res === 'string' && res.startsWith('__TOOL_IMAGE__:')) {
     try {
       const img = JSON.parse(res.substring(15));
-      bHtml = `<div class="trb" style="padding:12px;text-align:center"><img src="${img.src}" style="max-width:100%;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2)" /><div style="font-size:12px;color:var(--text-3);margin-top:8px">${esc(img.prompt)}</div></div>`;
+      const mediaHtml = img.isVideo
+        ? `<video src="${img.src}" autoplay loop muted controls style="max-width:100%;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2)"></video>`
+        : `<img src="${img.src}" style="max-width:100%;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2)" />`;
+      bHtml = `<div class="trb" style="padding:12px;text-align:center">${mediaHtml}<div style="font-size:12px;color:var(--text-3);margin-top:8px">${esc(img.prompt)}</div></div>`;
     } catch (e) {}
   }
   

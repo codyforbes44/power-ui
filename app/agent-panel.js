@@ -148,8 +148,9 @@ export async function renderAgentPanel() {
         <div class="agent-grid-2">
           ${[
             { id: 'fal', label: 'Fal.ai API Key' },
-            { id: 'bfl', label: 'Black Forest Labs Key' },
+            { id: 'bfl', label: 'BFL API Key' },
             { id: 'replicate', label: 'Replicate API Key' },
+            { id: 'novita', label: 'Novita API Key' }
           ].map(p => `
             <div class="agent-field">
               <label>${p.label}</label>
@@ -575,7 +576,7 @@ export const AgentPanel = {
   // ── Config ────────────────────────────────────────────────
   async saveAriaKeys() {
     const keys = await ApiKeyVault.loadAria() || {};
-    const providers = ['anthropic', 'openai', 'google', 'groq', 'mistral', 'fal', 'bfl', 'replicate'];
+    const providers = ['anthropic', 'openai', 'google', 'groq', 'mistral', 'fal', 'bfl', 'replicate', 'novita'];
     let changed = false;
     for (const p of providers) {
       const el = _ap_el('aria-key-' + p);

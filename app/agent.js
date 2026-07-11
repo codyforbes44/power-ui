@@ -726,7 +726,7 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
         properties: {
           prompt:   { type: 'string', description: 'Detailed visual description of the image to generate' },
           size:     { type: 'string', enum: ['1024x1024', '1792x1024', '1024x1792'], description: 'Image dimensions (default 1024x1024)' },
-          provider: { type: 'string', enum: ['bfl', 'fal', 'replicate', 'comfyui'], description: 'Image provider (default: user setting)' },
+          provider: { type: 'string', enum: ['bfl', 'fal', 'replicate', 'novita', 'comfyui'], description: 'Image provider (default: user setting)' },
         },
         required: ['prompt'],
       },
@@ -1071,6 +1071,7 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
             provider: result.provider, model: result.model,
             width: result.width, height: result.height, seed: result.seed,
             timingS: (result.timingMs / 1000).toFixed(1),
+            isVideo: result.isVideo
           })}`;
         } catch (e) {
           return `⚠️ Image generation failed: ${e.message}`;

@@ -86,13 +86,21 @@ export const ImageRouter = (() => {
       { id: 'fal-ai/flux-realism',   name: 'Flux Realism' },
       { id: 'fal-ai/flux-2-pro',     name: 'Flux 2 Pro' },
       { id: 'fal-ai/flux-lora',      name: 'Flux Dev with LoRA' },
+      { id: 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video', name: 'Kling v2.5 Turbo (Video)' },
       { id: 'xai/grok-imagine-image', name: 'Grok Imagine Image' },
       { id: 'fal-ai/z-image/turbo',  name: 'Z-Image Turbo' }
     ],
     replicate: [
+      { id: 'black-forest-labs/flux-1.1-pro-ultra', name: 'Flux 1.1 Pro Ultra' },
       { id: 'black-forest-labs/flux-1.1-pro', name: 'Flux 1.1 Pro' },
+      { id: 'black-forest-labs/flux-pro',     name: 'Flux Pro' },
       { id: 'black-forest-labs/flux-schnell', name: 'Flux Schnell' },
-      { id: 'black-forest-labs/flux-dev',     name: 'Flux Dev' }
+      { id: 'black-forest-labs/flux-dev',     name: 'Flux Dev' },
+      { id: 'lucataco/flux-dev-lora',         name: 'Flux Dev LoRA' },
+      { id: 'lucataco/flux-dev-multi-lora',   name: 'Flux Dev Multi LoRA' }
+    ],
+    novita: [
+      { id: 'kling-2.5-turbo-t2v', name: 'Kling v2.5 Turbo (Video)' }
     ],
     huggingface: [
       { id: 'black-forest-labs/FLUX.1-schnell',     name: 'Flux Schnell (HF)' },
@@ -371,8 +379,19 @@ export const ImageRouter = (() => {
     }
 
     const data = await resp.json();
+    
+    // Handle video response (e.g. Kling)
+    if (data.video) {
+      return {
+        url: data.video.url,
+        dataUrl: null, // Don't convert video to data URL to save memory
+        seed: data.seed !== undefined ? data.seed : seed,
+        isVideo: true
+      };
+    }
+
     if (!data.images || data.images.length === 0) {
-      throw new Error('fal.ai error: no images in response');
+      throw new Error('fal.ai error: no images or video in response');
     }
 
     const images = await Promise.all(data.images.map(async (img) => {
@@ -709,6 +728,87 @@ export const ImageRouter = (() => {
   }
 
   // ---------------------------------------------------------------------------
+  // Provider: Novita AI
+  // ---------------------------------------------------------------------------
+  async function generateNovita({ prompt, model, width, height, steps, seed, apiKey, signal }) {
+    if (!apiKey) throw new Error('API key required for novita');
+
+    const NOVITA_BASE = 'https://api.novita.ai';
+    const headers = { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+
+    const body = {
+      model_name: model,
+      prompt,
+      width,
+      height,
+      steps,
+      seed: seed !== -1 ? seed : Math.floor(Math.random() * 2147483647)
+    };
+
+    const submitResp = await cloudFetch({
+      provider: 'novita',
+      baseUrl: NOVITA_BASE,
+      path: '/v3/async/kling-2.5-turbo-t2v',
+      headers,
+      body,
+      method: 'POST',
+      signal
+    });
+
+    if (!submitResp.ok) {
+      const errText = await submitResp.text().catch(() => '');
+      throw new Error(parseProviderError('novita', submitResp.status, errText));
+    }
+
+    const submitData = await submitResp.json();
+    const taskId = submitData.task_id;
+    if (!taskId) throw new Error('Novita error: no task_id returned');
+
+    // Poll for result
+    const POLL_INTERVAL = 3000;
+    const MAX_RETRIES = 60; // 3 minutes total
+
+    for (let i = 0; i < MAX_RETRIES; i++) {
+      if (signal && signal.aborted) throw new Error('Generation cancelled');
+      await sleep(POLL_INTERVAL);
+
+      const pollResp = await cloudFetch({
+        provider: 'novita',
+        baseUrl: NOVITA_BASE,
+        path: `/v3/async/task-result?task_id=${taskId}`,
+        headers,
+        body: undefined,
+        method: 'GET',
+        signal
+      });
+
+      if (!pollResp.ok) {
+        const errText = await pollResp.text().catch(() => '');
+        throw new Error(parseProviderError('novita', pollResp.status, errText));
+      }
+
+      const pollData = await pollResp.json();
+      if (pollData.task.status === 'TASK_STATUS_SUCCEED') {
+        const videoArray = pollData.videos;
+        if (!videoArray || !videoArray.length) {
+           throw new Error('Novita error: missing videos in successful response');
+        }
+        return {
+          url: videoArray[0].video_url,
+          dataUrl: null,
+          seed: body.seed,
+          isVideo: true
+        };
+      } else if (pollData.task.status === 'TASK_STATUS_FAILED') {
+        throw new Error(`Novita generation failed: ${pollData.task.reason || 'Unknown error'}`);
+      }
+      // Otherwise keep polling
+    }
+
+    throw new Error(`Novita generation timed out after ${Math.round(MAX_RETRIES * POLL_INTERVAL / 1000)}s`);
+  }
+
+  // ---------------------------------------------------------------------------
   // Main generate() function
   // ---------------------------------------------------------------------------
   async function generate(prompt, options) {
@@ -748,6 +848,9 @@ export const ImageRouter = (() => {
         case 'replicate':
           result = await generateReplicate({ prompt, model, width, height, steps, seed, apiKey, signal });
           break;
+        case 'novita':
+          result = await generateNovita({ prompt, model, width, height, steps, seed, apiKey, signal });
+          break;
         case 'huggingface':
           result = await generateHuggingFace({ prompt, model, width, height, steps, seed, apiKey, signal });
           break;
@@ -776,6 +879,7 @@ export const ImageRouter = (() => {
       url:      result.url      !== undefined ? result.url      : null,
       seed:     result.seed     !== undefined ? result.seed     : seed,
       images:   result.images   !== undefined ? result.images   : null,
+      isVideo:  result.isVideo  === true,
       model,
       provider,
       timingMs: Date.now() - t0,

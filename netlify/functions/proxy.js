@@ -32,6 +32,7 @@ const PROVIDER_BASE = {
   bfl:          'https://api.bfl.ml',
   fal:          'https://fal.run',
   replicate:    'https://api.replicate.com',
+  novita:       'https://api.novita.ai',
   huggingface:  'https://router.huggingface.co/hf-inference',
   // Web search providers
   ddg:          'https://api.duckduckgo.com',
@@ -505,6 +506,8 @@ exports.handler = async function(event) {
     upstreamHeaders['Authorization'] = `Key ${apiKey || ''}`;
   } else if (provider === 'replicate') {
     upstreamHeaders['Authorization'] = `Token ${apiKey || ''}`;
+  } else if (provider === 'novita') {
+    upstreamHeaders['Authorization'] = `Bearer ${apiKey || ''}`;
   } else if (provider === 'huggingface') {
     upstreamHeaders['Authorization'] = `Bearer ${apiKey || ''}`;
   } else if (provider === 'github') {
