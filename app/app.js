@@ -2209,6 +2209,7 @@ function openArtifactPreview(content) {
   let srcdoc = artifact.code;
   if (artifact.type === 'jsx') {
     srcdoc = `<!DOCTYPE html><html><head>
+<meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-eval' 'unsafe-inline' 'self' https://unpkg.com; style-src 'unsafe-inline'">
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -2484,23 +2485,9 @@ async function executeTool(toolName, input, session) {
 
     case 'calculate': {
       try {
-        // Strip anything that isn't safe math
-        const safe = (input.expression || '')
-          .replace(/sqrt/g, 'Math.sqrt')
-          .replace(/pow/g,  'Math.pow')
-          .replace(/abs/g,  'Math.abs')
-          .replace(/floor/g,'Math.floor')
-          .replace(/ceil/g, 'Math.ceil')
-          .replace(/round/g,'Math.round')
-          .replace(/log/g,  'Math.log')
-          .replace(/sin/g,  'Math.sin')
-          .replace(/cos/g,  'Math.cos')
-          .replace(/tan/g,  'Math.tan')
-          .replace(/pi/gi,  'Math.PI')
-          .replace(/e(?![a-zA-Z])/g, 'Math.E')
-          .replace(/[^0-9+\-*/().,%\s^Math.A-Z_]/g, '');
-         
-        const result = Function('"use strict"; return (' + safe + ')')();
+        // Reuse SuperAgent's dependency-free, eval-free math evaluator
+        // (strict Math.* allowlist, ^ = exponent). See app/agent.js.
+        const result = SuperAgent.calc(input.expression || '');
         return `${input.expression} = ${result}`;
       } catch (e) {
         return `Calculation error: ${e.message}`;
