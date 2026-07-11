@@ -65,8 +65,8 @@ export const ImageRouter = (() => {
   // Public constants
   // ---------------------------------------------------------------------------
   const DEFAULTS = {
-    provider: 'bfl',
-    model: 'flux-pro-1.1',
+    provider: 'fal',
+    model: 'fal-ai/flux-pro/v1.1',
     width: 1024,
     height: 1024,
     steps: 28,

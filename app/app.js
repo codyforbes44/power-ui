@@ -2540,10 +2540,10 @@ async function executeTool(toolName, input, session) {
 
     case 'generate_image': {
       const imgSettings = STATE.settings.imageGen || {};
-      const provider = input.provider || imgSettings.provider || 'bfl';
+      const provider = input.provider || imgSettings.provider || 'fal';
       const apiKey   = STATE.apiKeys[provider] || imgSettings.apiKey || '';
       const [w, h]   = (input.size || '1024x1024').split('x').map(Number);
-      // Model defaults are provider-specific — ImageRouter.DEFAULTS.model is a BFL id
+      // Model defaults are provider-specific — ImageRouter.DEFAULTS.model is a fal id
       // and must not be reused verbatim for fal/replicate.
       const model = provider === ImageRouter.DEFAULTS.provider
         ? ImageRouter.DEFAULTS.model
@@ -2963,7 +2963,7 @@ async function handleImageGeneration(session, prompt, opts = {}) {
   if (!session) { session = getActiveSession() || createSession(); saveState(); }
 
   const imgSettings = STATE.settings.imageGen || {};
-  const provider = opts.provider || imgSettings.provider || 'bfl';
+  const provider = opts.provider || imgSettings.provider || 'fal';
 
   // Resolve model: explicit opt OR saved setting — but only if it belongs to this provider.
   // This prevents a BFL model ID (e.g. 'flux-pro-1.1') from being used as a fal.ai path.
@@ -4121,7 +4121,7 @@ function toggleImagePopover() {
   pop.style.display = isVisible ? 'none' : 'block';
   if (!isVisible) {
     // Pre-fill provider from settings, sync model list
-    const savedProvider = STATE.settings.imageGen?.provider || 'bfl';
+    const savedProvider = STATE.settings.imageGen?.provider || 'fal';
     const providerSel = document.getElementById('imagine-provider');
     if (providerSel) providerSel.value = savedProvider;
     updateImagineModels();
