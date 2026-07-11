@@ -746,7 +746,7 @@ async function doStream(prov, mid, key, sys, tools) {
 
   try {
     for (let round = 0; round < 8; round++) {
-      const apiMsgs = buildMsgs(S.msgs);
+      const apiMsgs = buildMsgs(S.msgs, prov);
       const ae = { role: 'assistant', content: '', toolCalls: [], toolResults: [] };
       S.msgs.push(ae);
 
@@ -855,28 +855,44 @@ async function runTool(name, inp) {
 }
 
 // ── Build API message array ────────────────────────────────
-function buildMsgs(ms) {
+function buildMsgs(ms, prov) {
   const out = [];
   for (const m of ms) {
     if (m.role === 'user') {
       out.push({ role: 'user', content: m.content });
     } else if (m.role === 'assistant') {
-      const pts = [];
-      if (m.content) pts.push({ type: 'text', text: m.content });
-      for (const tc of (m.toolCalls || [])) {
-        pts.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input });
+      if (prov === 'anthropic') {
+        const pts = [];
+        if (m.content) pts.push({ type: 'text', text: m.content });
+        for (const tc of (m.toolCalls || [])) {
+          pts.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input });
+        }
+        if (pts.length) out.push({ role: 'assistant', content: pts });
+      } else {
+        out.push({
+          role: 'assistant',
+          content: m.content || null,
+          tool_calls: (m.toolCalls || []).map(tc => ({
+            id: tc.id, type: 'function',
+            function: { name: tc.name, arguments: JSON.stringify(tc.input) },
+          })),
+        });
       }
-      if (pts.length) out.push({ role: 'assistant', content: pts });
     } else if (m.role === 'tool_results') {
-      // Tool results must be wrapped as a user message with tool_result content blocks
-      out.push({
-        role: 'user',
-        content: m.results.map(r => ({
-          type: 'tool_result',
-          tool_use_id: r.tool_use_id,
-          content: r.content,
-        })),
-      });
+      if (prov === 'anthropic') {
+        out.push({
+          role: 'user',
+          content: m.results.map(r => ({
+            type: 'tool_result',
+            tool_use_id: r.tool_use_id,
+            content: r.content,
+          })),
+        });
+      } else {
+        for (const r of m.results) {
+          out.push({ role: 'tool', tool_call_id: r.tool_use_id, content: r.content, name: r.name });
+        }
+      }
     }
   }
   return out;

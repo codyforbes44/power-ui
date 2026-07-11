@@ -2695,13 +2695,26 @@ async function sendMessageDirect(session, userText, messageContent = null) {
     return msgs
       .filter(m => !m.imageGenerating) // skip placeholder image messages
       .map((m, i) => {
-        const isLastUser = m.role === 'user' && i === msgs.length - 1;
         if (isLastUser && messageContent && Array.isArray(messageContent)) {
-          const content = messageContent.map(p => {
-            if (p._type === 'image') return { type: 'image', source: { type: 'base64', media_type: p.mediaType, data: p.dataUrl.split(',')[1] } };
-            return { type: 'text', text: p._type === 'text' ? p.text : p };
-          });
-          return { role: m.role, content };
+          if (provider === 'anthropic') {
+            const content = messageContent.map(p => {
+              if (p._type === 'image') return { type: 'image', source: { type: 'base64', media_type: p.mediaType, data: p.dataUrl.split(',')[1] } };
+              return { type: 'text', text: p._type === 'text' ? p.text : p };
+            });
+            return { role: m.role, content };
+          } else if (provider === 'google') {
+            const parts = messageContent.map(p => {
+              if (p._type === 'image') return { inlineData: { mimeType: p.mediaType, data: p.dataUrl.split(',')[1] } };
+              return { text: p._type === 'text' ? p.text : p };
+            });
+            return { role: m.role, parts };
+          } else {
+            const content = messageContent.map(p => {
+              if (p._type === 'image') return { type: 'image_url', image_url: { url: p.dataUrl } };
+              return { type: 'text', text: p._type === 'text' ? p.text : p };
+            });
+            return { role: m.role, content };
+          }
         }
         // Tool result messages
         if (m.role === 'tool') {
@@ -2749,7 +2762,7 @@ async function sendMessageDirect(session, userText, messageContent = null) {
       typeof SuperAgent !== 'undefined' && SuperAgent.config.isEnabled()) {
     try {
       const superTools = SuperAgent.getSuperTools();
-      if (superTools.length) tools = [...tools, ...superTools];
+      if (superTools.length) tools = [...tools, ...superTools.filter(t => !tools.find(s => s.name === t.name))];
     } catch (e) { console.warn('SuperAgent getSuperTools failed:', e); }
   }
 

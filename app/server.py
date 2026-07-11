@@ -224,7 +224,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             "script-src 'self' 'unsafe-inline' https://unpkg.com https://identity.netlify.com https://esm.sh https://*.firebasejs.com https://www.gstatic.com; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            "font-src 'self' https://fonts.gstatic.com data:; "
+            "font-src 'self' https://fonts.gstatic.com https://frontend-cdn.perplexity.ai data:; "
             "connect-src 'self' https://www.gstatic.com https://api.anthropic.com https://api.openai.com "
             "https://generativelanguage.googleapis.com https://api.groq.com "
             "https://api.mistral.ai https://api.bfl.ml https://fal.run "
