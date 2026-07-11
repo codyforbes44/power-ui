@@ -5,6 +5,7 @@
  */
 
 import { SuperAgent } from './agent.js';
+import { ApiKeyVault } from './auth.js';
 
 'use strict';
 
@@ -30,7 +31,11 @@ export async function renderAgentPanel() {
     return;
   }
 
+  // Migrate any legacy plaintext keys into the vault before rendering.
+  try { await SuperAgent.config.migrate(); } catch {}
+
   const cfg  = SuperAgent.config.get();
+  const wsKeySaved = ApiKeyVault.hasWebSearchKey();
   const mems = SuperAgent.memory.getAll();
   let   docs = [];
   try { docs = await SuperAgent.kb.listAll(); } catch {}
@@ -179,7 +184,7 @@ export async function renderAgentPanel() {
         <div id="ws-key-section" class="agent-field" style="${(cfg.webSearch?.provider || 'ddg') === 'ddg' ? 'display:none' : ''}">
           <label for="ws-api-key">API Key</label>
           <div style="display:flex;gap:8px">
-            <input id="ws-api-key" type="password" class="admin-input" style="flex:1" value="${_escAP(cfg.webSearch?.apiKey || '')}" placeholder="Paste your API key here…" />
+            <input id="ws-api-key" type="password" class="admin-input" style="flex:1" value="" placeholder="${wsKeySaved ? '•••••••• saved (leave blank to keep)' : 'Paste your API key here…'}" />
             <button class="admin-btn" onclick="AgentPanel.toggleWsKeyViz()" aria-label="Show or hide API key">👁</button>
           </div>
           <div class="agent-hint" style="margin-top:4px">
@@ -423,6 +428,7 @@ export async function renderAgentPanel() {
                 <span style="font-size:10px;background:rgba(${integ.enabled ? '16,185,129' : '239,68,68'},.1);color:${integ.enabled ? 'var(--admin-success)' : 'var(--admin-danger)'};border-radius:20px;padding:1px 6px;border:1px solid rgba(${integ.enabled ? '16,185,129' : '239,68,68'},.2)">${integ.enabled ? 'Enabled' : 'Disabled'}</span>
               </div>
               <div style="font-size:11px;color:var(--admin-text-dim);margin-top:2px;word-break:break-all">${_escAP(integ.endpoint)}</div>
+              ${integ.hasKey ? `<div style="font-size:11px;color:var(--admin-text-dim);margin-top:2px">🔑 API key: <span style="font-family:var(--font-mono)">•••••••• (encrypted)</span></div>` : ''}
               ${integ.description ? `<div style="font-size:11px;color:var(--admin-text-dim);margin-top:2px;font-style:italic">${_escAP(integ.description)}</div>` : ''}
               ${integ.lastUsed ? `<div style="font-size:10px;color:var(--admin-text-dim);margin-top:2px">Last used: ${new Date(integ.lastUsed).toLocaleString()}</div>` : ''}
             </div>
@@ -603,13 +609,20 @@ export const AgentPanel = {
     SuperAgent.config.save(cfg);
   },
 
-  saveWebSearch() {
+  async saveWebSearch() {
     const cfg = SuperAgent.config.get();
     const prov = document.querySelector('input[name="ws-provider"]:checked')?.value || cfg.webSearch?.provider || 'ddg';
+    const keyInput = _ap_el('ws-api-key')?.value?.trim() || '';
+    // Store the secret in the encrypted vault (never in the config blob).
+    // Empty input leaves any existing saved key untouched.
+    if (keyInput) {
+      try { await ApiKeyVault.setWebSearchKey(keyInput); }
+      catch (e) { AdminApp?.toast?.(e.message, 'error', 4000); return; }
+    }
     cfg.webSearch = {
       provider:   prov,
-      apiKey:     _ap_el('ws-api-key')?.value?.trim() || '',
       maxResults: parseInt(_ap_el('ws-max-results')?.value || '5'),
+      hasKey:     keyInput ? true : ApiKeyVault.hasWebSearchKey(),
     };
     SuperAgent.config.save(cfg);
     AdminApp?.toast?.('Web search settings saved ✓', 'success', 1500);
@@ -621,7 +634,7 @@ export const AgentPanel = {
   },
 
   async testWebSearch() {
-    this.saveWebSearch();
+    await this.saveWebSearch();
     const res = _ap_el('ws-test-result');
     if (!res) return;
     res.style.display = 'block';
@@ -807,16 +820,23 @@ export const AgentPanel = {
   },
 
   // ── Integrations ───────────────────────────────────────────
-  addIntegration() {
+  async addIntegration() {
     const name     = _ap_el('int-name')?.value?.trim();
     const endpoint = _ap_el('int-endpoint')?.value?.trim();
     if (!name || !endpoint) { AdminApp?.toast?.('Name and endpoint are required', 'warning'); return; }
     const cfg  = SuperAgent.config.get();
+    const id   = 'int_' + Date.now();
+    const rawKey = _ap_el('int-key')?.value?.trim() || '';
+    // Store the secret in the encrypted vault (never in the config blob).
+    if (rawKey) {
+      try { await ApiKeyVault.setIntegrationKey(id, rawKey); }
+      catch (e) { AdminApp?.toast?.(e.message, 'error', 4000); return; }
+    }
     const integ = {
-      id:          'int_' + Date.now(),
+      id,
       name,
       endpoint,
-      apiKey:      _ap_el('int-key')?.value?.trim() || '',
+      hasKey:      !!rawKey,
       authType:    _ap_el('int-auth')?.value || 'bearer',
       description: _ap_el('int-desc')?.value?.trim() || '',
       enabled:     true,
@@ -843,6 +863,7 @@ export const AgentPanel = {
     if (!confirm('Delete this integration?')) return;
     const cfg = SuperAgent.config.get();
     cfg.apiIntegrations = (cfg.apiIntegrations || []).filter(i => i.id !== id);
+    ApiKeyVault.removeIntegrationKey(id);
     SuperAgent.config.save(cfg);
     renderAgentPanel();
   },

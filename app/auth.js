@@ -1042,7 +1042,74 @@ export const ApiKeyVault = (() => {
   /** Returns true if a vault blob exists (regardless of lock state). */
   function hasVault() { return !!localStorage.getItem(VAULT_LS); }
 
-  return { save, load, migrateFromPlaintext, hasVault };
+  // ──────────────────────────────────────────────────────────
+  // Per-item encrypted storage (agent integration & web-search keys)
+  // Each secret is encrypted individually under its own localStorage
+  // key, reusing the same session vault key as the provider-key blob.
+  // ──────────────────────────────────────────────────────────
+  const INTKEY_PREFIX = 'cpu_intkey_';    // + integration id
+  const WEBSEARCH_KEY = 'cpu_websearch_key';
+  const LOCKED_MSG    = 'API key vault is locked — unlock it (re-enter your password) before saving or reading agent keys.';
+
+  async function _encItem(value) {
+    const key = await _getKey();
+    if (!key) throw new Error(LOCKED_MSG);
+    const iv     = crypto.getRandomValues(new Uint8Array(12));
+    const cipher = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv }, key, new TextEncoder().encode(String(value))
+    );
+    return JSON.stringify({ v: 2, iv: Array.from(iv), data: Array.from(new Uint8Array(cipher)) });
+  }
+
+  async function _decItem(stored) {
+    const key = await _getKey();
+    if (!key) throw new Error(LOCKED_MSG);
+    const { iv, data } = JSON.parse(stored);
+    const plain = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: new Uint8Array(iv) }, key, new Uint8Array(data)
+    );
+    return new TextDecoder().decode(plain);
+  }
+
+  /** Encrypt & store an integration key. Empty value removes it. Throws if vault locked. */
+  async function setIntegrationKey(id, keyStr) {
+    if (!id) throw new Error('setIntegrationKey: integration id required');
+    if (!keyStr) { localStorage.removeItem(INTKEY_PREFIX + id); return; }
+    localStorage.setItem(INTKEY_PREFIX + id, await _encItem(keyStr));
+  }
+
+  /** Decrypt & return an integration key, '' if none, throws if vault locked. */
+  async function getIntegrationKey(id) {
+    const stored = localStorage.getItem(INTKEY_PREFIX + id);
+    if (!stored) return '';
+    return _decItem(stored);
+  }
+
+  function removeIntegrationKey(id) { localStorage.removeItem(INTKEY_PREFIX + id); }
+
+  /** Encrypt & store the web-search key. Empty value removes it. Throws if vault locked. */
+  async function setWebSearchKey(keyStr) {
+    if (!keyStr) { localStorage.removeItem(WEBSEARCH_KEY); return; }
+    localStorage.setItem(WEBSEARCH_KEY, await _encItem(keyStr));
+  }
+
+  /** Decrypt & return the web-search key, '' if none, throws if vault locked. */
+  async function getWebSearchKey() {
+    const stored = localStorage.getItem(WEBSEARCH_KEY);
+    if (!stored) return '';
+    return _decItem(stored);
+  }
+
+  /** True if an integration key ciphertext exists (regardless of lock state). */
+  function hasIntegrationKey(id) { return !!localStorage.getItem(INTKEY_PREFIX + id); }
+  /** True if a web-search key ciphertext exists (regardless of lock state). */
+  function hasWebSearchKey() { return !!localStorage.getItem(WEBSEARCH_KEY); }
+
+  return {
+    save, load, migrateFromPlaintext, hasVault,
+    setIntegrationKey, getIntegrationKey, removeIntegrationKey, hasIntegrationKey,
+    setWebSearchKey, getWebSearchKey, hasWebSearchKey,
+  };
 })();
 window.AuthSystem = AuthSystem;
 window.ApiKeyVault = ApiKeyVault;

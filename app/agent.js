@@ -8,7 +8,7 @@
  *   Config:  webSearchProvider, webSearchApiKey, memoryCategories, apiIntegrations[]
  */
 
-import { AuthSystem } from './auth.js';
+import { AuthSystem, ApiKeyVault } from './auth.js';
 
 export const SuperAgent = (() => {
   'use strict';
@@ -247,6 +247,23 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
   // ──────────────────────────────────────────────────────────
   // AgentConfig
   // ──────────────────────────────────────────────────────────
+  // Tracks whether the one-time plaintext→vault migration has run this session.
+  let _keysMigrated = false;
+
+  /** Build a copy of cfg with all raw key material stripped for at-rest storage. */
+  function _stripKeys(cfg) {
+    const out = JSON.parse(JSON.stringify(cfg));
+    if (out.webSearch) {
+      out.webSearch.hasKey = !!(out.webSearch.apiKey || out.webSearch.hasKey);
+      delete out.webSearch.apiKey;
+    }
+    out.apiIntegrations = (out.apiIntegrations || []).map(i => {
+      const { apiKey, ...rest } = i;
+      return { ...rest, hasKey: !!(apiKey || i.hasKey) };
+    });
+    return out;
+  }
+
   const AgentConfig = {
     get() {
       try {
@@ -265,11 +282,58 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
         return cfg;
       } catch { return JSON.parse(JSON.stringify(DEFAULT_CONFIG)); }
     },
+    /**
+     * Async config accessor for the agent runtime: returns the merged config
+     * with integration/web-search keys rehydrated from the encrypted vault.
+     * Runs the one-time plaintext migration first. If the vault is locked,
+     * keys are left empty (callers surface the lock error at use time).
+     */
+    async load() {
+      await this.migrate();
+      const cfg = this.get();
+      try {
+        cfg.webSearch.apiKey = await ApiKeyVault.getWebSearchKey();
+      } catch { cfg.webSearch.apiKey = ''; }
+      for (const integ of cfg.apiIntegrations) {
+        try { integ.apiKey = await ApiKeyVault.getIntegrationKey(integ.id); }
+        catch { integ.apiKey = ''; }
+      }
+      return cfg;
+    },
     save(cfg) {
       cfg.updatedAt = new Date().toISOString();
+      // Never persist raw key material in the plaintext config blob.
       try {
-        localStorage.setItem(AGENT_CONFIG_KEY, JSON.stringify(cfg));
+        localStorage.setItem(AGENT_CONFIG_KEY, JSON.stringify(_stripKeys(cfg)));
       } catch { _warnStorageFull(); }
+    },
+    /**
+     * One-time migration: move any plaintext keys left in the legacy config
+     * blob into the encrypted vault, then strip them from the blob.
+     * No-op if the vault is locked (retried on next call).
+     */
+    async migrate() {
+      if (_keysMigrated) return;
+      let saved;
+      try { saved = JSON.parse(localStorage.getItem(AGENT_CONFIG_KEY) || 'null'); }
+      catch { saved = null; }
+      if (!saved) { _keysMigrated = true; return; }
+
+      const wsKey   = saved.webSearch?.apiKey || '';
+      const intKeys = (saved.apiIntegrations || []).filter(i => i.apiKey).map(i => [i.id, i.apiKey]);
+      if (!wsKey && !intKeys.length) { _keysMigrated = true; return; }
+
+      try {
+        if (wsKey) await ApiKeyVault.setWebSearchKey(wsKey);
+        for (const [id, k] of intKeys) await ApiKeyVault.setIntegrationKey(id, k);
+      } catch {
+        // Vault locked — leave blob untouched and retry later.
+        return;
+      }
+      // Re-persist the blob with keys stripped.
+      this.save(this.get());
+      _keysMigrated = true;
+      console.log('AgentConfig: migrated plaintext agent keys to AES-GCM vault ✓');
     },
     reset() { localStorage.removeItem(AGENT_CONFIG_KEY); },
     isEnabled() {
@@ -721,6 +785,9 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
   // Super-Tool executor
   // ──────────────────────────────────────────────────────────
   async function executeSuperTool(toolName, input) {
+    // Ensure any legacy plaintext keys are migrated into the vault before
+    // any tool tries to read a key.
+    try { await AgentConfig.migrate(); } catch {}
     switch (toolName) {
 
       // ── Wikipedia ────────────────────────────────────────
@@ -800,7 +867,8 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
         try {
           const cfg   = AgentConfig.get();
           const count = Math.min(input.count || 5, 10);
-          const key   = cfg.webSearch?.apiKey || '';
+          let key = '';
+          try { key = await ApiKeyVault.getWebSearchKey(); } catch {}
           const PROXY = '/.netlify/functions/proxy';
 
           // Try GNews via proxy (avoids CORS)
@@ -869,7 +937,11 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       case 'web_search': {
         const cfg  = AgentConfig.get();
         const prov = cfg.webSearch?.provider || 'ddg';
-        const key  = cfg.webSearch?.apiKey   || '';
+        let key = '';
+        if (prov !== 'ddg') {
+          try { key = await ApiKeyVault.getWebSearchKey(); }
+          catch (e) { return `Web search unavailable: ${e.message}`; }
+        }
         const n    = Math.min(input.maxResults || 5, 10);
         const PROXY = '/.netlify/functions/proxy';
 
@@ -1046,16 +1118,21 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
           const method  = (input.method || 'GET').toUpperCase();
           const headers = { 'Content-Type': 'application/json' };
 
-          if (integ.apiKey) {
+          // Read the secret from the encrypted vault at call time.
+          let apiKey = '';
+          try { apiKey = await ApiKeyVault.getIntegrationKey(integ.id); }
+          catch (e) { return `Integration "${integ.name}" call failed: ${e.message}`; }
+
+          if (apiKey) {
             switch (integ.authType || 'bearer') {
-              case 'bearer': headers['Authorization'] = `Bearer ${integ.apiKey}`; break;
-              case 'key':    headers['X-API-Key']     = integ.apiKey; break;
-              case 'basic':  headers['Authorization'] = `Basic ${integ.apiKey}`; break;
-              case 'query':  /* handled in URL below */                           break;
+              case 'bearer': headers['Authorization'] = `Bearer ${apiKey}`; break;
+              case 'key':    headers['X-API-Key']     = apiKey; break;
+              case 'basic':  headers['Authorization'] = `Basic ${apiKey}`; break;
+              case 'query':  /* handled in URL below */                     break;
             }
             if (integ.authType === 'query') {
               const sep = url.includes('?') ? '&' : '?';
-              url += `${sep}api_key=${encodeURIComponent(integ.apiKey)}`;
+              url += `${sep}api_key=${encodeURIComponent(apiKey)}`;
             }
           }
 
