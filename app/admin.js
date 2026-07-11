@@ -927,6 +927,16 @@ python3 cli.py export --format json</pre>
       docsUrl: 'https://huggingface.co/settings/tokens',
       desc: 'HuggingFace Inference API — access thousands of open-source models including FHDR Uncensored, Flux, SDXL and more.',
     },
+    {
+      id: 'novita',
+      name: 'Novita AI',
+      icon: '✨',
+      color: '#8b5cf6',
+      placeholder: 'your-novita-api-key…',
+      baseUrl: 'https://api.novita.ai',
+      docsUrl: 'https://novita.ai/dashboard/key',
+      desc: 'Fast, scalable infrastructure for Kling v2.5 and image models.',
+    },
   ];
 
   // ── Voice / Conversational AI providers ───────────────────

@@ -3561,6 +3561,7 @@ function buildHTML() {
                     <option value="bfl">Black Forest Labs</option>
                     <option value="fal">fal.ai</option>
                     <option value="replicate">Replicate</option>
+                    <option value="novita">Novita AI</option>
                     <option value="huggingface">🤗 HuggingFace</option>
                     <option value="comfyui">ComfyUI (local)</option>
                   </select>
