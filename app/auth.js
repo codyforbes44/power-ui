@@ -349,6 +349,71 @@ export const AuthSystem = (() => {
   function generateToken() { return randomHex(32); }
 
   // ──────────────────────────────────────────────────────────
+  // Firebase Auth bridge (best-effort)
+  // ──────────────────────────────────────────────────────────
+  // The primary AuthSystem is local (localStorage). We ALSO sign the same
+  // credentials into Firebase Email/Password Auth so that request.auth.uid
+  // is populated and firestore.rules can enforce per-user isolation. The
+  // synthetic email is deterministic (same username → same email → same
+  // Firebase UID on every device), which preserves cross-device sync.
+  //
+  // Every call here is guarded: a Firebase failure must NEVER block the
+  // local AuthSystem flow (tests run with no Firebase SDK loaded).
+  const FIREBASE_EMAIL_DOMAIN = 'async-power-ui-2026.firebaseapp.com';
+
+  function firebaseSyntheticEmail(username) {
+    return `${String(username).trim().toLowerCase()}@${FIREBASE_EMAIL_DOMAIN}`;
+  }
+
+  async function ensureFirebaseUser(username, password) {
+    try {
+      const fb = window.firebaseAuth;
+      if (!fb) return null;
+      const email = firebaseSyntheticEmail(username);
+      try {
+        const cred = await fb.signInWithEmailAndPassword(email, password);
+        return cred && cred.user ? cred.user : (fb.currentUser || null);
+      } catch (err) {
+        const code = err && err.code;
+        if (code === 'auth/user-not-found' ||
+            code === 'auth/invalid-login-credentials' ||
+            code === 'auth/invalid-credential') {
+          // No Firebase account yet — create one with the same credentials.
+          try {
+            const cred = await fb.createUserWithEmailAndPassword(email, password);
+            return cred && cred.user ? cred.user : (fb.currentUser || null);
+          } catch (createErr) {
+            // Race: account created between our sign-in and create attempts.
+            if (createErr && createErr.code === 'auth/email-already-in-use') {
+              try {
+                const cred = await fb.signInWithEmailAndPassword(email, password);
+                return cred && cred.user ? cred.user : (fb.currentUser || null);
+              } catch (e2) {
+                console.warn('ensureFirebaseUser: retry sign-in failed', e2 && e2.code);
+                return null;
+              }
+            }
+            console.warn('ensureFirebaseUser: create failed', createErr && createErr.code);
+            return null;
+          }
+        }
+        // Wrong password against an existing Firebase account, network error,
+        // provider disabled, etc. — log and continue with local auth only.
+        console.warn('ensureFirebaseUser: sign-in failed', code || (err && err.message));
+        return null;
+      }
+    } catch (e) {
+      console.warn('ensureFirebaseUser: unexpected error', e && e.message);
+      return null;
+    }
+  }
+
+  function getFirebaseUid() {
+    try { return (window.firebaseAuth && window.firebaseAuth.currentUser && window.firebaseAuth.currentUser.uid) || null; }
+    catch { return null; }
+  }
+
+  // ──────────────────────────────────────────────────────────
   // User operations
   // ──────────────────────────────────────────────────────────
   async function createUser({ username, password, displayName = '', role = 'user' }) {
@@ -380,6 +445,9 @@ export const AuthSystem = (() => {
     };
     users.push(user);
     saveUsers(users);
+    // Best-effort: create the matching Firebase Auth account so it exists
+    // before the user's first cloud sync. Never blocks local user creation.
+    await ensureFirebaseUser(uname, password);
     return sanitize(user);
   }
 
@@ -393,6 +461,15 @@ export const AuthSystem = (() => {
     users[idx].passwordHash = await hashPassword(newPassword, salt); // pbkdf2
     users[idx].hashAlgo     = 'pbkdf2';
     saveUsers(users);
+    // Best-effort: keep the Firebase Auth password in sync. Only works when
+    // the user is currently signed into Firebase (updatePassword requires a
+    // recent login); silently ignored otherwise.
+    try {
+      const fbUser = window.firebaseAuth && window.firebaseAuth.currentUser;
+      if (fbUser) await fbUser.updatePassword(newPassword);
+    } catch (e) {
+      console.warn('updatePassword: firebase sync skipped', e && e.code);
+    }
     return salt; // returned so callers can re-derive the vault key
   }
 
@@ -466,11 +543,30 @@ export const AuthSystem = (() => {
       expiresAt: Date.now() + (8 * 60 * 60 * 1000), // 8-hour session
     };
     saveSession(session);
+
+    // Best-effort: sign the same credentials into Firebase Auth so that
+    // request.auth.uid is populated for firestore.rules. Never blocks login.
+    await ensureFirebaseUser(uname, password);
+
+    // Trigger the one-time Firestore state migration (old AuthSystem-id doc →
+    // Firebase-UID doc). Implemented in app.js; guarded + best-effort.
+    try {
+      if (typeof window.__cpuMigrateFirestoreState === 'function') {
+        await window.__cpuMigrateFirestoreState(user.id);
+      }
+    } catch (e) {
+      console.warn('login: firestore migration skipped', e && e.message);
+    }
+
     return sanitize(user);
   }
 
   function logout() {
     clearSession();
+    // Best-effort: also sign out of Firebase Auth.
+    try {
+      if (window.firebaseAuth) window.firebaseAuth.signOut().catch(() => {});
+    } catch (e) { /* ignore */ }
   }
 
   // ──────────────────────────────────────────────────────────
@@ -967,6 +1063,7 @@ export const AuthSystem = (() => {
     renderLoginScreen,
     refreshVaultKey,   // for re-deriving vault key after external password change
     netlifyIdentityLogin,   // Google OAuth bridge
+    getFirebaseUid,    // Firebase Auth UID (null if not signed into Firebase)
   };
 
 })();
