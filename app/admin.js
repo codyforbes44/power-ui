@@ -1044,10 +1044,11 @@ python3 cli.py export --format json</pre>
     }
 
     // Render default panel — or honour URL hash deep-link
-    const _hashPanel = location.hash.replace('#', '').trim(); // e.g. 'settings' or 'image-gen'
-    const _startPanel = _hashPanel === 'settings' || _hashPanel === 'image-gen'
-      ? 'settings'
-      : isAdmin ? 'overview' : 'settings';
+    const _hashPanel = location.hash.replace('#', '').trim(); // e.g. 'settings', 'image-gen', 'agent'
+    let _startPanel;
+    if (_hashPanel === 'settings' || _hashPanel === 'image-gen') _startPanel = 'settings';
+    else if (_hashPanel === 'agent' && isSuperAdmin) _startPanel = 'agent';
+    else _startPanel = isAdmin ? 'overview' : 'settings';
     await switchPanel(_startPanel, document.getElementById(`nav-item-${_startPanel}`));
 
     // If deep-linked to image generation, scroll to that section after render

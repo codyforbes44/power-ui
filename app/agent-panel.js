@@ -14,6 +14,14 @@ function _escAP(s) {
 }
 function _ap_el(id) { return document.getElementById(id); }
 
+// Active tab is preserved across re-renders (prevents snap-back to Config)
+let activeAgentTab = 'config';
+const AGENT_TABS = ['config','tools','websearch','kb','memory','integrations','code'];
+const AGENT_TAB_LABELS = {
+  config:'⚙ Config', tools:'🔧 Tools', websearch:'🔍 Web Search',
+  kb:'📚 Knowledge Base', memory:'🧠 Memory', integrations:'🔌 Integrations', code:'🧮 Code & Calc',
+};
+
 // ── Render entry point (called by admin.js renderPanel) ──────
 export async function renderAgentPanel() {
   if (typeof SuperAgent === 'undefined') {
@@ -30,6 +38,9 @@ export async function renderAgentPanel() {
   const panel = _ap_el('panel-agent');
   if (!panel) return;
 
+  const integCount = (cfg.apiIntegrations || []).filter(i => i.enabled).length;
+  const tab = AGENT_TABS.includes(activeAgentTab) ? activeAgentTab : 'config';
+
   panel.innerHTML = `
     <div class="admin-panel-header">
       <h2 class="admin-panel-title">
@@ -39,85 +50,78 @@ export async function renderAgentPanel() {
     </div>
 
     <!-- Status bar -->
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:8px;background:rgba(${cfg.enabled?'16,185,129':'239,68,68'},.08);border:1px solid rgba(${cfg.enabled?'16,185,129':'239,68,68'},.2);border-radius:20px;padding:6px 14px;font-size:12px">
-        <span style="width:7px;height:7px;border-radius:50%;background:${cfg.enabled?'#10b981':'#ef4444'}"></span>
+    <div class="agent-status-bar">
+      <span class="agent-status-chip" data-on="${cfg.enabled}">
+        <span class="agent-status-dot"></span>
         ${cfg.enabled ? 'Agent Enabled' : 'Agent Disabled'}
-        <button onclick="AgentPanel.toggleEnabled(${!cfg.enabled})" style="margin-left:6px;background:none;border:none;color:var(--admin-text-dim);cursor:pointer;font-size:11px;padding:0;font-family:inherit">${cfg.enabled ? 'Disable' : 'Enable'}</button>
-      </div>
-      <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.15);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--admin-text-dim)">
-        📚 ${docs.length} KB doc${docs.length!==1?'s':''}
-      </div>
-      <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.15);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--admin-text-dim)">
-        🧠 ${mems.length} memor${mems.length!==1?'ies':'y'}
-      </div>
-      <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.15);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--admin-text-dim)">
-        🔌 ${(cfg.apiIntegrations||[]).filter(i=>i.enabled).length} integration${(cfg.apiIntegrations||[]).filter(i=>i.enabled).length!==1?'s':''}
-      </div>
-      <a href="agent-chat.html" style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.1));border:1px solid rgba(99,102,241,.3);border-radius:20px;padding:6px 14px;font-size:12px;color:#818cf8;text-decoration:none;margin-left:auto">
-        ✦ Open Aria Chat ↗
-      </a>
+        <button class="agent-toggle" role="switch" aria-checked="${cfg.enabled}" aria-label="Toggle agent ${cfg.enabled ? 'off' : 'on'}" onclick="AgentPanel.toggleEnabled(${!cfg.enabled})">
+          <span class="agent-toggle-track"></span>
+        </button>
+      </span>
+      <span class="agent-summary-chip">📚 ${docs.length} KB doc${docs.length !== 1 ? 's' : ''}</span>
+      <span class="agent-summary-chip">🧠 ${mems.length} memor${mems.length !== 1 ? 'ies' : 'y'}</span>
+      <span class="agent-summary-chip">🔌 ${integCount} integration${integCount !== 1 ? 's' : ''}</span>
+      <a class="agent-open-chat" href="agent-chat.html">✦ Open Aria Chat ↗</a>
     </div>
 
     <!-- Tab bar -->
-    <div class="agent-tab-bar" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid var(--admin-border);padding-bottom:8px">
-      ${['config','tools','websearch','kb','memory','integrations','code'].map((t,i) => `
-        <button class="agent-tab${i===0?' active':''}" onclick="AgentPanel.switchTab('${t}',this)" style="padding:7px 14px;font-size:12px;font-weight:500;border-radius:8px 8px 0 0;border:none;cursor:pointer;font-family:inherit;background:${i===0?'var(--admin-card-bg)':'transparent'};color:${i===0?'#818cf8':'var(--admin-text-dim)'};border-bottom:${i===0?'2px solid #6366f1':'2px solid transparent'};transition:all .15s">
-          ${{config:'⚙ Config',tools:'🔧 Tools',websearch:'🔍 Web Search',kb:'📚 Knowledge Base',memory:'🧠 Memory',integrations:'🔌 Integrations',code:'🧮 Code & Calc'}[t]}
-        </button>
-      `).join('')}
+    <div class="agent-tabs" role="tablist" aria-label="Agent configuration sections">
+      ${AGENT_TABS.map(t => {
+        const on = t === tab;
+        return `<button class="agent-tab${on ? ' active' : ''}" role="tab" id="agent-tabbtn-${t}" aria-selected="${on}" aria-controls="agent-tab-${t}" tabindex="${on ? '0' : '-1'}" onclick="AgentPanel.switchTab('${t}',this)" onkeydown="AgentPanel.handleTabKeydown(event)">${AGENT_TAB_LABELS[t]}</button>`;
+      }).join('')}
     </div>
 
     <!-- ── CONFIG TAB ─────────────────────────────────────── -->
-    <div class="agent-tab-panel active" id="agent-tab-config">
+    <div class="agent-tab-panel${tab === 'config' ? ' active' : ''}" role="tabpanel" id="agent-tab-config" aria-labelledby="agent-tabbtn-config">
       <div class="admin-card">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-          <div>
-            <label style="font-size:11px;color:var(--admin-text-dim);display:block;margin-bottom:5px">Persona Name</label>
-            <input id="agent-persona" type="text" value="${_escAP(cfg.persona)}" class="admin-input" style="width:100%" placeholder="Aria" />
+        <div class="agent-grid-2">
+          <div class="agent-field">
+            <label for="agent-persona">Persona Name</label>
+            <input id="agent-persona" type="text" value="${_escAP(cfg.persona)}" class="admin-input" placeholder="Aria" />
           </div>
-          <div>
-            <label style="font-size:11px;color:var(--admin-text-dim);display:block;margin-bottom:5px">Avatar Emoji</label>
-            <input id="agent-avatar" type="text" value="${_escAP(cfg.avatarEmoji)}" class="admin-input" style="width:100%" placeholder="✦" />
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-          <div>
-            <label style="font-size:11px;color:var(--admin-text-dim);display:block;margin-bottom:5px">Temperature <span style="color:var(--admin-text-dim)">(0–1)</span></label>
-            <input id="agent-temperature" type="number" min="0" max="1" step="0.05" value="${cfg.temperature}" class="admin-input" style="width:100%" />
-          </div>
-          <div>
-            <label style="font-size:11px;color:var(--admin-text-dim);display:block;margin-bottom:5px">Max Tokens</label>
-            <input id="agent-max-tokens" type="number" min="512" max="32000" step="256" value="${cfg.maxTokens}" class="admin-input" style="width:100%" />
+          <div class="agent-field">
+            <label for="agent-avatar">Avatar Emoji</label>
+            <input id="agent-avatar" type="text" value="${_escAP(cfg.avatarEmoji)}" class="admin-input" maxlength="2" placeholder="✦" />
           </div>
         </div>
-        <div style="margin-bottom:12px">
-          <label style="font-size:11px;color:var(--admin-text-dim);display:block;margin-bottom:5px">System Prompt</label>
-          <textarea id="agent-system-prompt" class="admin-input" rows="8" style="width:100%;font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;resize:vertical;line-height:1.6">${_escAP(cfg.systemPrompt)}</textarea>
+        <div class="agent-grid-2">
+          <div class="agent-field">
+            <label for="agent-temperature">Temperature <span style="color:var(--admin-text-dim)">(0–1)</span></label>
+            <input id="agent-temperature" type="number" min="0" max="1" step="0.05" value="${cfg.temperature}" class="admin-input" />
+          </div>
+          <div class="agent-field">
+            <label for="agent-max-tokens">Max Tokens</label>
+            <input id="agent-max-tokens" type="number" min="512" max="32000" step="256" value="${cfg.maxTokens}" class="admin-input" />
+          </div>
         </div>
-        <div style="margin-bottom:12px">
-          <label style="font-size:11px;color:var(--admin-text-dim);display:block;margin-bottom:5px">Memory Scope</label>
-          <select id="agent-mem-scope" class="admin-input" style="width:100%" onchange="AgentPanel.setMemoryScope(this.value)">
-            <option value="all"      ${cfg.memory?.scope==='all'      ?'selected':''}>All sessions — Aria remembers across every conversation</option>
-            <option value="none"     ${cfg.memory?.scope==='none'     ?'selected':''}>Disabled — no cross-session memory</option>
+        <div class="agent-field">
+          <label for="agent-system-prompt">System Prompt</label>
+          <textarea id="agent-system-prompt" class="admin-input" rows="8" style="font-family:var(--font-mono);font-size:12px">${_escAP(cfg.systemPrompt)}</textarea>
+        </div>
+        <div class="agent-field">
+          <label for="agent-mem-scope">Memory Scope</label>
+          <select id="agent-mem-scope" class="admin-input" onchange="AgentPanel.setMemoryScope(this.value)">
+            <option value="all"  ${cfg.memory?.scope === 'all'  ? 'selected' : ''}>All sessions — Aria remembers across every conversation</option>
+            <option value="none" ${cfg.memory?.scope === 'none' ? 'selected' : ''}>Disabled — no cross-session memory</option>
           </select>
         </div>
-        <div style="margin-bottom:12px">
-          <label style="font-size:11px;color:var(--admin-text-dim);display:block;margin-bottom:5px">ElevenLabs Agent ID (for Voice AI)</label>
-          <input id="agent-elevenlabs-id" type="text" value="${_escAP(cfg.voice?.elevenlabsAgentId || '')}" class="admin-input" style="width:100%" placeholder="agent_xyz..." />
+        <div class="agent-field">
+          <label for="agent-elevenlabs-id">ElevenLabs Agent ID (for Voice AI)</label>
+          <input id="agent-elevenlabs-id" type="text" value="${_escAP(cfg.voice?.elevenlabsAgentId || '')}" class="admin-input" placeholder="agent_xyz..." />
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="agent-form-actions">
           <button class="admin-btn admin-btn-primary" onclick="AgentPanel.save()">💾 Save Config</button>
-          <button class="admin-btn" onclick="AgentPanel.resetConfig()" style="background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);color:#f87171">↺ Reset Defaults</button>
+          <button class="admin-btn admin-btn-danger" onclick="AgentPanel.resetConfig()">↺ Reset Defaults</button>
         </div>
       </div>
     </div>
 
     <!-- ── TOOLS TAB ──────────────────────────────────────── -->
-    <div class="agent-tab-panel" id="agent-tab-tools">
+    <div class="agent-tab-panel${tab === 'tools' ? ' active' : ''}" role="tabpanel" id="agent-tab-tools" aria-labelledby="agent-tabbtn-tools">
       <div class="admin-card">
-        <p style="font-size:12px;color:var(--admin-text-dim);margin-bottom:16px">Enable or disable individual tools available to Aria. Changes take effect immediately for new messages.</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <p class="agent-hint">Enable or disable individual tools available to Aria. Changes take effect immediately for new messages.</p>
+        <div class="agent-grid-fit">
           ${[
             {k:'webSearch',      i:'🔍', l:'Web Search',              d:'Live internet search (Brave/SerpAPI/DDG)'},
             {k:'wikipedia',      i:'📖', l:'Wikipedia',               d:'Authoritative reference lookups'},
@@ -132,11 +136,11 @@ export async function renderAgentPanel() {
             {k:'listKbDocs',     i:'📋', l:'List KB Docs',            d:'See all KB documents from chat'},
             {k:'apiIntegrations',i:'🔌', l:'API Integrations',        d:'Call configured REST integrations'},
           ].map(t => `
-            <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:rgba(255,255,255,.02);border:1px solid var(--admin-border);border-radius:10px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='rgba(99,102,241,.3)'" onmouseout="this.style.borderColor='var(--admin-border)'">
-              <input type="checkbox" ${cfg.tools[t.k]?'checked':''} onchange="AgentPanel.toggleTool('${t.k}',this.checked)" style="margin-top:2px;accent-color:#6366f1;width:14px;height:14px;flex-shrink:0" />
+            <label class="agent-tool-row">
+              <input type="checkbox" ${cfg.tools[t.k] ? 'checked' : ''} onchange="AgentPanel.toggleTool('${t.k}',this.checked)" />
               <div>
-                <div style="font-size:12px;font-weight:500">${t.i} ${_escAP(t.l)}</div>
-                <div style="font-size:11px;color:var(--admin-text-dim);margin-top:2px">${_escAP(t.d)}</div>
+                <div class="agent-tool-name">${t.i} ${_escAP(t.l)}</div>
+                <div class="agent-tool-desc">${_escAP(t.d)}</div>
               </div>
             </label>
           `).join('')}
@@ -145,58 +149,57 @@ export async function renderAgentPanel() {
     </div>
 
     <!-- ── WEB SEARCH TAB ─────────────────────────────────── -->
-    <div class="agent-tab-panel" id="agent-tab-websearch">
+    <div class="agent-tab-panel${tab === 'websearch' ? ' active' : ''}" role="tabpanel" id="agent-tab-websearch" aria-labelledby="agent-tabbtn-websearch">
       <div class="admin-card">
-        <h3 style="font-size:13px;font-weight:600;margin-bottom:12px">🔍 Web Search Provider</h3>
-        <p style="font-size:12px;color:var(--admin-text-dim);margin-bottom:16px">
-          Aria can search the live internet for current information. Choose a provider below.
-          DuckDuckGo works without an API key (instant answers only). Brave and SerpAPI provide full web results.
-        </p>
+        <fieldset class="agent-fieldset">
+          <legend>🔍 Web Search Provider</legend>
+          <p class="agent-hint">
+            Aria can search the live internet for current information. Choose a provider below.
+            DuckDuckGo works without an API key (instant answers only). Brave and SerpAPI provide full web results.
+          </p>
+          <div class="agent-grid-3">
+            ${[
+              {id:'ddg',  name:'DuckDuckGo',  free:true,  limit:'No key needed', desc:'Instant answers & related topics. No signup required.'},
+              {id:'brave',name:'Brave Search', free:false, limit:'2,000/mo free', desc:'Full web results. Best quality. Free tier available.'},
+              {id:'serp', name:'SerpAPI',      free:false, limit:'100/mo free',   desc:'Google results via SerpAPI. Most accurate.'},
+            ].map(p => `
+              <label class="agent-provider-option">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <input type="radio" name="ws-provider" value="${p.id}" ${(cfg.webSearch?.provider || 'ddg') === p.id ? 'checked' : ''} onchange="AgentPanel.setWebSearchProvider('${p.id}')" style="accent-color:var(--indigo-500)" />
+                  <span class="agent-provider-name">${_escAP(p.name)}</span>
+                  ${p.free ? '<span class="agent-badge-free">Free</span>' : ''}
+                </div>
+                <span class="agent-provider-desc">${_escAP(p.desc)}</span>
+                <span class="agent-provider-limit">${_escAP(p.limit)}</span>
+              </label>
+            `).join('')}
+          </div>
+        </fieldset>
 
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
-          ${[
-            {id:'ddg',  name:'DuckDuckGo', free:true,  limit:'No key needed',    desc:'Instant answers & related topics. No signup required.'},
-            {id:'brave',name:'Brave Search',free:false, limit:'2,000/mo free',    desc:'Full web results. Best quality. Free tier available.'},
-            {id:'serp', name:'SerpAPI',    free:false,  limit:'100/mo free',     desc:'Google results via SerpAPI. Most accurate.'},
-          ].map(p => `
-            <label style="display:flex;flex-direction:column;gap:6px;padding:14px;border:2px solid ${(cfg.webSearch?.provider||'ddg')===p.id?'#6366f1':'var(--admin-border)'};border-radius:12px;cursor:pointer;background:${(cfg.webSearch?.provider||'ddg')===p.id?'rgba(99,102,241,.08)':'transparent'};transition:all .15s">
-              <div style="display:flex;align-items:center;gap:8px">
-                <input type="radio" name="ws-provider" value="${p.id}" ${(cfg.webSearch?.provider||'ddg')===p.id?'checked':''} onchange="AgentPanel.setWebSearchProvider('${p.id}')" style="accent-color:#6366f1" />
-                <span style="font-size:13px;font-weight:600">${_escAP(p.name)}</span>
-                ${p.free?'<span style="font-size:10px;background:rgba(16,185,129,.1);color:#10b981;border-radius:20px;padding:1px 6px;border:1px solid rgba(16,185,129,.2)">Free</span>':''}
-              </div>
-              <span style="font-size:11px;color:var(--admin-text-dim)">${_escAP(p.desc)}</span>
-              <span style="font-size:10px;color:var(--admin-text-dim);font-style:italic">${_escAP(p.limit)}</span>
-            </label>
-          `).join('')}
-        </div>
-
-        <div id="ws-key-section" style="${(cfg.webSearch?.provider||'ddg')==='ddg'?'display:none':''}">
-          <div style="margin-bottom:12px">
-            <label style="font-size:11px;color:var(--admin-text-dim);display:block;margin-bottom:5px">API Key</label>
-            <div style="display:flex;gap:8px">
-              <input id="ws-api-key" type="password" class="admin-input" style="flex:1" value="${_escAP(cfg.webSearch?.apiKey||'')}" placeholder="Paste your API key here…" />
-              <button class="admin-btn" onclick="AgentPanel.toggleWsKeyViz()" style="padding:0 10px">👁</button>
-            </div>
-            <div style="font-size:11px;color:var(--admin-text-dim);margin-top:4px">
-              ${(cfg.webSearch?.provider||'ddg')==='brave'
-                ? 'Get a free key at <strong>api.search.brave.com</strong>'
-                : 'Get a key at <strong>serpapi.com</strong>'}
-            </div>
+        <div id="ws-key-section" class="agent-field" style="${(cfg.webSearch?.provider || 'ddg') === 'ddg' ? 'display:none' : ''}">
+          <label for="ws-api-key">API Key</label>
+          <div style="display:flex;gap:8px">
+            <input id="ws-api-key" type="password" class="admin-input" style="flex:1" value="${_escAP(cfg.webSearch?.apiKey || '')}" placeholder="Paste your API key here…" />
+            <button class="admin-btn" onclick="AgentPanel.toggleWsKeyViz()" aria-label="Show or hide API key">👁</button>
+          </div>
+          <div class="agent-hint" style="margin-top:4px">
+            ${(cfg.webSearch?.provider || 'ddg') === 'brave'
+              ? 'Get a free key at <strong>api.search.brave.com</strong>'
+              : 'Get a key at <strong>serpapi.com</strong>'}
           </div>
         </div>
 
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+        <div class="agent-form-actions" style="margin-bottom:16px">
           <button class="admin-btn admin-btn-primary" onclick="AgentPanel.saveWebSearch()">💾 Save</button>
           <button class="admin-btn" onclick="AgentPanel.testWebSearch()">🧪 Test Search</button>
         </div>
 
-        <div id="ws-test-result" style="display:none;background:rgba(0,0,0,.3);border:1px solid var(--admin-border);border-radius:10px;padding:12px;font-size:12px;color:var(--admin-text-dim);font-family:'JetBrains Mono',monospace;line-height:1.6;white-space:pre-wrap;max-height:300px;overflow-y:auto"></div>
+        <div id="ws-test-result" class="agent-result-box" style="display:none"></div>
 
         <details style="margin-top:16px">
           <summary style="font-size:12px;color:var(--admin-text-dim);cursor:pointer">Max results per search</summary>
           <div style="margin-top:10px">
-            <input type="number" id="ws-max-results" value="${cfg.webSearch?.maxResults||5}" min="1" max="10" class="admin-input" style="width:80px" />
+            <input type="number" id="ws-max-results" value="${cfg.webSearch?.maxResults || 5}" min="1" max="10" class="admin-input" style="width:80px" />
             <button class="admin-btn" style="margin-left:8px" onclick="AgentPanel.saveWebSearch()">Save</button>
           </div>
         </details>
@@ -204,15 +207,15 @@ export async function renderAgentPanel() {
     </div>
 
     <!-- ── KNOWLEDGE BASE TAB ─────────────────────────────── -->
-    <div class="agent-tab-panel" id="agent-tab-kb">
+    <div class="agent-tab-panel${tab === 'kb' ? ' active' : ''}" role="tabpanel" id="agent-tab-kb" aria-labelledby="agent-tabbtn-kb">
       <div class="admin-card" style="margin-bottom:12px">
-        <h3 style="font-size:13px;font-weight:600;margin-bottom:12px">📤 Add Documents</h3>
+        <h3 class="agent-section-title">📤 Add Documents</h3>
 
         <!-- File upload -->
-        <div id="kb-upload-zone" style="border:2px dashed rgba(99,102,241,.3);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px" onmouseover="this.style.borderColor='rgba(99,102,241,.6)'" onmouseout="this.style.borderColor='rgba(99,102,241,.3)'">
+        <div id="kb-upload-zone" class="agent-dropzone" role="button" tabindex="0" aria-label="Upload documents to knowledge base — drop files or press Enter to browse">
           <div style="font-size:28px;margin-bottom:8px">📄</div>
           <div style="font-size:13px;font-weight:500;margin-bottom:4px">Drop files here or click to upload</div>
-          <div style="font-size:11px;color:var(--admin-text-dim)">TXT, MD, JSON, CSV, JS, PY, HTML, PDF — up to 20MB each</div>
+          <div class="agent-provider-desc">TXT, MD, JSON, CSV, JS, PY, HTML, PDF — up to 20MB each</div>
           <input type="file" id="kb-file-input" multiple accept=".txt,.md,.json,.csv,.js,.py,.ts,.html,.css,.xml,.yaml,.yml,.pdf" style="display:none" />
         </div>
 
@@ -226,35 +229,35 @@ export async function renderAgentPanel() {
         <details style="margin-bottom:8px">
           <summary style="font-size:12px;color:var(--admin-text-dim);cursor:pointer">Batch URL ingest (multiple URLs)</summary>
           <div style="margin-top:8px">
-            <textarea id="kb-batch-urls" class="admin-input" rows="4" style="width:100%;font-size:12px;font-family:monospace" placeholder="https://url1.com&#10;https://url2.com&#10;https://url3.com"></textarea>
+            <textarea id="kb-batch-urls" class="admin-input" rows="4" style="font-size:12px;font-family:var(--font-mono)" placeholder="https://url1.com&#10;https://url2.com&#10;https://url3.com"></textarea>
             <button class="admin-btn" style="margin-top:6px" onclick="AgentPanel.batchIngestUrls()">Ingest All URLs</button>
           </div>
         </details>
 
         <!-- Category/tags for upload -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div class="agent-grid-2" style="margin-bottom:8px">
           <input type="text" id="kb-category" class="admin-input" placeholder="Category (e.g. research, work, personal)" />
           <input type="text" id="kb-tags" class="admin-input" placeholder="Tags: comma, separated" />
         </div>
 
         <!-- Search KB -->
         <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
-          <input type="search" id="kb-search-input" class="admin-input" placeholder="🔍 Search knowledge base…" oninput="AgentPanel.liveKbSearch(this.value)" />
+          <input type="search" id="kb-search-input" class="admin-input" placeholder="🔍 Search knowledge base…" oninput="AgentPanel.liveKbSearch(this.value)" aria-label="Search knowledge base" />
           <button class="admin-btn" onclick="AgentPanel.liveKbSearch(_ap_el('kb-search-input')?.value||'')">Search</button>
         </div>
-        <div id="kb-search-results" style="display:none;margin-top:8px;background:rgba(0,0,0,.25);border:1px solid var(--admin-border);border-radius:10px;padding:10px;font-size:12px;max-height:200px;overflow-y:auto"></div>
+        <div id="kb-search-results" class="agent-result-box" style="display:none;margin-top:8px;max-height:200px"></div>
       </div>
 
       <!-- Document list -->
       <div class="admin-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-          <div style="font-size:13px;font-weight:500">${docs.length} document${docs.length!==1?'s':''} in knowledge base</div>
+          <div style="font-size:13px;font-weight:500">${docs.length} document${docs.length !== 1 ? 's' : ''} in knowledge base</div>
           <div style="display:flex;gap:8px">
-            <select id="kb-filter-cat" class="admin-input" style="font-size:12px;padding:5px 8px" onchange="AgentPanel.filterKbDocs(this.value)">
+            <select id="kb-filter-cat" class="admin-input" style="font-size:12px;padding:5px 8px" onchange="AgentPanel.filterKbDocs(this.value)" aria-label="Filter documents by category">
               <option value="">All categories</option>
-              ${[...new Set(docs.map(d=>d.category||'general'))].map(c=>`<option value="${_escAP(c)}">${_escAP(c)}</option>`).join('')}
+              ${[...new Set(docs.map(d => d.category || 'general'))].map(c => `<option value="${_escAP(c)}">${_escAP(c)}</option>`).join('')}
             </select>
-            ${docs.length?`<button class="admin-btn" style="font-size:11px;padding:5px 10px;background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);color:#f87171" onclick="AgentPanel.clearKb()">🗑 Clear All</button>`:''}
+            ${docs.length ? `<button class="admin-btn admin-btn-danger" style="font-size:11px;padding:5px 10px" onclick="AgentPanel.clearKb()">🗑 Clear All</button>` : ''}
           </div>
         </div>
 
@@ -262,27 +265,25 @@ export async function renderAgentPanel() {
           <div style="text-align:center;padding:40px;color:var(--admin-text-dim)">
             <div style="font-size:36px;margin-bottom:10px">📭</div>
             <div style="font-size:13px">Knowledge base is empty.</div>
-            <div style="font-size:12px;margin-top:4px">Upload documents or ingest URLs above to give Aria specialized knowledge.</div>
+            <div class="agent-provider-desc" style="margin-top:4px">Upload documents or ingest URLs above to give Aria specialized knowledge.</div>
           </div>
         ` : `
-          <div id="kb-doc-list">
+          <div id="kb-doc-list" class="kb-doc-list">
             ${docs.map(d => `
-              <div class="kb-doc-row" data-cat="${_escAP(d.category||'general')}" style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--admin-border)">
-                <div style="font-size:20px;flex-shrink:0">
-                  ${{note:'📝',url:'🌐',pdf:'📕',file:'📄',txt:'📃',md:'📋',json:'📦',csv:'📊'}[d.type||'file']||'📄'}
-                </div>
-                <div style="flex:1;min-width:0">
-                  <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_escAP(d.title)}</div>
-                  <div style="font-size:11px;color:var(--admin-text-dim);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap">
-                    <span>${d.chunks?.length||0} chunk${(d.chunks?.length||0)!==1?'s':''}</span>
+              <div class="kb-doc-row" data-cat="${_escAP(d.category || 'general')}">
+                <div class="kb-doc-icon">${{note:'📝',url:'🌐',pdf:'📕',file:'📄',txt:'📃',md:'📋',json:'📦',csv:'📊'}[d.type || 'file'] || '📄'}</div>
+                <div class="kb-doc-info">
+                  <div class="kb-doc-title">${_escAP(d.title)}</div>
+                  <div class="kb-doc-meta">
+                    <span>${d.chunks?.length || 0} chunk${(d.chunks?.length || 0) !== 1 ? 's' : ''}</span>
                     <span>·</span>
-                    <span>${_escAP(d.category||'general')}</span>
-                    ${d.tags?.length?`<span>·</span><span>#${d.tags.join(' #')}</span>`:''}
-                    ${d.createdAt?`<span>·</span><span>${new Date(d.createdAt).toLocaleDateString()}</span>`:''}
-                    ${d.source&&d.source!=='file'&&d.source!=='agent-created'?`<span>·</span><a href="${_escAP(d.source)}" target="_blank" style="color:#818cf8;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">${_escAP(d.source)}</a>`:''}
+                    <span>${_escAP(d.category || 'general')}</span>
+                    ${d.tags?.length ? `<span>·</span><span>#${d.tags.join(' #')}</span>` : ''}
+                    ${d.createdAt ? `<span>·</span><span>${new Date(d.createdAt).toLocaleDateString()}</span>` : ''}
+                    ${d.source && d.source !== 'file' && d.source !== 'agent-created' ? `<span>·</span><a href="${_escAP(d.source)}" target="_blank" rel="noopener" style="color:var(--admin-accent);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">${_escAP(d.source)}</a>` : ''}
                   </div>
                 </div>
-                <button onclick="AgentPanel.deleteKbDoc('${_escAP(d.id)}')" title="Delete" style="border:none;background:rgba(239,68,68,.08);color:#f87171;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;flex-shrink:0">✕</button>
+                <button class="kb-doc-delete" onclick="AgentPanel.deleteKbDoc('${_escAP(d.id)}')" title="Delete" aria-label="Delete document ${_escAP(d.title)}">✕</button>
               </div>
             `).join('')}
           </div>
@@ -300,22 +301,22 @@ export async function renderAgentPanel() {
     </div>
 
     <!-- ── MEMORY TAB ──────────────────────────────────────── -->
-    <div class="agent-tab-panel" id="agent-tab-memory">
+    <div class="agent-tab-panel${tab === 'memory' ? ' active' : ''}" role="tabpanel" id="agent-tab-memory" aria-labelledby="agent-tabbtn-memory">
       <div class="admin-card" style="margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
-          <div style="font-size:13px;font-weight:500">🧠 ${mems.length} memor${mems.length!==1?'ies':'y'}</div>
+          <div style="font-size:13px;font-weight:500">🧠 ${mems.length} memor${mems.length !== 1 ? 'ies' : 'y'}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="admin-btn" style="font-size:11px;padding:5px 10px" onclick="AgentPanel.showAddMemory()">+ Add</button>
             <button class="admin-btn" style="font-size:11px;padding:5px 10px" onclick="AgentPanel.exportMemory()">↓ Export</button>
             <button class="admin-btn" style="font-size:11px;padding:5px 10px" onclick="AgentPanel.importMemory()">↑ Import</button>
-            ${mems.length?`<button class="admin-btn" style="font-size:11px;padding:5px 10px;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.2);color:#f87171" onclick="AgentPanel.clearMemory()">🗑 Clear All</button>`:''}
+            ${mems.length ? `<button class="admin-btn admin-btn-danger" style="font-size:11px;padding:5px 10px" onclick="AgentPanel.clearMemory()">🗑 Clear All</button>` : ''}
           </div>
         </div>
 
         <!-- Quick add form -->
         <div id="mem-add-form" style="display:none;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:14px;margin-bottom:12px">
-          <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:#818cf8">➕ Teach Aria</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--admin-accent)">➕ Teach Aria</div>
+          <div class="agent-grid-2" style="margin-bottom:8px">
             <input type="text" id="mem-new-key" class="admin-input" placeholder="Label (e.g. 'My timezone')" />
             <select id="mem-new-cat" class="admin-input">
               <option value="preferences">Preferences</option>
@@ -325,8 +326,8 @@ export async function renderAgentPanel() {
               <option value="general" selected>General</option>
             </select>
           </div>
-          <div style="margin-bottom:8px">
-            <input type="text" id="mem-new-val" class="admin-input" style="width:100%" placeholder="Value (e.g. 'America/Chicago — UTC-6')" />
+          <div class="agent-field">
+            <input type="text" id="mem-new-val" class="admin-input" placeholder="Value (e.g. 'America/Chicago — UTC-6')" />
           </div>
           <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px">
             <input type="text" id="mem-new-tags" class="admin-input" placeholder="Tags (comma separated)" />
@@ -338,14 +339,14 @@ export async function renderAgentPanel() {
         <!-- Category filter tabs -->
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">
           ${['All','Preferences','Projects','Contacts','Dates','General'].map((cat,i) => `
-            <button class="mem-cat-btn${i===0?' active':''}" onclick="AgentPanel.filterMemory('${cat.toLowerCase()}',this)" style="padding:4px 12px;font-size:11px;border-radius:20px;border:1px solid ${i===0?'rgba(99,102,241,.4)':'var(--admin-border)'};background:${i===0?'rgba(99,102,241,.1)':'transparent'};color:${i===0?'#818cf8':'var(--admin-text-dim)'};cursor:pointer;transition:all .15s;font-family:inherit">
-              ${_escAP(cat)} <span class="mem-count-${cat.toLowerCase()}">(${i===0?mems.length:mems.filter(m=>(m.category||'general')===cat.toLowerCase()).length})</span>
+            <button class="mem-cat-btn${i === 0 ? ' active' : ''}" onclick="AgentPanel.filterMemory('${cat.toLowerCase()}',this)">
+              ${_escAP(cat)} <span class="mem-count-${cat.toLowerCase()}">(${i === 0 ? mems.length : mems.filter(m => (m.category || 'general') === cat.toLowerCase()).length})</span>
             </button>
           `).join('')}
         </div>
 
         <!-- Search -->
-        <input type="search" id="mem-search" class="admin-input" style="width:100%;margin-bottom:12px" placeholder="🔍 Search memories…"
+        <input type="search" id="mem-search" class="admin-input" style="margin-bottom:12px" placeholder="🔍 Search memories…" aria-label="Search memories"
           oninput="document.querySelectorAll('.mem-row').forEach(r=>{r.style.display=(r.dataset.text||'').toLowerCase().includes(this.value.toLowerCase())?'':'none'})" />
 
         <!-- Memory list -->
@@ -357,21 +358,20 @@ export async function renderAgentPanel() {
         ` : `
           <div class="memory-list" id="mem-list">
             ${mems.map((m,i) => `
-              <div class="memory-row mem-row" data-cat="${_escAP(m.category||'general')}" data-text="${_escAP((m.key||'')+' '+(m.value||'')+' '+(m.category||''))}" style="animation:none">
+              <div class="memory-row mem-row" data-cat="${_escAP(m.category || 'general')}" data-text="${_escAP((m.key || '') + ' ' + (m.value || '') + ' ' + (m.category || ''))}" style="animation:none">
                 <div class="memory-row-main">
                   <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
-                    <div class="memory-row-key">${_escAP(m.key||'fact')}</div>
-                    <span style="font-size:10px;background:rgba(99,102,241,.1);color:#818cf8;border-radius:10px;padding:1px 6px;border:1px solid rgba(99,102,241,.2)">${_escAP(m.category||'general')}</span>
-                    ${m.tags?.length?m.tags.map(t=>`<span style="font-size:10px;color:var(--admin-text-dim)">#${_escAP(t)}</span>`).join(''):''}
+                    <div class="memory-row-key">${_escAP(m.key || 'fact')}</div>
+                    <span style="font-size:10px;background:rgba(99,102,241,.1);color:var(--admin-accent);border-radius:10px;padding:1px 6px;border:1px solid rgba(99,102,241,.2)">${_escAP(m.category || 'general')}</span>
+                    ${m.tags?.length ? m.tags.map(t => `<span style="font-size:10px;color:var(--admin-text-dim)">#${_escAP(t)}</span>`).join('') : ''}
                   </div>
-                  <div class="memory-row-value" id="agmem-val-${i}" contenteditable="true"
-                    onblur="AgentPanel.updateMemory('${_escAP(m.key)}', this.textContent)"
-                    style="cursor:text">${_escAP(m.value)}</div>
+                  <div class="memory-row-value" id="agmem-val-${i}" role="textbox" aria-label="Memory value for ${_escAP(m.key || 'fact')}" contenteditable="true"
+                    onblur="AgentPanel.updateMemory('${_escAP(m.key)}', this.textContent)">${_escAP(m.value)}</div>
                   <div class="memory-row-meta">
-                    ${m.timestamp?`<span>${new Date(m.timestamp).toLocaleDateString()}</span>`:''}
+                    ${m.timestamp ? `<span>${new Date(m.timestamp).toLocaleDateString()}</span>` : ''}
                   </div>
                 </div>
-                <button class="memory-row-delete" onclick="AgentPanel.deleteMemory('${_escAP(m.key)}')">✕</button>
+                <button class="memory-row-delete" onclick="AgentPanel.deleteMemory('${_escAP(m.key)}')" aria-label="Delete memory ${_escAP(m.key || 'fact')}">✕</button>
               </div>
             `).join('')}
           </div>
@@ -380,19 +380,19 @@ export async function renderAgentPanel() {
     </div>
 
     <!-- ── INTEGRATIONS TAB ────────────────────────────────── -->
-    <div class="agent-tab-panel" id="agent-tab-integrations">
+    <div class="agent-tab-panel${tab === 'integrations' ? ' active' : ''}" role="tabpanel" id="agent-tab-integrations" aria-labelledby="agent-tabbtn-integrations">
       <div class="admin-card" style="margin-bottom:12px">
-        <h3 style="font-size:13px;font-weight:600;margin-bottom:8px">🔌 Add API Integration</h3>
-        <p style="font-size:12px;color:var(--admin-text-dim);margin-bottom:14px">
-          Add any REST API so Aria can call it on demand via the <code style="font-size:11px;background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px">call_integration</code> tool.
+        <h3 class="agent-section-title">🔌 Add API Integration</h3>
+        <p class="agent-hint">
+          Add any REST API so Aria can call it on demand via the <code class="agent-inline-code">call_integration</code> tool.
           Examples: Notion, Airtable, Slack, custom backend, CRM, database API.
         </p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div class="agent-grid-2" style="margin-bottom:8px">
           <input type="text"  id="int-name"     class="admin-input" placeholder="Name (e.g. My Notion)" />
           <input type="url"   id="int-endpoint" class="admin-input" placeholder="Base URL (e.g. https://api.notion.com/v1)" />
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-          <input type="password" id="int-key"    class="admin-input" placeholder="API Key (optional)" />
+        <div class="agent-grid-2" style="margin-bottom:8px">
+          <input type="password" id="int-key" class="admin-input" placeholder="API Key (optional)" />
           <select id="int-auth" class="admin-input">
             <option value="bearer">Bearer token (Authorization: Bearer …)</option>
             <option value="key">X-API-Key header</option>
@@ -401,33 +401,35 @@ export async function renderAgentPanel() {
             <option value="none">No auth</option>
           </select>
         </div>
-        <input type="text" id="int-desc" class="admin-input" style="width:100%;margin-bottom:8px" placeholder="Description (e.g. 'My team task manager — use for project updates')" />
+        <div class="agent-field">
+          <input type="text" id="int-desc" class="admin-input" placeholder="Description (e.g. 'My team task manager — use for project updates')" />
+        </div>
         <button class="admin-btn admin-btn-primary" onclick="AgentPanel.addIntegration()">+ Add Integration</button>
       </div>
 
       <!-- Integration list -->
       <div class="admin-card">
-        <div style="font-size:13px;font-weight:500;margin-bottom:12px">Configured Integrations <span style="color:var(--admin-text-dim)">(${(cfg.apiIntegrations||[]).length})</span></div>
-        ${!(cfg.apiIntegrations||[]).length ? `
+        <div style="font-size:13px;font-weight:500;margin-bottom:12px">Configured Integrations <span style="color:var(--admin-text-dim)">(${(cfg.apiIntegrations || []).length})</span></div>
+        ${!(cfg.apiIntegrations || []).length ? `
           <div style="text-align:center;padding:32px;color:var(--admin-text-dim)">
             <div style="font-size:32px;margin-bottom:8px">🔌</div>
             No integrations yet. Add a REST API above to let Aria call external services.
           </div>
-        ` : (cfg.apiIntegrations||[]).map((integ,i) => `
-          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--admin-border)">
+        ` : (cfg.apiIntegrations || []).map(integ => `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--admin-border);flex-wrap:wrap">
             <div style="flex:1;min-width:0">
               <div style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
                 ${_escAP(integ.name)}
-                <span style="font-size:10px;background:rgba(${integ.enabled?'16,185,129':'239,68,68'},.1);color:${integ.enabled?'#10b981':'#f87171'};border-radius:20px;padding:1px 6px;border:1px solid rgba(${integ.enabled?'16,185,129':'239,68,68'},.2)">${integ.enabled?'Enabled':'Disabled'}</span>
+                <span style="font-size:10px;background:rgba(${integ.enabled ? '16,185,129' : '239,68,68'},.1);color:${integ.enabled ? 'var(--admin-success)' : 'var(--admin-danger)'};border-radius:20px;padding:1px 6px;border:1px solid rgba(${integ.enabled ? '16,185,129' : '239,68,68'},.2)">${integ.enabled ? 'Enabled' : 'Disabled'}</span>
               </div>
-              <div style="font-size:11px;color:var(--admin-text-dim);margin-top:2px">${_escAP(integ.endpoint)}</div>
-              ${integ.description?`<div style="font-size:11px;color:var(--admin-text-dim);margin-top:2px;font-style:italic">${_escAP(integ.description)}</div>`:''}
-              ${integ.lastUsed?`<div style="font-size:10px;color:var(--admin-text-dim);margin-top:2px">Last used: ${new Date(integ.lastUsed).toLocaleString()}</div>`:''}
+              <div style="font-size:11px;color:var(--admin-text-dim);margin-top:2px;word-break:break-all">${_escAP(integ.endpoint)}</div>
+              ${integ.description ? `<div style="font-size:11px;color:var(--admin-text-dim);margin-top:2px;font-style:italic">${_escAP(integ.description)}</div>` : ''}
+              ${integ.lastUsed ? `<div style="font-size:10px;color:var(--admin-text-dim);margin-top:2px">Last used: ${new Date(integ.lastUsed).toLocaleString()}</div>` : ''}
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0">
               <button onclick="AgentPanel.testIntegration('${_escAP(integ.id)}')" class="admin-btn" style="font-size:11px;padding:4px 8px">🧪 Test</button>
-              <button onclick="AgentPanel.toggleIntegration('${_escAP(integ.id)}')" class="admin-btn" style="font-size:11px;padding:4px 8px">${integ.enabled?'Disable':'Enable'}</button>
-              <button onclick="AgentPanel.deleteIntegration('${_escAP(integ.id)}')" class="admin-btn" style="font-size:11px;padding:4px 8px;background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);color:#f87171">✕</button>
+              <button onclick="AgentPanel.toggleIntegration('${_escAP(integ.id)}')" class="admin-btn" style="font-size:11px;padding:4px 8px">${integ.enabled ? 'Disable' : 'Enable'}</button>
+              <button onclick="AgentPanel.deleteIntegration('${_escAP(integ.id)}')" class="admin-btn admin-btn-danger" style="font-size:11px;padding:4px 8px" aria-label="Delete integration ${_escAP(integ.name)}">✕</button>
             </div>
           </div>
         `).join('')}
@@ -435,49 +437,49 @@ export async function renderAgentPanel() {
     </div>
 
     <!-- ── CODE & CALC TAB ────────────────────────────────── -->
-    <div class="agent-tab-panel" id="agent-tab-code">
+    <div class="agent-tab-panel${tab === 'code' ? ' active' : ''}" role="tabpanel" id="agent-tab-code" aria-labelledby="agent-tabbtn-code">
       <div class="admin-card" style="margin-bottom:12px">
-        <h3 style="font-size:13px;font-weight:600;margin-bottom:12px">🧮 Calculator</h3>
-        <p style="font-size:12px;color:var(--admin-text-dim);margin-bottom:14px">
-          Aria can evaluate math expressions using the <code style="font-size:11px;background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px">calculate</code> tool.
-          Supports arithmetic, exponents, trigonometry, and all <code>Math.*</code> functions.
+        <h3 class="agent-section-title">🧮 Calculator</h3>
+        <p class="agent-hint">
+          Aria can evaluate math expressions using the <code class="agent-inline-code">calculate</code> tool.
+          Supports arithmetic, exponents, trigonometry, and all <code class="agent-inline-code">Math.*</code> functions.
         </p>
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer">
-          <input type="checkbox" ${cfg.tools.calculator?'checked':''} onchange="AgentPanel.toggleTool('calculator',this.checked)" style="accent-color:#6366f1;width:15px;height:15px" />
+          <input type="checkbox" ${cfg.tools.calculator ? 'checked' : ''} onchange="AgentPanel.toggleTool('calculator',this.checked)" style="accent-color:var(--indigo-500);width:15px;height:15px" />
           <span style="font-size:13px">Enable Calculator tool</span>
         </label>
-        <div style="margin-bottom:12px">
-          <label style="font-size:11px;color:var(--admin-text-dim);display:block;margin-bottom:5px">Test Expression</label>
+        <div class="agent-field">
+          <label for="calc-test">Test Expression</label>
           <div style="display:flex;gap:8px">
-            <input type="text" id="calc-test" class="admin-input" style="flex:1;font-family:monospace" placeholder="e.g. 2**32, Math.sqrt(144), 1000*(1+0.07)**10" />
+            <input type="text" id="calc-test" class="admin-input" style="flex:1;font-family:var(--font-mono)" placeholder="e.g. 2**32, Math.sqrt(144), 1000*(1+0.07)**10" />
             <button class="admin-btn" onclick="AgentPanel.testCalc()">Calculate</button>
           </div>
-          <div id="calc-result" style="margin-top:8px;display:none;font-family:'JetBrains Mono',monospace;font-size:13px;color:#10b981;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.15);border-radius:8px;padding:8px 12px"></div>
+          <div id="calc-result" style="margin-top:8px;display:none;font-family:var(--font-mono);font-size:13px;color:var(--admin-success);background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.15);border-radius:8px;padding:8px 12px"></div>
         </div>
         <div style="background:rgba(0,0,0,.2);border-radius:10px;padding:12px;font-size:11px;color:var(--admin-text-dim)">
           <div style="font-weight:600;margin-bottom:6px">Example expressions:</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
             ${['2**32','Math.sqrt(144)','Math.PI * 10**2','1000*(1+0.07)**10','Math.log(1000)/Math.log(10)','Math.sin(Math.PI/6)'].map(e =>
-              `<code onclick="_ap_el('calc-test').value='${e}'" style="cursor:pointer;background:rgba(255,255,255,.06);border:1px solid var(--admin-border);border-radius:4px;padding:2px 6px;font-size:11px">${e}</code>`
+              `<button type="button" class="agent-chip-button" onclick="_ap_el('calc-test').value='${e}'">${e}</button>`
             ).join('')}
           </div>
         </div>
       </div>
 
       <div class="admin-card">
-        <h3 style="font-size:13px;font-weight:600;margin-bottom:12px">⚙ Code Runner</h3>
+        <h3 class="agent-section-title">⚙ Code Runner</h3>
         <div style="background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--admin-text-dim)">
-          ⚠ Runs JavaScript in a sandboxed Web Worker. Code cannot access the DOM, network, or localStorage — only computation. Use <code>console.log()</code> to return results.
+          ⚠ Runs JavaScript in a sandboxed Web Worker. Code cannot access the DOM, network, or localStorage — only computation. Use <code class="agent-inline-code">console.log()</code> to return results.
         </div>
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer">
-          <input type="checkbox" ${cfg.tools.codeRunner?'checked':''} onchange="AgentPanel.toggleTool('codeRunner',this.checked)" style="accent-color:#6366f1;width:15px;height:15px" />
+          <input type="checkbox" ${cfg.tools.codeRunner ? 'checked' : ''} onchange="AgentPanel.toggleTool('codeRunner',this.checked)" style="accent-color:var(--indigo-500);width:15px;height:15px" />
           <span style="font-size:13px">Enable Code Runner tool (Aria can execute JS snippets)</span>
         </label>
-        <div style="margin-bottom:12px">
-          <label style="font-size:11px;color:var(--admin-text-dim);display:block;margin-bottom:5px">Test Snippet</label>
-          <textarea id="code-test" class="admin-input" rows="5" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical" placeholder="const data = [1,2,3,4,5];&#10;const avg = data.reduce((a,b)=>a+b,0)/data.length;&#10;console.log('Average:', avg)"></textarea>
+        <div class="agent-field">
+          <label for="code-test">Test Snippet</label>
+          <textarea id="code-test" class="admin-input" rows="5" style="font-family:var(--font-mono);font-size:12px" placeholder="const data = [1,2,3,4,5];&#10;const avg = data.reduce((a,b)=>a+b,0)/data.length;&#10;console.log('Average:', avg)"></textarea>
           <button class="admin-btn" style="margin-top:8px" onclick="AgentPanel.testCode()">▶ Run</button>
-          <div id="code-result" style="margin-top:8px;display:none;font-family:'JetBrains Mono',monospace;font-size:12px;background:rgba(0,0,0,.4);border:1px solid var(--admin-border);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:200px;overflow-y:auto"></div>
+          <div id="code-result" class="agent-result-box" style="margin-top:8px;display:none;max-height:200px"></div>
         </div>
       </div>
     </div>
@@ -491,12 +493,14 @@ export async function renderAgentPanel() {
     dropzone.addEventListener('click', e => {
       if (!e.target.matches('button,input,select,a')) fileInput.click();
     });
-    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.borderColor='rgba(99,102,241,.8)'; dropzone.style.background='rgba(99,102,241,.06)'; });
-    dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor='rgba(99,102,241,.3)'; dropzone.style.background=''; });
+    dropzone.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+    });
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('kb-drag-over'); });
+    dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('kb-drag-over'); });
     dropzone.addEventListener('drop', e => {
       e.preventDefault();
-      dropzone.style.borderColor='rgba(99,102,241,.3)';
-      dropzone.style.background='';
+      dropzone.classList.remove('kb-drag-over');
       AgentPanel.handleFileUpload(e.dataTransfer.files);
     });
   }
@@ -546,18 +550,33 @@ export const AgentPanel = {
   },
 
   switchTab(tab, btn) {
-    document.querySelectorAll('.agent-tab').forEach(b => {
-      b.classList.remove('active');
-      b.style.background     = 'transparent';
-      b.style.color          = 'var(--admin-text-dim)';
-      b.style.borderBottom   = '2px solid transparent';
+    activeAgentTab = tab;
+    const tabs = Array.from(document.querySelectorAll('#panel-agent .agent-tab'));
+    tabs.forEach(b => {
+      const on = b === btn;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.setAttribute('tabindex', on ? '0' : '-1');
     });
-    document.querySelectorAll('.agent-tab-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    btn.style.background   = 'var(--admin-card-bg)';
-    btn.style.color        = '#818cf8';
-    btn.style.borderBottom = '2px solid #6366f1';
-    _ap_el(`agent-tab-${tab}`)?.classList.add('active');
+    document.querySelectorAll('#panel-agent .agent-tab-panel').forEach(p => {
+      p.classList.toggle('active', p.id === `agent-tab-${tab}`);
+    });
+    btn?.focus();
+  },
+
+  handleTabKeydown(e) {
+    const tabs = Array.from(document.querySelectorAll('#panel-agent .agent-tab'));
+    const idx = tabs.indexOf(document.activeElement);
+    if (idx === -1) return;
+    let next;
+    if (e.key === 'ArrowRight') next = (idx + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    const target = tabs[next];
+    AgentPanel.switchTab(target.getAttribute('aria-controls').replace('agent-tab-', ''), target);
   },
 
   // ── Web search ─────────────────────────────────────────────
@@ -660,7 +679,7 @@ export const AgentPanel = {
       if (!results.length) { el.textContent = 'No results.'; return; }
       el.innerHTML = results.map(r =>
         `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--admin-border)">
-          <div style="font-size:11px;font-weight:600;color:#818cf8">${_escAP(r.doc.title)}</div>
+          <div style="font-size:11px;font-weight:600;color:var(--admin-accent)">${_escAP(r.doc.title)}</div>
           <div style="font-size:11px;color:var(--admin-text-dim);margin-top:2px">${_escAP(r.chunk.text.slice(0,160))}…</div>
         </div>`
       ).join('');
@@ -726,14 +745,8 @@ export const AgentPanel = {
   filterMemory(cat, btn) {
     document.querySelectorAll('.mem-cat-btn').forEach(b => {
       b.classList.remove('active');
-      b.style.borderColor = 'var(--admin-border)';
-      b.style.background  = 'transparent';
-      b.style.color       = 'var(--admin-text-dim)';
     });
     btn.classList.add('active');
-    btn.style.borderColor = 'rgba(99,102,241,.4)';
-    btn.style.background  = 'rgba(99,102,241,.1)';
-    btn.style.color       = '#818cf8';
     document.querySelectorAll('.mem-row').forEach(el => {
       el.style.display = cat === 'all' || el.dataset.cat === cat ? '' : 'none';
     });
