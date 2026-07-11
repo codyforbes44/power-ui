@@ -1047,9 +1047,10 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
         const { ImageRouter } = await import('./image-router.js');
         const settings = JSON.parse(localStorage.getItem('cpu_settings') || '{}');
         const imgSettings = settings.imageGen || {};
-        const provider = input.provider || imgSettings.provider || 'bfl';
+        const provider = input.provider || imgSettings.provider || ImageRouter.DEFAULTS.provider;
         const keys = (await ApiKeyVault.load()) || {};
-        const apiKey = keys[provider] || imgSettings.apiKey || '';
+        const ariaKeys = (await ApiKeyVault.loadAria()) || {};
+        const apiKey = ariaKeys[provider] || keys[provider] || imgSettings.apiKey || '';
         const [w, h] = (input.size || '1024x1024').split('x').map(Number);
         
         const model = provider === ImageRouter.DEFAULTS.provider

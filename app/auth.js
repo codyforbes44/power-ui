@@ -1166,6 +1166,7 @@ export const AuthSystem = (() => {
 // ============================================================
 export const ApiKeyVault = (() => {
   const VAULT_LS  = 'cpu_apikeys_v2';  // ciphertext in localStorage
+  const VAULT_ARIA_LS = 'cpu_apikeys_aria_v2'; // dedicated Aria keys
   const VAULT_SS  = 'cpu_vault_key';   // raw key bytes (base64) in sessionStorage
 
   async function _getKey() {
@@ -1215,6 +1216,36 @@ export const ApiKeyVault = (() => {
       return JSON.parse(new TextDecoder().decode(plain));
     } catch { return {}; }
   }
+
+  /** Encrypt apiKeys object and write to Aria's dedicated vault. */
+  async function saveAria(apiKeys) {
+    const key = await _getKey();
+    if (!key) return;
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const plaintext = new TextEncoder().encode(JSON.stringify(apiKeys));
+    const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
+    try {
+      localStorage.setItem(VAULT_ARIA_LS, JSON.stringify({
+        v: 2, iv: Array.from(iv), data: Array.from(new Uint8Array(cipher)),
+      }));
+    } catch (e) { console.warn('ApiKeyVault: saveAria failed', e.message); }
+  }
+
+  /** Decrypt and return Aria's dedicated apiKeys object, or {} if unavailable. */
+  async function loadAria() {
+    const stored = localStorage.getItem(VAULT_ARIA_LS);
+    if (!stored) return {};
+    const key = await _getKey();
+    if (!key) return null;
+    try {
+      const { iv, data } = JSON.parse(stored);
+      const plain = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: new Uint8Array(iv) }, key, new Uint8Array(data)
+      );
+      return JSON.parse(new TextDecoder().decode(plain));
+    } catch { return {}; }
+  }
+
 
   /**
    * Migrate plaintext API keys from legacy state blob into the vault.
@@ -1294,7 +1325,7 @@ export const ApiKeyVault = (() => {
   function hasWebSearchKey() { return !!localStorage.getItem(WEBSEARCH_KEY); }
 
   return {
-    save, load, migrateFromPlaintext, hasVault,
+    save, load, saveAria, loadAria, migrateFromPlaintext, hasVault,
     setIntegrationKey, getIntegrationKey, removeIntegrationKey, hasIntegrationKey,
     setWebSearchKey, getWebSearchKey, hasWebSearchKey,
   };

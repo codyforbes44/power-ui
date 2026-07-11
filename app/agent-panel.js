@@ -17,9 +17,9 @@ function _ap_el(id) { return document.getElementById(id); }
 
 // Active tab is preserved across re-renders (prevents snap-back to Config)
 let activeAgentTab = 'config';
-const AGENT_TABS = ['config','tools','websearch','kb','memory','integrations','code'];
+const AGENT_TABS = ['config','apikeys','tools','websearch','kb','memory','integrations','code'];
 const AGENT_TAB_LABELS = {
-  config:'⚙ Config', tools:'🔧 Tools', websearch:'🔍 Web Search',
+  config:'⚙ Config', apikeys:'🔑 API Keys', tools:'🔧 Tools', websearch:'🔍 Web Search',
   kb:'📚 Knowledge Base', memory:'🧠 Memory', integrations:'🔌 Integrations', code:'🧮 Code & Calc',
 };
 
@@ -35,6 +35,7 @@ export async function renderAgentPanel() {
   try { await SuperAgent.config.migrate(); } catch {}
 
   const cfg  = SuperAgent.config.get();
+  const ariaKeys = await ApiKeyVault.loadAria();
   const wsKeySaved = ApiKeyVault.hasWebSearchKey();
   const mems = SuperAgent.memory.getAll();
   let   docs = [];
@@ -118,6 +119,47 @@ export async function renderAgentPanel() {
         <div class="agent-form-actions">
           <button class="admin-btn admin-btn-primary" onclick="AgentPanel.save()">💾 Save Config</button>
           <button class="admin-btn admin-btn-danger" onclick="AgentPanel.resetConfig()">↺ Reset Defaults</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── API KEYS TAB ───────────────────────────────────── -->
+    <div class="agent-tab-panel${tab === 'apikeys' ? ' active' : ''}" role="tabpanel" id="agent-tab-apikeys" aria-labelledby="agent-tabbtn-apikeys">
+      <div class="admin-card">
+        <p class="agent-hint">Configure dedicated API keys for Aria. If left blank, Aria will fall back to using the global platform keys. These keys are stored in an isolated, encrypted vault.</p>
+        
+        <h4 style="margin-top:16px;margin-bottom:12px;font-size:13px;color:var(--admin-text)">Text Models (LLMs)</h4>
+        <div class="agent-grid-2">
+          ${[
+            { id: 'anthropic', label: 'Anthropic API Key' },
+            { id: 'openai', label: 'OpenAI API Key' },
+            { id: 'google', label: 'Google Gemini API Key' },
+            { id: 'groq', label: 'Groq API Key' },
+            { id: 'mistral', label: 'Mistral API Key' },
+          ].map(p => `
+            <div class="agent-field">
+              <label>${p.label}</label>
+              <input type="password" id="aria-key-${p.id}" class="admin-input" placeholder="${ariaKeys[p.id] ? '•••••••• (saved)' : 'Inherit from platform…'}" />
+            </div>
+          `).join('')}
+        </div>
+
+        <h4 style="margin-top:24px;margin-bottom:12px;font-size:13px;color:var(--admin-text)">Image Generation</h4>
+        <div class="agent-grid-2">
+          ${[
+            { id: 'fal', label: 'Fal.ai API Key' },
+            { id: 'bfl', label: 'Black Forest Labs Key' },
+            { id: 'replicate', label: 'Replicate API Key' },
+          ].map(p => `
+            <div class="agent-field">
+              <label>${p.label}</label>
+              <input type="password" id="aria-key-${p.id}" class="admin-input" placeholder="${ariaKeys[p.id] ? '•••••••• (saved)' : 'Inherit from platform…'}" />
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="agent-form-actions" style="margin-top:24px">
+          <button class="admin-btn admin-btn-primary" onclick="AgentPanel.saveAriaKeys()">💾 Save Dedicated Keys</button>
         </div>
       </div>
     </div>
@@ -531,6 +573,26 @@ export async function renderAgentPanel() {
 export const AgentPanel = {
 
   // ── Config ────────────────────────────────────────────────
+  async saveAriaKeys() {
+    const keys = await ApiKeyVault.loadAria() || {};
+    const providers = ['anthropic', 'openai', 'google', 'groq', 'mistral', 'fal', 'bfl', 'replicate'];
+    let changed = false;
+    for (const p of providers) {
+      const el = _ap_el('aria-key-' + p);
+      if (el && el.value.trim() !== '') {
+        keys[p] = el.value.trim();
+        changed = true;
+      }
+    }
+    if (changed) {
+      await ApiKeyVault.saveAria(keys);
+      AdminApp?.toast?.('Aria API keys saved ✓', 'success', 1500);
+      renderAgentPanel();
+    } else {
+      AdminApp?.toast?.('No new keys entered', 'info', 1500);
+    }
+  },
+
   async save() {
     const cfg = SuperAgent.config.get();
     cfg.persona      = _ap_el('agent-persona')?.value.trim()  || cfg.persona;
