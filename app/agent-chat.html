@@ -249,6 +249,20 @@
     @media(prefers-reduced-motion:reduce){
       *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
     }
+    /* Modal / Lightbox */
+    #img-modal { position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; flex-direction:column; padding:24px; opacity:0; transition:opacity 0.25s ease; backdrop-filter:blur(8px); }
+    #img-modal.show { display:flex; opacity:1; }
+    #img-modal-close { position:absolute; top:20px; right:20px; font-size:30px; color:#fff; cursor:pointer; user-select:none; width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.1); border-radius:50%; transition:background 0.2s; z-index:2001; }
+    #img-modal-close:hover { background:rgba(255,255,255,0.2); }
+    #img-modal-content { max-width:100%; max-height:85vh; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.5); object-fit:contain; }
+    #img-modal-prompt { color:#fff; margin-top:16px; font-size:14px; text-align:center; max-width:800px; line-height:1.5; font-family:var(--font); }
+    /* Gallery Grid */
+    #gallery-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px; width:100%; max-width:900px; max-height:75vh; overflow-y:auto; margin-top:16px; }
+    .gal-item { border-radius:8px; overflow:hidden; cursor:pointer; border:2px solid transparent; transition:border-color 0.2s, transform 0.2s; position:relative; aspect-ratio:1; background:#000; display:flex; align-items:center; justify-content:center; }
+    .gal-item:hover { border-color:var(--indigo-l); transform:scale(1.02); z-index:1; }
+    .gal-item img, .gal-item video { width:100%; height:100%; object-fit:cover; }
+    .gal-vid-badge { position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.6); color:#fff; padding:2px 6px; border-radius:4px; font-size:10px; font-family:var(--mono); }
+    .gal-empty { color:var(--text-3); font-size:14px; text-align:center; padding:40px; grid-column:1 / -1; }
   </style>
 </head>
 <body>
@@ -348,6 +362,7 @@
         <button class="sbbtn" onclick="qi('What do you remember about me and our past conversations?')">🧠 Recall all memory</button>
         <button class="sbbtn" onclick="qi('Search the knowledge base and give me a full summary.')">📚 Search knowledge base</button>
         <button class="sbbtn" onclick="qi('Get the latest tech and AI headlines for today.')">📰 Today's news</button>
+        <button class="sbbtn" onclick="openImageGallery()">🖼️ View Gallery</button>
         <button class="sbbtn" onclick="qi('What is the weather in Austin, TX right now?')">🌤 Austin weather</button>
         <a class="sbbtn" href="admin.html">⚙ Admin dashboard</a>
         <a class="sbbtn" href="index.html">← Back to App</a>
@@ -421,6 +436,14 @@
     </div>
   </main>
 </div>
+
+<!-- Image Modal / Gallery -->
+<div id="img-modal">
+  <div id="img-modal-close" onclick="closeImageModal()">✕</div>
+  <div id="img-modal-inner" style="display:flex;flex-direction:column;align-items:center;width:100%;height:100%;justify-content:center;">
+  </div>
+</div>
+
 <script type="module">
 import { AuthSystem } from './auth.js';
 import { MODELS_DATA } from './models-data.js';
@@ -1259,10 +1282,13 @@ function addTRC(bid, tc, res) {
   if (typeof res === 'string' && res.startsWith('__TOOL_IMAGE__:')) {
     try {
       const img = JSON.parse(res.substring(15));
+      const encodedSrc = esc(img.src).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const encodedPrompt = esc(img.prompt).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const isVid = img.isVideo ? 'true' : 'false';
       const mediaHtml = img.isVideo
         ? `<video src="${img.src}" autoplay loop muted controls style="max-width:100%;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2)"></video>`
-        : `<img src="${img.src}" style="max-width:100%;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2)" />`;
-      bHtml = `<div class="trb" style="padding:12px;text-align:center">${mediaHtml}<div style="font-size:12px;color:var(--text-3);margin-top:8px">${esc(img.prompt)}</div></div>`;
+        : `<img src="${img.src}" style="max-width:100%;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2);cursor:zoom-in;" onclick="openImageModal('${encodedSrc}', false, '${encodedPrompt}')" />`;
+      bHtml = `<div class="trb gal-source" style="padding:12px;text-align:center" data-src="${encodedSrc}" data-vid="${isVid}" data-prompt="${encodedPrompt}">${mediaHtml}<div style="font-size:12px;color:var(--text-3);margin-top:8px">${esc(img.prompt)}</div></div>`;
     } catch (e) {}
   }
   
@@ -1580,6 +1606,61 @@ window.toggleSyd = toggleSyd;
 window.toggleNav = toggleNav;
 window.closeNav = closeNav;
 window.jumpToBottom = jumpToBottom;
+
+// ── Image Modal & Gallery ───────────────────────────────────
+function openImageModal(src, isVideo, prompt) {
+  const mod = document.getElementById('img-modal');
+  const inner = document.getElementById('img-modal-inner');
+  if (!mod || !inner) return;
+  const mediaHtml = isVideo
+    ? `<video src="${src}" autoplay loop controls id="img-modal-content"></video>`
+    : `<img src="${src}" id="img-modal-content" />`;
+  inner.innerHTML = `${mediaHtml}<div id="img-modal-prompt">${prompt}</div>`;
+  mod.style.display = 'flex';
+  setTimeout(() => mod.classList.add('show'), 10);
+}
+
+function closeImageModal() {
+  const mod = document.getElementById('img-modal');
+  if (!mod) return;
+  mod.classList.remove('show');
+  setTimeout(() => {
+    mod.style.display = 'none';
+    const inner = document.getElementById('img-modal-inner');
+    if (inner) inner.innerHTML = '';
+  }, 250);
+}
+
+function openImageGallery() {
+  const mod = document.getElementById('img-modal');
+  const inner = document.getElementById('img-modal-inner');
+  if (!mod || !inner) return;
+  
+  const sources = document.querySelectorAll('.gal-source');
+  let gridHtml = '<h2 style="color:#fff;margin-bottom:16px;font-weight:600;">Session Gallery</h2><div id="gallery-grid">';
+  
+  if (sources.length === 0) {
+    gridHtml += '<div class="gal-empty">No images generated in this session yet.</div>';
+  } else {
+    sources.forEach(srcEl => {
+      const src = srcEl.getAttribute('data-src');
+      const isVid = srcEl.getAttribute('data-vid') === 'true';
+      const prompt = srcEl.getAttribute('data-prompt');
+      const mediaHtml = isVid ? `<video src="${src}" muted loop onmouseenter="this.play()" onmouseleave="this.pause()"></video><div class="gal-vid-badge">VIDEO</div>` : `<img src="${src}" loading="lazy" />`;
+      gridHtml += `<div class="gal-item" onclick="openImageModal('${src}', ${isVid}, '${prompt.replace(/'/g, "\\'")}')">${mediaHtml}</div>`;
+    });
+  }
+  gridHtml += '</div>';
+  
+  inner.innerHTML = gridHtml;
+  mod.style.display = 'flex';
+  setTimeout(() => mod.classList.add('show'), 10);
+  if (typeof closeNav === 'function') closeNav();
+}
+
+window.openImageModal = openImageModal;
+window.closeImageModal = closeImageModal;
+window.openImageGallery = openImageGallery;
 </script>
 </body>
 </html>
