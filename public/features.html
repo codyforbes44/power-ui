@@ -48,10 +48,11 @@
   </style>
 </head>
 <body>
+<a href="#main" class="skip-link">Skip to content</a>
 <nav class="nav" id="nav">
   <div class="nav-inner">
     <a href="index.html" class="nav-logo"><div class="nav-logo-icon">✦</div>Async</a>
-    <div class="nav-links">
+    <div class="nav-links" id="nav-links">
       <a href="index.html" class="nav-link">Home</a>
       <a href="features.html" class="nav-link active" aria-current="page">Features</a>
       <a href="pricing.html" class="nav-link">Pricing</a>
@@ -62,9 +63,11 @@
       <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
       <a href="/signup" class="btn btn-primary btn-sm">Get Started Free →</a>
     </div>
-    <button class="nav-hamburger" id="hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
+    <button class="nav-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links"><span></span><span></span><span></span></button>
   </div>
 </nav>
+<main id="main">
+
 
 <section style="padding:140px 0 64px;text-align:center;position:relative;">
   <div class="hero-glow"></div>
@@ -326,6 +329,7 @@
   </div>
 </section>
 
+</main>
 <footer class="footer">
   <div class="container">
     <div class="footer-grid">
@@ -362,6 +366,9 @@
         hamburger.setAttribute('aria-expanded','false');
       }
     });
+    // Close on link selection + Escape
+    document.querySelectorAll('.nav-links a, .nav-actions a').forEach(a=>a.addEventListener('click',()=>{navLinks.style.cssText='';navActions.style.cssText='';hamburger.setAttribute('aria-expanded','false');}));
+    document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){navLinks.style.cssText='';navActions.style.cssText='';hamburger.setAttribute('aria-expanded','false');}});
   }
 </script>
 </body>

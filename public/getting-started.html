@@ -622,6 +622,7 @@
 </head>
 <body>
 
+<a href="#main" class="skip-link">Skip to content</a>
   <!-- ─── Navigation ──────────────────────────────────────────── -->
   <nav class="nav" id="nav">
     <div class="nav-inner">
@@ -629,7 +630,7 @@
         <div class="nav-logo-icon">✦</div>
         Async
       </a>
-      <div class="nav-links">
+      <div class="nav-links" id="nav-links">
         <a href="index.html" class="nav-link">Home</a>
         <a href="features.html" class="nav-link">Features</a>
         <a href="pricing.html" class="nav-link">Pricing</a>
@@ -640,7 +641,7 @@
         <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
         <a href="/signup" class="btn btn-primary btn-sm">Get Started Free →</a>
       </div>
-      <button class="nav-hamburger" id="hamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <button class="nav-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links"><span></span><span></span><span></span></button>
     </div>
   </nav>
 
@@ -1440,25 +1441,6 @@ python3 server.py <span class="tok-flag">--verbose</span></code></pre>
       nav.style.background = window.scrollY > 40 ? 'rgba(3,7,18,.92)' : 'rgba(3,7,18,.70)';
     });
 
-    // Mobile hamburger
-    document.getElementById('hamburger').addEventListener('click', () => {
-      const links = document.querySelector('.nav-links');
-      const acts  = document.querySelector('.nav-actions');
-      const open  = links.style.display === 'flex';
-      [links, acts].forEach(el => {
-        el.style.display = open ? '' : 'flex';
-        el.style.flexDirection = 'column';
-        el.style.position = 'absolute';
-        el.style.top = '64px';
-        el.style.left = '0';
-        el.style.right = '0';
-        el.style.background = 'rgba(3,7,18,.98)';
-        el.style.padding = '16px 24px';
-        el.style.borderBottom = '1px solid rgba(255,255,255,.06)';
-      });
-      if (open) { links.style.display = ''; acts.style.display = ''; }
-    });
-
     // ── Copy code button ──────────────────────────────────────────
     function copyCode(btn) {
       const pre = btn.closest('.code-block').querySelector('pre');
@@ -1535,5 +1517,38 @@ python3 server.py <span class="tok-flag">--verbose</span></code></pre>
       if (nav) nav.classList.toggle('scrolled', window.scrollY > 20);
     });
   </script>
+
+<script>
+  // Mobile hamburger — accessible: announces state, closes on link
+  // selection / Escape, and restores focus target.
+  const hamburger = document.getElementById('hamburger');
+  const navLinks  = document.querySelector('.nav-links');
+  const navActs   = document.querySelector('.nav-actions');
+  function setMenu(open) {
+    [navLinks, navActs].forEach(el => {
+      if (!el) return;
+      el.style.display      = open ? 'flex' : '';
+      el.style.flexDirection = 'column';
+      el.style.position      = 'absolute';
+      el.style.top           = '64px';
+      el.style.left          = '0';
+      el.style.right         = '0';
+      el.style.background    = 'rgba(3,7,18,.98)';
+      el.style.padding       = '16px 24px';
+      el.style.borderBottom  = '1px solid rgba(255,255,255,.06)';
+    });
+    hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    hamburger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  }
+  hamburger.addEventListener('click', () => {
+    setMenu(hamburger.getAttribute('aria-expanded') !== 'true');
+  });
+  document.querySelectorAll('.nav-links a, .nav-actions a').forEach(a => {
+    a.addEventListener('click', () => setMenu(false));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && hamburger.getAttribute('aria-expanded') === 'true') setMenu(false);
+  });
+</script>
 </body>
 </html>

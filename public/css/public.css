@@ -47,7 +47,7 @@
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 /* touch-action: manipulation removes 300ms tap delay on touch devices */
 button, a, [role="button"] { touch-action: manipulation; }
-html { scroll-behavior:smooth; }
+html { scroll-behavior:smooth; overflow-x:clip; }
 body {
   font-family: var(--font);
   background: var(--bg);
@@ -654,4 +654,80 @@ h1,h2,h3,h4 { font-family:var(--font-d); font-weight:700; line-height:1.2; lette
   .nav-hamburger { width:44px; height:44px; } /* Ensure min tap target */
   /* Nav menu must be above the sticky nav bar when open */
   .nav-mobile-menu { z-index: 1100; }
+}
+
+/* ── Accessibility & mobile-first hardening ─────────────────── */
+
+/* Visible, high-contrast focus ring for keyboard users */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--primary-light, #818cf8);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Skip-to-content link — visually hidden until focused */
+.skip-link {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2000;
+  transform: translateY(-150%);
+  background: var(--primary, #6366f1);
+  color: #fff;
+  padding: 12px 20px;
+  font-weight: 600;
+  font-size: .875rem;
+  border-radius: 0 0 10px 0;
+  transition: transform .15s ease;
+}
+.skip-link:focus { transform: translateY(0); }
+
+/* Mobile-first responsive grids (stack first, enhance at >=769px).
+   Replaces non-responsive inline grid-template-columns on the homepage
+   so columns actually collapse on phones instead of overflowing. */
+.split-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: center;
+}
+.pricing-preview {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+@media (min-width: 769px) {
+  .split-2 { grid-template-columns: 1fr 1fr; gap: 64px; }
+  .pricing-preview { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Honour users who prefer reduced motion — disable non-essential animation */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .hero-window,
+  .typing-cursor::after,
+  .scrolling-logos,
+  .glow-ring { animation: none !important; }
+}
+
+/* Ensure footer social / nav icon links meet minimum tap-target size */
+.footer-social-link {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }

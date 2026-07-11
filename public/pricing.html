@@ -54,13 +54,14 @@
 </head>
 <body>
 
+<a href="#main" class="skip-link">Skip to content</a>
 <nav class="nav" id="nav">
   <div class="nav-inner">
     <a href="index.html" class="nav-logo">
       <div class="nav-logo-icon">✦</div>
       Async
     </a>
-    <div class="nav-links">
+    <div class="nav-links" id="nav-links">
       <a href="index.html" class="nav-link">Home</a>
       <a href="features.html" class="nav-link">Features</a>
       <a href="pricing.html" class="nav-link active" aria-current="page">Pricing</a>
@@ -71,11 +72,13 @@
       <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
       <a href="/signup" class="btn btn-primary btn-sm">Get Started Free →</a>
     </div>
-    <button class="nav-hamburger" id="hamburger" aria-label="Open menu">
+    <button class="nav-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links">
       <span></span><span></span><span></span>
     </button>
   </div>
 </nav>
+<main id="main">
+
 
 <!-- Hero -->
 <section class="plan-hero">
@@ -315,6 +318,7 @@
     </div>
   </div>
 </section>
+</main>
 
 <!-- Footer -->
 <footer class="footer">
@@ -381,6 +385,39 @@
     document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
     if (!wasOpen) item.classList.add('open');
   }
+</script>
+
+<script>
+  // Mobile hamburger — accessible: announces state, closes on link
+  // selection / Escape, and restores focus target.
+  const hamburger = document.getElementById('hamburger');
+  const navLinks  = document.querySelector('.nav-links');
+  const navActs   = document.querySelector('.nav-actions');
+  function setMenu(open) {
+    [navLinks, navActs].forEach(el => {
+      if (!el) return;
+      el.style.display      = open ? 'flex' : '';
+      el.style.flexDirection = 'column';
+      el.style.position      = 'absolute';
+      el.style.top           = '64px';
+      el.style.left          = '0';
+      el.style.right         = '0';
+      el.style.background    = 'rgba(3,7,18,.98)';
+      el.style.padding       = '16px 24px';
+      el.style.borderBottom  = '1px solid rgba(255,255,255,.06)';
+    });
+    hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    hamburger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  }
+  hamburger.addEventListener('click', () => {
+    setMenu(hamburger.getAttribute('aria-expanded') !== 'true');
+  });
+  document.querySelectorAll('.nav-links a, .nav-actions a').forEach(a => {
+    a.addEventListener('click', () => setMenu(false));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && hamburger.getAttribute('aria-expanded') === 'true') setMenu(false);
+  });
 </script>
 </body>
 </html>
