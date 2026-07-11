@@ -278,9 +278,23 @@ export const ApiRouter = (() => {
         }
         return { role: 'model', parts };
       }
+      if (Array.isArray(m.content)) {
+        const parts = m.content.map(p => {
+          if (p.type === 'text') return { text: p.text || ' ' };
+          if (p.type === 'image_url') {
+            const dataUrl = p.image_url.url;
+            const match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
+            if (match) {
+              return { inlineData: { mimeType: match[1], data: match[2] } };
+            }
+          }
+          return { text: JSON.stringify(p) };
+        });
+        return { role: m.role === 'assistant' ? 'model' : 'user', parts };
+      }
       return {
         role:  m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
+        parts: [{ text: m.content || ' ' }],
       };
     });
 
