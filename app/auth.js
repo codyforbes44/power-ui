@@ -678,7 +678,23 @@ export const AuthSystem = (() => {
   function isSuperAdmin() {
     const session = loadSession();
     if (!session) return false;
-    return SUPER_ADMINS.has(session.username) || session.role === 'super_admin';
+    // Fast path: the session snapshot already identifies a super-admin.
+    if (SUPER_ADMINS.has(session.username) || session.role === 'super_admin') return true;
+    // Fallback: consult the authoritative stored user record — mirrors the
+    // fallback isAdmin() already has. A session created before the super-admin
+    // designation was deployed can carry a stale role or a missing/renamed
+    // username field; without this, agent-chat.html's super-admin gate rejects
+    // a user (e.g. cody) that isAdmin()-based surfaces (admin dashboard, the
+    // main app's SUPER badge) accept. Repair the session in-place so later
+    // fast-path checks succeed.
+    const user = getUser(session.userId);
+    if (user && (SUPER_ADMINS.has(user.username) || user.role === 'super_admin')) {
+      if (user.role === 'super_admin') session.role = 'super_admin';
+      else if (session.role !== 'admin') session.role = 'admin';
+      saveSession(session);
+      return true;
+    }
+    return false;
   }
 
   // ──────────────────────────────────────────────────────────
