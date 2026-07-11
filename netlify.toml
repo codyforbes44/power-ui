@@ -12,12 +12,11 @@
   publish = "."
 
 [build.environment]
-  # Secret scanning stays ON. The Firebase web API key in app/firebase-config.js
+  # Secret scanning is DISABLED. The Firebase web API key in app/firebase-config.js
   # is a public client identifier (not a secret — access is gated by Firestore
-  # rules), so it is explicitly omitted rather than disabling the whole scan.
-  SECRETS_SCAN_SMART_DETECTION_ENABLED = "true"
-  SECRETS_SCAN_OMIT_PATHS = "app/firebase-config.js"
-  SECRETS_SCAN_OMIT_KEYS  = "AIzaSyCooVeed0T-B1xMG9z5yjNsREEhJl2ihqw"
+  # rules), but Netlify's smart detection flags it and blocks builds. Disabled
+  # per user request so the public Firebase key deploys cleanly.
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
 
 
 # ── Security Headers ────────────────────────────────────────────
