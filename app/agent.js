@@ -1244,12 +1244,85 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
   }
 
   // ──────────────────────────────────────────────────────────
+  // Aria Session Db (Super Admin Chat Sessions)
+  // ──────────────────────────────────────────────────────────
+  const AriaSessionDb = (() => {
+    const DB_NAME = 'async_aria_sessions';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'sessions';
+    let dbPromise = null;
+
+    function getDB() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = (e) => reject(e.target.error);
+      });
+      return dbPromise;
+    }
+
+    return {
+      async saveSession(session) {
+        const db = await getDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.put(session);
+          req.onsuccess = () => resolve();
+          req.onerror = () => {
+            if (req.error.name === 'QuotaExceededError') _warnStorageFull();
+            reject(req.error);
+          };
+        });
+      },
+      async getSession(id) {
+        const db = await getDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get(id);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      },
+      async getAllSessions() {
+        const db = await getDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => reject(req.error);
+        });
+      },
+      async deleteSession(id) {
+        const db = await getDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.delete(id);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      }
+    };
+  })();
+
+  // ──────────────────────────────────────────────────────────
   // Public API
   // ──────────────────────────────────────────────────────────
   return {
     config:      AgentConfig,
     memory:      AgentMemory,
     kb:          KnowledgeBase,
+    sessions:    AriaSessionDb,
     tools:       SUPER_TOOLS,
     calc:        evalMathExpression,
     getSuperTools,

@@ -331,6 +331,13 @@
       </div>
     </div>
     <div class="sbs">
+      <div class="sbl" style="display:flex; justify-content:space-between; align-items:center;">
+        Previous Chats
+        <button class="sbbtn" style="padding:2px 6px; font-size:0.75rem;" onclick="createNewSession()">➕ New</button>
+      </div>
+      <div class="mlist" id="session-list"><div class="nd">No previous chats.</div></div>
+    </div>
+    <div class="sbs">
       <div class="sbl">Cross-Session Memory</div>
       <div class="mlist" id="mlist"><div class="nd">No memories yet.</div></div>
       <button class="sbbtn" style="margin-top:8px" onclick="refreshSb()">↺ Refresh</button>
@@ -418,7 +425,7 @@ import { SuperAgent } from './agent.js';
 'use strict';
 
 // ── State ──────────────────────────────────────────────────
-const S = { msgs: [], streaming: false, abort: null, tc: 0, mc: 0, keys: {} };
+const S = { sessionId: null, title: 'New Chat', msgs: [], streaming: false, abort: null, tc: 0, mc: 0, keys: {} };
 let _booted = false;
 
 // ── ImageDb (IndexedDB for locally generated images) ───────
@@ -452,6 +459,130 @@ const ImageDb = (() => {
     }
   };
 })();
+
+// ── Session Management ─────────────────────────────────────
+function generateId() { return 's_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6); }
+
+async function saveCurrentSession() {
+  if (typeof SuperAgent === 'undefined' || !SuperAgent.sessions) return;
+  if (!S.sessionId) S.sessionId = generateId();
+  if (S.msgs.length > 0 && S.title === 'New Chat') {
+    const firstMsg = S.msgs.find(m => m.role === 'user');
+    if (firstMsg) S.title = firstMsg.content.substring(0, 40) + (firstMsg.content.length > 40 ? '...' : '');
+  }
+  const sessionData = {
+    id: S.sessionId,
+    title: S.title,
+    messages: JSON.parse(JSON.stringify(S.msgs)),
+    updatedAt: new Date().toISOString()
+  };
+  try {
+    await SuperAgent.sessions.saveSession(sessionData);
+    await loadSessionsList();
+  } catch (e) {
+    console.warn('[Aria] Failed to save session:', e);
+  }
+}
+
+async function loadSessionsList() {
+  if (typeof SuperAgent === 'undefined' || !SuperAgent.sessions) return;
+  const listEl = document.getElementById('session-list');
+  if (!listEl) return;
+  try {
+    const all = await SuperAgent.sessions.getAllSessions();
+    all.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    if (all.length === 0) {
+      listEl.innerHTML = '<div class="nd">No previous chats.</div>';
+      return;
+    }
+    listEl.innerHTML = all.map(sess => {
+      const isAct = (sess.id === S.sessionId);
+      const title = String(sess.title || 'Untitled Chat').replace(/</g, '&lt;');
+      return `<div class="mitem ${isAct ? 'on' : ''}" style="cursor:pointer" onclick="switchSession('${sess.id}')" title="${title}">
+        <span class="mico" style="font-size:0.85rem">${isAct ? '🟢' : '💬'}</span>
+        <div class="mbody"><div class="mkey" style="font-weight:normal; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${title}</div></div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    console.warn('[Aria] Failed to load sessions list:', e);
+  }
+}
+
+window.switchSession = async function switchSession(id) {
+  if (S.streaming) return;
+  if (typeof SuperAgent === 'undefined' || !SuperAgent.sessions) return;
+  try {
+    const session = await SuperAgent.sessions.getSession(id);
+    if (!session) return;
+    
+    S.sessionId = session.id;
+    S.title = session.title || 'Untitled Chat';
+    S.msgs = session.messages || [];
+    
+    // Re-render chat
+    const mbox = document.getElementById('msgs');
+    if (mbox) {
+      Array.from(mbox.children).forEach(c => { if (c.id !== 'welc') c.remove(); });
+      S.tc = 0;
+      S.mc = 0;
+      let round = 1;
+      
+      S.msgs.forEach(msg => {
+        if (msg.role === 'user') {
+          S.mc++;
+          const bid = 'b' + Date.now() + Math.random();
+          addQ(bid, msg.content);
+        } else if (msg.role === 'assistant' && (msg.content || (msg.toolCalls && msg.toolCalls.length))) {
+          S.mc++;
+          const bid = 'b' + Date.now() + Math.random();
+          addA(bid);
+          if (msg.content) updBub(bid, msg.content);
+          
+          if (msg.toolCalls && msg.toolCalls.length) {
+            msg.toolCalls.forEach(tc => {
+              addTCC(bid, tc);
+              updTCS(tc.id, 'done');
+              S.tc++;
+            });
+          }
+        } else if (msg.role === 'tool_results' && msg.results) {
+          // Tool results are attached to the previous assistant bubble visually
+          // But our DOM structure means we just append the result to the last bubble
+          const lastAbub = mbox.querySelector('.abub:last-of-type');
+          if (lastAbub) {
+            const bid = lastAbub.id;
+            msg.results.forEach(tr => {
+              addTRC(bid, { id: tr.tool_use_id }, tr.content);
+            });
+          }
+        }
+      });
+      document.getElementById('welc').style.display = S.msgs.length ? 'none' : 'flex';
+      scroll2b(true);
+      renderSb();
+      loadSessionsList();
+    }
+  } catch(e) {
+    console.error('[Aria] Failed to switch session:', e);
+  }
+};
+
+window.createNewSession = function createNewSession() {
+  if (S.streaming) return;
+  S.sessionId = null;
+  S.title = 'New Chat';
+  S.msgs = [];
+  S.tc = 0;
+  S.mc = 0;
+  
+  const mbox = document.getElementById('msgs');
+  if (mbox) {
+    Array.from(mbox.children).forEach(c => { if (c.id !== 'welc') c.remove(); });
+    document.getElementById('welc').style.display = 'flex';
+  }
+  loadSessionsList();
+  renderSb();
+};
 
 // ── Boot ───────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => setTimeout(boot, 0));
@@ -520,6 +651,18 @@ async function boot() {
   document.getElementById('auth-wall').style.display = 'none';
   document.getElementById('app').classList.add('ready');
   syncNav();
+
+  // 6.5 Load Sessions List
+  await loadSessionsList();
+  if (typeof SuperAgent !== 'undefined' && SuperAgent.sessions) {
+    try {
+      const all = await SuperAgent.sessions.getAllSessions();
+      if (all && all.length > 0) {
+        all.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        window.switchSession(all[0].id); // Load most recent session
+      }
+    } catch(e) {}
+  }
 
   // 7. Populate agent persona from config
   if (typeof SuperAgent !== 'undefined') {
@@ -817,6 +960,7 @@ async function doStream(prov, mid, key, sys, tools) {
     renderSb();
     refreshSb();
     scroll2b();
+    await saveCurrentSession();
   }
 }
 
@@ -1197,24 +1341,7 @@ async function startElevenLabsCall() {
 
 function clearChat() {
   closeNavIfOpen();
-  if (S.streaming) stopStream();
-  S.msgs = []; S.tc = 0; S.mc = 0;
-  const ms = document.getElementById('msgs');
-  ms.innerHTML = '';
-  const cfg = typeof SuperAgent !== 'undefined' ? SuperAgent.config.get() : { avatarEmoji: '✦' };
-  const w = document.createElement('div');
-  w.id = 'welc';
-  w.innerHTML =
-    `<div class="worb">${esc(cfg.avatarEmoji || '✦')}</div>` +
-    `<div class="wtit">Hello, Cody.</div>` +
-    `<div class="wsub">I'm Aria, your super-agent. Ready for a fresh conversation.</div>` +
-    `<div class="qps">` +
-    `<button class="qp" onclick="qi('What do you remember about me?')">🧠 Recall memory</button>` +
-    `<button class="qp" onclick="qi('Get today\'s top AI news.')">🔍 AI news</button>` +
-    `<button class="qp" onclick="qi('Search GitHub for trending repos.')">🐙 GitHub</button>` +
-    `<button class="qp" onclick="qi('Search my knowledge base.')">📚 KB</button></div>`;
-  ms.appendChild(w);
-  renderSb();
+  createNewSession();
   toast('Chat cleared', 'ok');
 }
 
