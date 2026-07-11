@@ -11,7 +11,11 @@ const assert = require('node:assert/strict');
 const nock = require('nock');
 const { handler } = require('../../netlify/functions/proxy.js');
 
-function makeEvent(body, method = 'POST', headers) {
+// Default to a valid same-origin request so tests that exercise other logic
+// aren't rejected by the open-relay guard. Origin-specific tests override.
+const SAME_ORIGIN = { host: 'my-deploy.netlify.app', origin: 'https://my-deploy.netlify.app' };
+
+function makeEvent(body, method = 'POST', headers = SAME_ORIGIN) {
   return { httpMethod: method, body: JSON.stringify(body), headers };
 }
 
@@ -39,15 +43,88 @@ test('allows a POST whose Origin matches its own Host (same-origin browser call)
   assert.ok(scope.isDone());
 });
 
-test('allows a POST with no Origin header at all (curl / server-to-server, unchanged from before)', async () => {
-  const scope = nock('https://api.anthropic.com').post('/v1/messages').reply(200, { ok: true });
+test('rejects a POST with no Origin header at all (curl / server-to-server open-relay guard)', async () => {
   const res = await handler(makeEvent(
     { provider: 'anthropic', path: '/v1/messages', apiKey: 'k', payload: { a: 1 } },
     'POST',
     { host: 'my-deploy.netlify.app' }
   ));
-  assert.equal(res.statusCode, 200);
+  assert.equal(res.statusCode, 403);
+});
+
+test('echoes the validated Origin in Access-Control-Allow-Origin, never "*"', async () => {
+  const scope = nock('https://api.anthropic.com').post('/v1/messages').reply(200, { ok: true });
+  const res = await handler(makeEvent(
+    { provider: 'anthropic', path: '/v1/messages', apiKey: 'k', payload: { a: 1 } },
+    'POST',
+    { host: 'my-deploy.netlify.app', origin: 'https://my-deploy.netlify.app' }
+  ));
+  assert.equal(res.headers['Access-Control-Allow-Origin'], 'https://my-deploy.netlify.app');
+  assert.notEqual(res.headers['Access-Control-Allow-Origin'], '*');
   assert.ok(scope.isDone());
+});
+
+const okHeaders = SAME_ORIGIN;
+
+test('rejects a path that would change the upstream host (protocol-relative)', async () => {
+  const res = await handler(makeEvent(
+    { provider: 'anthropic', path: '//attacker.example/v1/messages', payload: { a: 1 } },
+    'POST', okHeaders
+  ));
+  assert.equal(res.statusCode, 400);
+  assert.match(JSON.parse(res.body).error, /Invalid path/);
+});
+
+test('rejects a path containing @ (userinfo host swap)', async () => {
+  const res = await handler(makeEvent(
+    { provider: 'anthropic', path: '/@attacker.example/', payload: { a: 1 } },
+    'POST', okHeaders
+  ));
+  assert.equal(res.statusCode, 400);
+});
+
+test('rejects a path not starting with /', async () => {
+  const res = await handler(makeEvent(
+    { provider: 'anthropic', path: 'v1/messages', payload: { a: 1 } },
+    'POST', okHeaders
+  ));
+  assert.equal(res.statusCode, 400);
+});
+
+test('fetch_url rejects a non-https scheme', async () => {
+  const res = await handler(makeEvent(
+    { provider: 'fetch_url', path: '/x', payload: { url: 'http://example.com' } },
+    'POST', okHeaders
+  ));
+  assert.equal(res.statusCode, 400);
+  assert.match(JSON.parse(res.body).error, /https/);
+});
+
+test('fetch_url rejects a URL that resolves to a private/loopback address', async () => {
+  const res = await handler(makeEvent(
+    { provider: 'fetch_url', path: '/x', payload: { url: 'https://127.0.0.1/secret' } },
+    'POST', okHeaders
+  ));
+  assert.equal(res.statusCode, 400);
+  assert.match(JSON.parse(res.body).error, /private/i);
+});
+
+test('fetch_url rejects the cloud metadata endpoint', async () => {
+  const res = await handler(makeEvent(
+    { provider: 'fetch_url', path: '/x', payload: { url: 'https://169.254.169.254/latest/meta-data/' } },
+    'POST', okHeaders
+  ));
+  assert.equal(res.statusCode, 400);
+  assert.match(JSON.parse(res.body).error, /private/i);
+});
+
+test('fetch_url rejects a .internal hostname', async () => {
+  const res = await handler(makeEvent(
+    { provider: 'fetch_url', path: '/x', payload: { url: 'https://foo.internal/x' } },
+    'POST', okHeaders
+  ));
+  assert.equal(res.statusCode, 400);
+  assert.match(JSON.parse(res.body).error, /not allowed/i);
 });
 
 test('rejects a request with no provider or path', async () => {
@@ -166,9 +243,14 @@ test('replicate requests use a Token authorization header', async () => {
   assert.ok(scope.isDone());
 });
 
-test('CORS preflight (OPTIONS) short-circuits with 204', async () => {
-  const res = await handler({ httpMethod: 'OPTIONS' });
+test('CORS preflight (OPTIONS) from a same-origin caller short-circuits with 204', async () => {
+  const res = await handler({ httpMethod: 'OPTIONS', headers: SAME_ORIGIN });
   assert.equal(res.statusCode, 204);
+});
+
+test('CORS preflight (OPTIONS) with no/invalid Origin is rejected with 403', async () => {
+  const res = await handler({ httpMethod: 'OPTIONS' });
+  assert.equal(res.statusCode, 403);
 });
 
 test('non-POST/OPTIONS methods are rejected with 405', async () => {
@@ -177,6 +259,6 @@ test('non-POST/OPTIONS methods are rejected with 405', async () => {
 });
 
 test('invalid JSON body is rejected with 400', async () => {
-  const res = await handler({ httpMethod: 'POST', body: '{not json' });
+  const res = await handler({ httpMethod: 'POST', body: '{not json', headers: SAME_ORIGIN });
   assert.equal(res.statusCode, 400);
 });

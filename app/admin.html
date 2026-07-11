@@ -9,8 +9,10 @@
   <meta name="theme-color" content="#030712" />
 
   <!-- Content-Security-Policy (meta only — frame-ancestors requires HTTP header) -->
+  <!-- connect-src kept identical to the /*.html CSP in netlify.toml (single source of truth). -->
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self' https://esm.sh;
+      base-uri 'self'; object-src 'none'; form-action 'self';
       script-src 'self' 'unsafe-inline' https://unpkg.com https://identity.netlify.com https://esm.sh https://*.firebasejs.com https://www.gstatic.com;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
@@ -22,8 +24,8 @@
         https://unpkg.com https://identity.netlify.com https://*.netlify.com
         https://api.elevenlabs.io wss://api.elevenlabs.io https://elevenlabs.io
         https://en.wikipedia.org https://wttr.in https://api.github.com https://gnews.io
-        https://esm.sh
-        https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://www.gstatic.com;
+        https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com
+        https://esm.sh;
       frame-src blob: https://identity.netlify.com;
       img-src 'self' data: blob: https://*.fal.run https://*.fal.media https://*.replicate.delivery;
       worker-src blob:;" />
