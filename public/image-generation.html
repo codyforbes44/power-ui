@@ -224,11 +224,12 @@
 </head>
 <body>
 
+<a href="#main" class="skip-link">Skip to content</a>
 <!-- ── Nav ── -->
 <nav class="nav" id="nav">
   <div class="nav-inner">
     <a href="index.html" class="nav-logo"><div class="nav-logo-icon">✦</div>Async</a>
-    <div class="nav-links">
+    <div class="nav-links" id="nav-links">
       <a href="index.html" class="nav-link">Home</a>
       <a href="features.html" class="nav-link">Features</a>
       <a href="pricing.html" class="nav-link">Pricing</a>
@@ -239,9 +240,11 @@
       <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
       <a href="../app/index.html" class="btn btn-primary btn-sm">Generate Images Free →</a>
     </div>
-    <button class="nav-hamburger" id="hamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
+    <button class="nav-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links"><span></span><span></span><span></span></button>
   </div>
 </nav>
+<main id="main">
+
 
 <!-- ── Hero ── -->
 <div class="ig-hero">
@@ -530,6 +533,7 @@
 </div>
 
 <!-- ── Footer ── -->
+</main>
 <footer class="footer">
   <div class="container">
     <div class="footer-grid">
@@ -572,12 +576,6 @@
 // Nav scroll
 const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => { nav.style.background = window.scrollY > 40 ? 'rgba(3,7,18,.92)' : 'rgba(3,7,18,.70)'; });
-document.getElementById('hamburger').addEventListener('click', () => {
-  const links = document.querySelector('.nav-links'), acts = document.querySelector('.nav-actions');
-  const open = links.style.display === 'flex';
-  [links, acts].forEach(el => { el.style.display = open ? '' : 'flex'; el.style.flexDirection = 'column'; el.style.position = 'absolute'; el.style.top = '64px'; el.style.left = '0'; el.style.right = '0'; el.style.background = 'rgba(3,7,18,.98)'; el.style.padding = '16px 24px'; el.style.borderBottom = '1px solid rgba(255,255,255,.06)'; });
-  if (open) { links.style.display = ''; acts.style.display = ''; }
-});
 
 // ── Canvas art generation ──
 const palettes = [
@@ -678,6 +676,39 @@ function selectImg(el) {
   document.querySelectorAll('.ig-img-card').forEach(c => c.style.outline = 'none');
   el.style.outline = '2px solid var(--primary)';
 }
+</script>
+
+<script>
+  // Mobile hamburger — accessible: announces state, closes on link
+  // selection / Escape, and restores focus target.
+  const hamburger = document.getElementById('hamburger');
+  const navLinks  = document.querySelector('.nav-links');
+  const navActs   = document.querySelector('.nav-actions');
+  function setMenu(open) {
+    [navLinks, navActs].forEach(el => {
+      if (!el) return;
+      el.style.display      = open ? 'flex' : '';
+      el.style.flexDirection = 'column';
+      el.style.position      = 'absolute';
+      el.style.top           = '64px';
+      el.style.left          = '0';
+      el.style.right         = '0';
+      el.style.background    = 'rgba(3,7,18,.98)';
+      el.style.padding       = '16px 24px';
+      el.style.borderBottom  = '1px solid rgba(255,255,255,.06)';
+    });
+    hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    hamburger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  }
+  hamburger.addEventListener('click', () => {
+    setMenu(hamburger.getAttribute('aria-expanded') !== 'true');
+  });
+  document.querySelectorAll('.nav-links a, .nav-actions a').forEach(a => {
+    a.addEventListener('click', () => setMenu(false));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && hamburger.getAttribute('aria-expanded') === 'true') setMenu(false);
+  });
 </script>
 </body>
 </html>
