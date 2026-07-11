@@ -2197,6 +2197,7 @@ function selectModel(modelId) {
     : `Model: ${modelDef?.name || modelId}`;
   toast(label, 'info', 2000);
 }
+window.selectModel = selectModel;
 
 
 // ============================================================
@@ -2695,6 +2696,7 @@ async function sendMessageDirect(session, userText, messageContent = null) {
     return msgs
       .filter(m => !m.imageGenerating) // skip placeholder image messages
       .map((m, i) => {
+        const isLastUser = m.role === 'user' && i === msgs.length - 1;
         if (isLastUser && messageContent && Array.isArray(messageContent)) {
           if (provider === 'anthropic') {
             const content = messageContent.map(p => {
