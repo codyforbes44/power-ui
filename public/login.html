@@ -7,6 +7,11 @@
   <meta name="description" content="Sign in to Async — the premium subscription multi-model AI workspace." />
   <meta name="robots" content="noindex,nofollow" />
   <meta name="theme-color" content="#0a0f1e" />
+  <link rel="canonical" href="https://claude-power-ui.netlify.app/public/login.html" />
+  <meta property="og:url" content="https://claude-power-ui.netlify.app/public/login.html" />
+  <meta property="og:image" content="images/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="images/og-image.png" />
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>✦</text></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -136,7 +141,7 @@
     <span class="brand-name">Async</span>
   </a>
 
-  <div class="card">
+  <div class="card" id="main">
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab active" id="tab-signin" onclick="showTab('signin')">Sign In</button>
@@ -145,7 +150,7 @@
 
     <!-- SIGN IN -->
     <div id="signin-section">
-      <div class="heading">Welcome back</div>
+      <h1 class="heading">Welcome back</h1>
       <div class="subheading">Sign in to your AI workspace</div>
 
       <button class="btn-google" onclick="signInWithGoogle()">
