@@ -290,19 +290,19 @@
             </div>
             <div class="create-user-form">
               <div class="create-user-field">
-                <label class="create-user-label">Username</label>
+                <label class="create-user-label" for="new-username">Username</label>
                 <input class="create-user-input" id="new-username" type="text" placeholder="e.g. johndoe" autocomplete="off" />
               </div>
               <div class="create-user-field">
-                <label class="create-user-label">Display Name</label>
+                <label class="create-user-label" for="new-displayname">Display Name</label>
                 <input class="create-user-input" id="new-displayname" type="text" placeholder="John Doe" autocomplete="off" />
               </div>
               <div class="create-user-field">
-                <label class="create-user-label">Password</label>
+                <label class="create-user-label" for="new-password">Password</label>
                 <input class="create-user-input" id="new-password" type="password" placeholder="Min 6 chars" autocomplete="new-password" />
               </div>
               <div class="create-user-field">
-                <label class="create-user-label">Role</label>
+                <label class="create-user-label" for="new-role">Role</label>
                 <select class="create-user-input" id="new-role">
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
@@ -384,13 +384,13 @@
 
           <div class="admin-table-wrap" style="margin-bottom:20px; padding:20px">
             <div class="form-group" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px">
-              <label class="mcp-label" style="font-size:11px">Max Response Tokens</label>
+              <label class="mcp-label" style="font-size:11px" for="admin-max-tokens">Max Response Tokens</label>
               <input type="number" class="mcp-input" id="admin-max-tokens" min="256" max="32000" step="256" style="max-width:200px" />
               <div style="font-size:11px; color:var(--text-muted)">The maximum number of tokens to generate in model responses.</div>
             </div>
 
             <div class="form-group" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px">
-              <label class="mcp-label" style="font-size:11px">Default System Prompt</label>
+              <label class="mcp-label" style="font-size:11px" for="admin-default-system">Default System Prompt</label>
               <textarea class="mcp-input" id="admin-default-system" rows="4" style="font-family:var(--font-mono); font-size:11px; resize:vertical; min-height:80px; width:100%"></textarea>
               <div style="font-size:11px; color:var(--text-muted)">This system prompt will be prepended to all new chat sessions.</div>
             </div>
@@ -434,11 +434,11 @@
             <div class="mcp-add-fields" id="mcp-add-fields" style="display:none">
               <div class="mcp-field-row">
                 <div class="mcp-field">
-                  <label class="mcp-label">Server Name</label>
+                  <label class="mcp-label" for="mcp-name">Server Name</label>
                   <input class="mcp-input" id="mcp-name" type="text" placeholder="e.g. filesystem, postgres, github" autocomplete="off" />
                 </div>
                 <div class="mcp-field">
-                  <label class="mcp-label">Transport Type</label>
+                  <label class="mcp-label" for="mcp-transport">Transport Type</label>
                   <select class="mcp-input" id="mcp-transport" onchange="AdminApp.onMcpTransportChange()">
                     <option value="stdio">stdio (local process)</option>
                     <option value="sse">SSE (HTTP server)</option>
@@ -448,27 +448,27 @@
               </div>
               <div class="mcp-field-row" id="mcp-url-row" style="display:none">
                 <div class="mcp-field mcp-field-wide">
-                  <label class="mcp-label">Server URL</label>
+                  <label class="mcp-label" for="mcp-url">Server URL</label>
                   <input class="mcp-input" id="mcp-url" type="url" placeholder="http://localhost:3000/sse" autocomplete="off" />
                 </div>
                 <div class="mcp-field">
-                  <label class="mcp-label">Auth Token (optional)</label>
+                  <label class="mcp-label" for="mcp-auth">Auth Token (optional)</label>
                   <input class="mcp-input" id="mcp-auth" type="password" placeholder="Bearer token…" autocomplete="off" />
                 </div>
               </div>
               <div class="mcp-field-row" id="mcp-cmd-row">
                 <div class="mcp-field mcp-field-wide">
-                  <label class="mcp-label">Command</label>
+                  <label class="mcp-label" for="mcp-cmd">Command</label>
                   <input class="mcp-input" id="mcp-cmd" type="text" placeholder="npx -y @modelcontextprotocol/server-filesystem /path" autocomplete="off" />
                 </div>
                 <div class="mcp-field">
-                  <label class="mcp-label">Environment Vars (JSON)</label>
+                  <label class="mcp-label" for="mcp-env">Environment Vars (JSON)</label>
                   <input class="mcp-input" id="mcp-env" type="text" placeholder='{"KEY":"value"}' autocomplete="off" />
                 </div>
               </div>
               <div class="mcp-field-row">
                 <div class="mcp-field">
-                  <label class="mcp-label">Description (optional)</label>
+                  <label class="mcp-label" for="mcp-desc">Description (optional)</label>
                   <input class="mcp-input" id="mcp-desc" type="text" placeholder="What does this server do?" autocomplete="off" />
                 </div>
                 <div class="mcp-field" style="align-self:flex-end">
