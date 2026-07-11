@@ -1246,11 +1246,20 @@ function addTRC(bid, tc, res) {
   const c = document.createElement('div');
   c.className = 'trc';
   c.id = rid;
+  
+  let bHtml = `<div class="trb">${esc(String(res))}</div>`;
+  if (typeof res === 'string' && res.startsWith('__TOOL_IMAGE__:')) {
+    try {
+      const img = JSON.parse(res.substring(15));
+      bHtml = `<div class="trb" style="padding:12px;text-align:center"><img src="${img.src}" style="max-width:100%;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2)" /><div style="font-size:12px;color:var(--text-3);margin-top:8px">${esc(img.prompt)}</div></div>`;
+    } catch (e) {}
+  }
+  
   c.innerHTML =
     `<div class="trh" onclick="toggleC('${rid}')">` +
     `<span>✓</span><span style="flex:1">Result: ${esc(tc.name)}</span>` +
     `<span style="font-size:10px;color:var(--text-3)">▼</span></div>` +
-    `<div class="trb">${esc(String(res))}</div>`;
+    bHtml;
   bub.appendChild(c);
 }
 

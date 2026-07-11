@@ -197,6 +197,7 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       news:           true,
       knowledgeBase:  true,
       crossMemory:    true,
+      imageGen:       true,
       calculator:     true,   // NEW
       codeRunner:     false,  // NEW (off by default — runs JS)
       createNote:     true,   // NEW
@@ -718,6 +719,19 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       },
     },
     {
+      name: 'generate_image',
+      description: 'Generate an image from a detailed text description. Use whenever the user asks you to create, draw, visualize, illustrate, or render something as an image.',
+      schema: {
+        type: 'object',
+        properties: {
+          prompt:   { type: 'string', description: 'Detailed visual description of the image to generate' },
+          size:     { type: 'string', enum: ['1024x1024', '1792x1024', '1024x1792'], description: 'Image dimensions (default 1024x1024)' },
+          provider: { type: 'string', enum: ['bfl', 'fal', 'replicate', 'comfyui'], description: 'Image provider (default: user setting)' },
+        },
+        required: ['prompt'],
+      },
+    },
+    {
       name: 'calculate',
       description: 'Evaluate a mathematical expression. Supports arithmetic, exponents, square roots, percentages, trigonometry (Math.*), and complex formulas.',
       schema: {
@@ -1028,6 +1042,40 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
         } catch (e) { return `Calculation error: ${e.message}`; }
       }
 
+      // ── Image Generation ──────────────────────────────────────
+      case 'generate_image': {
+        const { ImageRouter } = await import('./image-router.js');
+        const settings = JSON.parse(localStorage.getItem('cpu_settings') || '{}');
+        const imgSettings = settings.imageGen || {};
+        const provider = input.provider || imgSettings.provider || 'bfl';
+        const keys = (await ApiKeyVault.load()) || {};
+        const apiKey = keys[provider] || imgSettings.apiKey || '';
+        const [w, h] = (input.size || '1024x1024').split('x').map(Number);
+        
+        const model = provider === ImageRouter.DEFAULTS.provider
+          ? ImageRouter.DEFAULTS.model
+          : ImageRouter.MODELS[provider]?.[0]?.id;
+
+        if (provider !== 'comfyui' && !apiKey) {
+          return `⚠️ No API key configured for image provider "${provider}". Add it in Settings → Image Generation.`;
+        }
+        try {
+          const result = await ImageRouter.generate(input.prompt, {
+            provider, model, width: w || 1024, height: h || 1024,
+            apiKey, comfyUrl: imgSettings.comfyUrl || 'http://127.0.0.1:8188',
+          });
+          const imgSrc = result.dataUrl || result.url;
+          return `__TOOL_IMAGE__:${JSON.stringify({
+            src: imgSrc, prompt: input.prompt,
+            provider: result.provider, model: result.model,
+            width: result.width, height: result.height, seed: result.seed,
+            timingS: (result.timingMs / 1000).toFixed(1),
+          })}`;
+        } catch (e) {
+          return `⚠️ Image generation failed: ${e.message}`;
+        }
+      }
+
       // ── Code runner (NEW) ────────────────────────────────
       case 'run_code': {
         const timeout = Math.min(input.timeout || 5000, 10000);
@@ -1229,6 +1277,7 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       news:           ['get_news'],
       knowledgeBase:  ['kb_search'],
       crossMemory:    ['agent_memory_save', 'agent_memory_recall'],
+      imageGen:       ['generate_image'],
       webSearch:      ['web_search'],
       calculator:     ['calculate'],
       codeRunner:     ['run_code'],
