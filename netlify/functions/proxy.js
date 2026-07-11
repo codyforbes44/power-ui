@@ -133,13 +133,37 @@ async function assertPublicHttpsUrl(urlStr) {
 // re-validating every hop against assertPublicHttpsUrl (so a redirect to a
 // private IP or non-https scheme is rejected). Node's http(s).get does not
 // auto-follow redirects, which is exactly what we want here.
-async function safeFetchBuffer(startUrl, { headers = {}, timeout = 20000, maxRedirects = 3 } = {}) {
+// Custom DNS lookup that re-validates every resolved address against
+// isPrivateIp. This closes the DNS-rebinding / TOCTOU gap that would
+// otherwise exist if we validated at assertPublicHttpsUrl time but then let
+// https.get perform its own (second) resolution — an attacker-controlled DNS
+// server could return a public IP at validation time and a private IP at
+// connect time. By resolving here and handing the validated IP to the TLS
+// layer, the address actually connected to is the one we checked.
+function validatingLookup(hostname, options, callback) {
+  // Strip IPv6 brackets if present.
+  const host = String(hostname).replace(/^\[|\]$/g, '');
+  if (net.isIP(host)) {
+    if (isPrivateIp(host)) return callback(new Error('Target resolves to a private address'));
+    return callback(null, host, net.isIPv6(host) ? 6 : 4);
+  }
+  dnsPromises.lookup(host, { all: true })
+    .then((records) => {
+      if (!records.length) return callback(new Error('DNS resolution failed'));
+      const safe = records.find((r) => !isPrivateIp(r.address));
+      if (!safe) return callback(new Error('Target resolves to a private address'));
+      callback(null, safe.address, safe.family);
+    })
+    .catch(() => callback(new Error('DNS resolution failed')));
+}
+
+async function safeFetchBuffer(startUrl, { headers = {}, timeout = 20000, maxRedirects = 3, maxBytes = 10 * 1024 * 1024 } = {}) {
   const https = require('https');
   let current = startUrl;
   for (let hop = 0; hop <= maxRedirects; hop++) {
     await assertPublicHttpsUrl(current);
     const step = await new Promise((resolve, reject) => {
-      const r = https.get(current, { headers, timeout }, (res) => {
+      const r = https.get(current, { headers, timeout, lookup: validatingLookup }, (res) => {
         const status = res.statusCode;
         if (status >= 300 && status < 400 && res.headers.location) {
           res.resume(); // discard redirect body
@@ -150,8 +174,20 @@ async function safeFetchBuffer(startUrl, { headers = {}, timeout = 20000, maxRed
           return;
         }
         const chunks = [];
-        res.on('data', (c) => chunks.push(c));
-        res.on('end', () => resolve({ status, buffer: Buffer.concat(chunks) }));
+        let size = 0;
+        let tooBig = false;
+        res.on('data', (c) => {
+          if (tooBig) return;
+          size += c.length;
+          if (size > maxBytes) {
+            tooBig = true;
+            res.destroy();
+            reject(new Error('Response too large'));
+            return;
+          }
+          chunks.push(c);
+        });
+        res.on('end', () => { if (!tooBig) resolve({ status, buffer: Buffer.concat(chunks) }); });
       });
       r.on('error', reject);
       r.on('timeout', () => { r.destroy(); reject(new Error('Request timed out')); });
