@@ -18,6 +18,7 @@
    ============================================================ */
 
 import { MODELS_DATA } from './models-data.js';
+import { ApiKeyVault } from './auth.js';
 
 export const ApiRouter = (() => {
 
@@ -351,8 +352,43 @@ export const ApiRouter = (() => {
   }
 
   // ── Web Search (DuckDuckGo via proxy) ─────────────────────
-  async function webSearch(query, signal) {
+  async function webSearch(query, signal, maxResults = 5) {
     try {
+      const cfg = JSON.parse(localStorage.getItem('async_agent_v1') || '{}');
+      const prov = cfg.webSearch?.provider || 'ddg';
+      let key = '';
+      
+      if (prov !== 'ddg') {
+        try { key = await ApiKeyVault?.getWebSearchKey() || ''; } catch {}
+      }
+
+      if (prov === 'brave' && key) {
+        const response = await proxyFetch({
+          provider: 'web_search', path: '/', apiKey: key,
+          payload: { query, searchProvider: 'brave', maxResults }, signal
+        });
+        if (!response.ok) return `Search failed (${response.status}).`;
+        const data = await response.json();
+        const hits = data.web?.results || [];
+        if (!hits.length) return `No Brave Search results for "${query}".`;
+        return `**Web Search: "${query}"** (Brave)\n\n` +
+          hits.slice(0, maxResults).map(h => `• **${h.title}**\n  ${h.description || ''}\n  ${h.url}`).join('\n\n');
+      }
+
+      if (prov === 'serp' && key) {
+        const response = await proxyFetch({
+          provider: 'web_search', path: '/', apiKey: key,
+          payload: { query, searchProvider: 'serp', maxResults }, signal
+        });
+        if (!response.ok) return `Search failed (${response.status}).`;
+        const data = await response.json();
+        const hits = data.organic_results || [];
+        if (!hits.length) return `No SerpAPI results for "${query}".`;
+        return `**Web Search: "${query}"** (Google via SerpAPI)\n\n` +
+          hits.slice(0, maxResults).map(h => `• **${h.title}**\n  ${h.snippet || ''}\n  ${h.link}`).join('\n\n');
+      }
+
+      // ── DuckDuckGo via proxy (no key) ─────────────────
       const response = await proxyFetch({
         provider: 'ddg',
         path: '/',
