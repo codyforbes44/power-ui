@@ -1053,9 +1053,11 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
         const apiKey = ariaKeys[provider] || keys[provider] || imgSettings.apiKey || '';
         const [w, h] = (input.size || '1024x1024').split('x').map(Number);
         
-        const model = provider === ImageRouter.DEFAULTS.provider
-          ? ImageRouter.DEFAULTS.model
-          : ImageRouter.MODELS[provider]?.[0]?.id;
+        const model = provider === imgSettings.provider && imgSettings.model 
+          ? imgSettings.model 
+          : provider === ImageRouter.DEFAULTS.provider
+            ? ImageRouter.DEFAULTS.model
+            : ImageRouter.MODELS[provider]?.[0]?.id;
 
         if (provider !== 'comfyui' && !apiKey) {
           return `⚠️ No API key configured for image provider "${provider}". Add it in Settings → Image Generation.`;

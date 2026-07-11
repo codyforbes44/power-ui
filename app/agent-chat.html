@@ -263,6 +263,33 @@
     .gal-item img, .gal-item video { width:100%; height:100%; object-fit:cover; }
     .gal-vid-badge { position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.6); color:#fff; padding:2px 6px; border-radius:4px; font-size:10px; font-family:var(--mono); }
     .gal-empty { color:var(--text-3); font-size:14px; text-align:center; padding:40px; grid-column:1 / -1; }
+    /* --- Image generation popover --- */
+    .image-popover {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 0;
+      right: 0;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      padding: 16px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .image-popover-header { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--text); }
+    .image-popover-close { background: transparent; border: none; color: var(--text-2); font-size: 14px; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: color 0.15s, background 0.15s; }
+    .image-popover-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+    .image-popover-prompt { width: 100%; background: var(--bg-4); border: 1px solid var(--border); border-radius: var(--rs); color: var(--text); font-size: 16px; padding: 10px 12px; resize: vertical; font-family: inherit; line-height: 1.5; box-sizing: border-box; transition: border-color 0.15s; }
+    .image-popover-prompt:focus { outline: none; border-color: rgba(99,102,241,0.5); }
+    .image-popover-row { display: flex; gap: 8px; }
+    .image-popover-select { flex: 1; background: var(--bg-4); border: 1px solid var(--border); border-radius: var(--rs); color: var(--text); font-size: 16px; padding: 7px 10px; cursor: pointer; transition: border-color 0.15s; }
+    .image-popover-select:focus { outline: none; border-color: rgba(99,102,241,0.5); }
+    .image-popover-generate { width: 100%; padding: 10px; background: linear-gradient(135deg, var(--indigo), var(--violet)); color: #fff; border: none; border-radius: var(--rs); font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+    .image-popover-generate:hover { opacity: 0.9; }
+    .image-popover-generate:active { transform: scale(0.98); }
   </style>
 </head>
 <body>
@@ -409,10 +436,41 @@
               📎 Attach
             </label>
             <input type="file" id="file-input" style="display:none" multiple accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css,.pdf" />
+            <button type="button" id="imagine-btn" onclick="toggleImagePopover()" title="Generate Image" style="background:none; border:none; padding:4px 8px; cursor:pointer; font-size:14px; border-radius:4px" aria-label="Open image generator">🎨</button>
             <button type="button" id="call-btn" onclick="startElevenLabsCall()" title="Start Voice Call" aria-label="Start Voice Call" style="display:none; background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.3); color:var(--indigo-l); border-radius:10px; cursor:pointer; font-size:14px">📞</button>
             <button type="button" id="stp" onclick="stopStream()" title="Stop generating" aria-label="Stop generating">■</button>
             <button type="submit" id="snd" onclick="sendMsg()" title="Send (Enter)" aria-label="Send message">↑</button>
           </div>
+        </div>
+        <!-- Image generation popover -->
+        <div class="image-popover" id="image-popover" style="display:none">
+          <div class="image-popover-header">
+            <span>🎨 Generate Image</span>
+            <button type="button" class="image-popover-close" onclick="toggleImagePopover()" aria-label="Close image generator">✕</button>
+          </div>
+          <textarea class="image-popover-prompt" id="imagine-prompt" placeholder="Describe the image…" rows="3"></textarea>
+          <div class="image-popover-row">
+            <select class="image-popover-select" id="imagine-provider" onchange="updateImagineModels()">
+              <option value="bfl">Black Forest Labs</option>
+              <option value="fal">fal.ai</option>
+              <option value="replicate">Replicate</option>
+              <option value="novita">Novita AI</option>
+              <option value="huggingface">🤗 HuggingFace</option>
+              <option value="comfyui">ComfyUI (local)</option>
+            </select>
+            <select class="image-popover-select" id="imagine-model">
+              <option value="flux-pro-1.1">Flux Pro 1.1</option>
+            </select>
+          </div>
+          <div class="image-popover-row">
+            <select class="image-popover-select" id="imagine-size">
+              <option value="1024x1024">1024 × 1024</option>
+              <option value="1440x1024">1440 × 1024 (wide)</option>
+              <option value="1024x1440">1024 × 1440 (tall)</option>
+              <option value="768x768">768 × 768 (fast)</option>
+            </select>
+          </div>
+          <button type="button" class="image-popover-generate" onclick="generateFromPopover()">✨ Generate Image</button>
         </div>
       </form>
     </div>
@@ -1699,6 +1757,79 @@ function openImageGallery() {
 
 window.openImageModal = openImageModal;
 window.closeImageModal = closeImageModal;
+
+// ── Image Generation Popover ───────────────────────────────
+window.toggleImagePopover = function() {
+  const pop = document.getElementById('image-popover');
+  if (!pop) return;
+  const isVisible = pop.style.display !== 'none';
+  pop.style.display = isVisible ? 'none' : 'flex';
+  if (!isVisible) {
+    const s = JSON.parse(localStorage.getItem('cpu_settings') || '{}');
+    if (s.imageGen?.provider) {
+      const pSel = document.getElementById('imagine-provider');
+      if (pSel) pSel.value = s.imageGen.provider;
+    }
+    if (s.imageGen?.size) {
+      const sSel = document.getElementById('imagine-size');
+      if (sSel) sSel.value = s.imageGen.size;
+    }
+    window.updateImagineModels().then(() => {
+      if (s.imageGen?.model) {
+        const mSel = document.getElementById('imagine-model');
+        if (mSel) mSel.value = s.imageGen.model;
+      }
+    });
+    document.getElementById('imagine-prompt')?.focus();
+  }
+};
+
+window.updateImagineModels = async function() {
+  const provider = document.getElementById('imagine-provider')?.value;
+  const modelSel = document.getElementById('imagine-model');
+  if (!provider || !modelSel) return;
+  
+  const MODELS = {
+    bfl: [{id:'flux-pro-1.1',name:'Flux Pro 1.1'}, {id:'flux-pro',name:'Flux Pro'}, {id:'flux-dev',name:'Flux Dev'}],
+    fal: [{id:'fal-ai/flux-pro/v1.1',name:'Flux Pro 1.1'}, {id:'fal-ai/flux-pro',name:'Flux Pro'}, {id:'fal-ai/flux/dev',name:'Flux Dev'}],
+    replicate: [{id:'black-forest-labs/flux-1.1-pro',name:'Flux 1.1 Pro'}, {id:'black-forest-labs/flux-pro',name:'Flux Pro'}, {id:'black-forest-labs/flux-dev',name:'Flux Dev'}],
+    novita: [{id:'black-forest-labs/flux-1.1-pro',name:'Flux 1.1 Pro'}, {id:'black-forest-labs/flux-pro',name:'Flux Pro'}],
+    comfyui: [{id:'flux-pro',name:'ComfyUI Workflow (Local)'}],
+    huggingface: [{id:'black-forest-labs/FLUX.1-dev',name:'Flux.1 Dev'}]
+  };
+  
+  const models = MODELS[provider] || [];
+  modelSel.innerHTML = models.map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('');
+};
+
+window.generateFromPopover = function() {
+  const prompt = document.getElementById('imagine-prompt')?.value.trim();
+  const provider = document.getElementById('imagine-provider')?.value;
+  const model = document.getElementById('imagine-model')?.value;
+  const size = document.getElementById('imagine-size')?.value;
+  
+  if (!prompt) {
+    toast('🎨 Please enter an image description', 'warning');
+    return;
+  }
+  
+  window.toggleImagePopover();
+  
+  // Save settings
+  const s = JSON.parse(localStorage.getItem('cpu_settings') || '{}');
+  s.imageGen = s.imageGen || {};
+  s.imageGen.provider = provider;
+  s.imageGen.model = model;
+  s.imageGen.size = size;
+  localStorage.setItem('cpu_settings', JSON.stringify(s));
+  
+  // Create an explicit instruction for Aria
+  const instruction = `Please generate an image of: ${prompt}\n\n(Use provider: ${provider}, model: ${model}, size: ${size})`;
+  
+  const inp = document.getElementById('inp');
+  if (inp) inp.value = instruction;
+  window.sendMsg();
+};
 window.openImageGallery = openImageGallery;
 </script>
 </body>
