@@ -1024,7 +1024,7 @@ python3 cli.py export --format json</pre>
       document.getElementById('nav-item-health')
     ];
     adminEls.forEach(el => {
-      if (el) el.style.display = isAdmin ? 'block' : 'none';
+      if (el) el.style.display = isAdmin ? '' : 'none';
     });
 
     // Super-admin only nav items
@@ -1035,7 +1035,7 @@ python3 cli.py export --format json</pre>
       document.getElementById('nav-item-agent-chat'),
     ];
     superAdminEls.forEach(el => {
-      if (el) el.style.display = isSuperAdmin ? 'block' : 'none';
+      if (el) el.style.display = isSuperAdmin ? '' : 'none';
     });
 
     if (!isAdmin) {
@@ -1707,7 +1707,7 @@ python3 cli.py export --format json</pre>
   // Memory Manager Panel
   // ============================================================
   function renderMemory() {
-    const panel = getPanel('memory');
+    const panel = document.getElementById('panel-memory');
     if (!panel) return;
 
     // Load all memories from all workspaces
@@ -1795,6 +1795,7 @@ python3 cli.py export --format json</pre>
   }
 
   function deleteMemoryFact(idx) {
+    if (!confirm('Delete this memory fact?')) return;
     try {
       const raw = localStorage.getItem('cpu_memories');
       let mems = raw ? JSON.parse(raw) : [];
@@ -1840,8 +1841,7 @@ python3 cli.py export --format json</pre>
     const isSA = typeof AuthSystem !== 'undefined' && AuthSystem.isSuperAdmin?.();
     let users = [];
     try {
-      const raw = localStorage.getItem('async_users_v1');
-      if (raw) users = JSON.parse(raw);
+      if (typeof AuthSystem !== 'undefined') users = AuthSystem.listUsers() || [];
     } catch {}
 
     if (!users.length) {
@@ -1861,33 +1861,33 @@ python3 cli.py export --format json</pre>
       const updatedStr = prof.updatedAt ? new Date(prof.updatedAt).toLocaleDateString() : '';
       return `
         <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 20px;display:flex;align-items:flex-start;gap:14px;transition:border-color .15s" onmouseenter="this.style.borderColor='rgba(99,102,241,.3)'" onmouseleave="this.style.borderColor='rgba(255,255,255,.07)'">
-          <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,rgba(99,102,241,.25),rgba(139,92,246,.2));border:2px solid rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">${prof.avatarEmoji || '🧑'}</div>
+          <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,rgba(99,102,241,.25),rgba(139,92,246,.2));border:2px solid rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">${esc(prof.avatarEmoji || '🧑')}</div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
-              <span style="font-weight:700;font-size:15px;color:var(--text-primary,#e2e8f0)">${prof.displayName || u.username}</span>
+              <span style="font-weight:700;font-size:15px;color:var(--text-primary,#e2e8f0)">${esc(prof.displayName || u.username)}</span>
               <span style="font-size:11px;font-weight:600;color:${roleColor};background:${roleColor}22;padding:2px 8px;border-radius:10px;border:1px solid ${roleColor}44">${roleLabel}</span>
               ${!hasProfile ? '<span style="font-size:11px;color:#f59e0b;background:rgba(245,158,11,.1);padding:2px 8px;border-radius:10px;border:1px solid rgba(245,158,11,.2)">No profile yet</span>' : ''}
               ${updatedStr ? `<span style="font-size:11px;color:var(--text-muted,#64748b)">Updated ${updatedStr}</span>` : ''}
             </div>
-            <div style="font-size:12px;color:var(--text-muted,#64748b);margin-bottom:6px">@${u.username}${prof.occupation ? ' · ' + prof.occupation : ''}${prof.location ? ' · ' + prof.location : ''}</div>
-            ${prof.bio ? `<div style="font-size:13px;color:var(--text-secondary,#94a3b8);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:500px">${prof.bio}</div>` : ''}
+            <div style="font-size:12px;color:var(--text-muted,#64748b);margin-bottom:6px">@${esc(u.username)}${prof.occupation ? ' · ' + esc(prof.occupation) : ''}${prof.location ? ' · ' + esc(prof.location) : ''}</div>
+            ${prof.bio ? `<div style="font-size:13px;color:var(--text-secondary,#94a3b8);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:500px">${esc(prof.bio)}</div>` : ''}
             <div style="display:flex;flex-wrap:wrap;gap:6px">
-              ${prof.expertise?.level ? `<span style="font-size:11px;background:rgba(16,185,129,.1);color:#34d399;padding:2px 8px;border-radius:10px;border:1px solid rgba(16,185,129,.2)">${prof.expertise.level}</span>` : ''}
-              ${areaList ? `<span style="font-size:11px;background:rgba(99,102,241,.08);color:#a5b4fc;padding:2px 8px;border-radius:10px;border:1px solid rgba(99,102,241,.2)">${areaList}</span>` : ''}
-              ${goalList ? `<span style="font-size:11px;background:rgba(139,92,246,.08);color:#c4b5fd;padding:2px 8px;border-radius:10px;border:1px solid rgba(139,92,246,.2)">🎯 ${goalList}</span>` : ''}
-              ${formality ? `<span style="font-size:11px;background:rgba(255,255,255,.04);color:var(--text-muted,#64748b);padding:2px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.08)">${formality} · ${detail}</span>` : ''}
-              ${prof.style?.codeLanguage ? `<span style="font-size:11px;background:rgba(6,182,212,.08);color:#22d3ee;padding:2px 8px;border-radius:10px;border:1px solid rgba(6,182,212,.2)">${prof.style.codeLanguage}</span>` : ''}
+              ${prof.expertise?.level ? `<span style="font-size:11px;background:rgba(16,185,129,.1);color:#34d399;padding:2px 8px;border-radius:10px;border:1px solid rgba(16,185,129,.2)">${esc(prof.expertise.level)}</span>` : ''}
+              ${areaList ? `<span style="font-size:11px;background:rgba(99,102,241,.08);color:#a5b4fc;padding:2px 8px;border-radius:10px;border:1px solid rgba(99,102,241,.2)">${esc(areaList)}</span>` : ''}
+              ${goalList ? `<span style="font-size:11px;background:rgba(139,92,246,.08);color:#c4b5fd;padding:2px 8px;border-radius:10px;border:1px solid rgba(139,92,246,.2)">🎯 ${esc(goalList)}</span>` : ''}
+              ${formality ? `<span style="font-size:11px;background:rgba(255,255,255,.04);color:var(--text-muted,#64748b);padding:2px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.08)">${esc(formality)} · ${esc(detail)}</span>` : ''}
+              ${prof.style?.codeLanguage ? `<span style="font-size:11px;background:rgba(6,182,212,.08);color:#22d3ee;padding:2px 8px;border-radius:10px;border:1px solid rgba(6,182,212,.2)">${esc(prof.style.codeLanguage)}</span>` : ''}
             </div>
             ${prof.customInstructions?.always || prof.customInstructions?.never ? `
             <div style="margin-top:8px;font-size:12px;color:var(--text-muted,#64748b);background:rgba(0,0,0,.15);border-radius:8px;padding:8px 10px;border-left:3px solid rgba(99,102,241,.4)">
-              ${prof.customInstructions.always ? `<div>✅ ${prof.customInstructions.always.slice(0,90)}${prof.customInstructions.always.length > 90 ? '…' : ''}</div>` : ''}
-              ${prof.customInstructions.never  ? `<div>🚫 ${prof.customInstructions.never.slice(0,90)}${prof.customInstructions.never.length  > 90 ? '…' : ''}</div>` : ''}
+              ${prof.customInstructions.always ? `<div>✅ ${esc(prof.customInstructions.always.slice(0,90))}${prof.customInstructions.always.length > 90 ? '…' : ''}</div>` : ''}
+              ${prof.customInstructions.never  ? `<div>🚫 ${esc(prof.customInstructions.never.slice(0,90))}${prof.customInstructions.never.length  > 90 ? '…' : ''}</div>` : ''}
             </div>` : ''}
-            ${prof.adminNote && isSA ? `<div style="margin-top:8px;font-size:11px;color:#f87171;background:rgba(239,68,68,.08);border-radius:6px;padding:6px 10px;border:1px solid rgba(239,68,68,.2)">🔐 Admin note: ${prof.adminNote.slice(0,120)}</div>` : ''}
+            ${prof.adminNote && isSA ? `<div style="margin-top:8px;font-size:11px;color:#f87171;background:rgba(239,68,68,.08);border-radius:6px;padding:6px 10px;border:1px solid rgba(239,68,68,.2)">🔐 Admin note: ${esc(prof.adminNote.slice(0,120))}</div>` : ''}
           </div>
           <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0">
-            <button onclick="typeof ProfileSystem!=='undefined'&&ProfileSystem.open('${u.username}',{isAdmin:${isSA}})" style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid rgba(99,102,241,.3);background:rgba(99,102,241,.1);color:#a5b4fc;transition:background .15s" onmouseenter="this.style.background='rgba(99,102,241,.2)'" onmouseleave="this.style.background='rgba(99,102,241,.1)'">✏️ Edit</button>
-            ${isSA ? `<button onclick="AdminApp.clearProfile('${u.username}')" style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid rgba(239,68,68,.2);background:rgba(239,68,68,.06);color:#fca5a5;transition:background .15s" onmouseenter="this.style.background='rgba(239,68,68,.15)'" onmouseleave="this.style.background='rgba(239,68,68,.06)'">🗑 Clear</button>` : ''}
+            <button class="profile-edit-btn" data-username="${esc(u.username)}" data-is-admin="${isSA ? '1' : '0'}" style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid rgba(99,102,241,.3);background:rgba(99,102,241,.1);color:#a5b4fc;transition:background .15s" onmouseenter="this.style.background='rgba(99,102,241,.2)'" onmouseleave="this.style.background='rgba(99,102,241,.1)'">✏️ Edit</button>
+            ${isSA ? `<button class="profile-clear-btn" data-username="${esc(u.username)}" style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid rgba(239,68,68,.2);background:rgba(239,68,68,.06);color:#fca5a5;transition:background .15s" onmouseenter="this.style.background='rgba(239,68,68,.15)'" onmouseleave="this.style.background='rgba(239,68,68,.06)'">🗑 Clear</button>` : ''}
           </div>
         </div>`;
     }).join('');
@@ -1905,6 +1905,21 @@ python3 cli.py export --format json</pre>
         <button onclick="AdminApp.renderProfiles()" style="padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--text-secondary,#94a3b8)">↻ Refresh</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">${cards}</div>`;
+
+    if (!container.dataset.profileHandlerBound) {
+      container.dataset.profileHandlerBound = '1';
+      container.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.profile-edit-btn');
+        if (editBtn) {
+          const username = editBtn.dataset.username;
+          const isAdmin = editBtn.dataset.isAdmin === '1';
+          if (typeof ProfileSystem !== 'undefined') ProfileSystem.open(username, { isAdmin });
+          return;
+        }
+        const clearBtn = e.target.closest('.profile-clear-btn');
+        if (clearBtn) AdminApp.clearProfile(clearBtn.dataset.username);
+      });
+    }
   }
 
   // Auto-refresh profiles panel when a profile is saved
