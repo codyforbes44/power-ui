@@ -486,6 +486,14 @@ async function loadState() {
       // Migrate legacy plaintext keys if they're in the old blob
       if (data.apiKeys && Object.values(data.apiKeys).some(v => v)) {
         ApiKeyVault.migrateFromPlaintext(data.apiKeys);
+        // Strip plaintext key material from the stored blob so it never
+        // lingers in localStorage after being moved into the encrypted vault.
+        delete data.apiKeys;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+          console.warn('Async: failed to strip plaintext apiKeys from localStorage', e);
+        }
       }
       Object.assign(STATE.settings, data.settings || {});
       Object.assign(STATE.costs,    data.costs    || {});
@@ -632,44 +640,47 @@ function renderMarkdown(text) {
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // Safe href: only allow https/http/mailto/# anchors
+  // Safe href: only allow https/http/mailto/# anchors.
+  // The URL was already HTML-escaped by the whole-input escape below, so we
+  // only need to gate the scheme here (no re-escaping — that would double-encode).
   function safeHref(url) {
     const u = url.trim();
-    if (/^(https?:|mailto:|#)/.test(u)) return escapeHtml(u);
+    if (/^(https?:|mailto:|#)/.test(u)) return u;
     return '#'; // strip javascript: and anything else
   }
 
-  let html = text
-    // Code blocks first (preserve content, escape HTML inside)
-    .replace(/```(\w+)?\n?([\s\S]*?)```/g, (_, lang, code) => {
-      const escaped = escapeHtml(code);
-      return `<pre><code class="lang-${escapeHtml(lang||'text')}">${escaped}</code><button class="code-copy-btn" onclick="copyCodeBlock(this)">Copy</button></pre>`;
-    })
-    // Inline code (escape content)
-    .replace(/`([^`\n]+)`/g, (_, code) => `<code>${escapeHtml(code)}</code>`)
-    // Now escape remaining free text before adding block-level markup
-    // Bold / italic on already-HTML-safe content
-    .replace(/\*\*([^*]+)\*\*/g, (_, t) => `<strong>${escapeHtml(t)}</strong>`)
-    .replace(/\*([^*\n]+)\*/g,   (_, t) => `<em>${escapeHtml(t)}</em>`)
+  // Escape the ENTIRE input up front so no raw user/AI HTML can survive into
+  // innerHTML. Every markdown transform below then operates on already-escaped
+  // text, so the only HTML in the output is the tags this function generates.
+  // Note: '>' becomes '&gt;', so the blockquote pattern matches on '&gt; '.
+  let html = escapeHtml(text)
+    // Code blocks first (content is already escaped — do not re-escape)
+    .replace(/```(\w+)?\n?([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre><code class="lang-${lang||'text'}">${code}</code><button class="code-copy-btn" onclick="copyCodeBlock(this)">Copy</button></pre>`)
+    // Inline code
+    .replace(/`([^`\n]+)`/g, (_, code) => `<code>${code}</code>`)
+    // Bold / italic
+    .replace(/\*\*([^*]+)\*\*/g, (_, t) => `<strong>${t}</strong>`)
+    .replace(/\*([^*\n]+)\*/g,   (_, t) => `<em>${t}</em>`)
     // Headings
-    .replace(/^### (.+)$/gm, (_, t) => `<h3>${escapeHtml(t)}</h3>`)
-    .replace(/^## (.+)$/gm,  (_, t) => `<h2>${escapeHtml(t)}</h2>`)
-    .replace(/^# (.+)$/gm,   (_, t) => `<h1>${escapeHtml(t)}</h1>`)
+    .replace(/^### (.+)$/gm, (_, t) => `<h3>${t}</h3>`)
+    .replace(/^## (.+)$/gm,  (_, t) => `<h2>${t}</h2>`)
+    .replace(/^# (.+)$/gm,   (_, t) => `<h1>${t}</h1>`)
     .replace(/^---+$/gm, '<hr>')
-    // Blockquotes
-    .replace(/^> (.+)$/gm, (_, t) => `<blockquote>${escapeHtml(t)}</blockquote>`)
-    // Tables (escape each cell)
+    // Blockquotes ('>' was escaped to '&gt;')
+    .replace(/^&gt; (.+)$/gm, (_, t) => `<blockquote>${t}</blockquote>`)
+    // Tables
     .replace(/^\|(.+)\|$/gm, (line) => {
       if (line.match(/^\|[-|: ]+\|$/)) return '';
       const cells = line.split('|').slice(1,-1).map(c => c.trim());
-      return '<tr>' + cells.map(c => `<td>${escapeHtml(c)}</td>`).join('') + '</tr>';
+      return '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
     })
     // List items
-    .replace(/^[*-] (.+)$/gm, (_, t) => `<li>${escapeHtml(t)}</li>`)
-    .replace(/^\d+\. (.+)$/gm,  (_, t) => `<li>${escapeHtml(t)}</li>`)
+    .replace(/^[*-] (.+)$/gm, (_, t) => `<li>${t}</li>`)
+    .replace(/^\d+\. (.+)$/gm,  (_, t) => `<li>${t}</li>`)
     // Links — validate href to prevent javascript: URIs
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) =>
-      `<a href="${safeHref(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`
+      `<a href="${safeHref(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`
     )
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br>');
@@ -1653,7 +1664,7 @@ function renderMessages() {
       <div class="message-avatar">${avatar}</div>
       <div class="message-content">
         ${toolCallsHtml ? `<div class="tool-calls-container">${toolCallsHtml}</div>` : ''}
-        ${rendered ? `<div class="message-bubble">${rendered}</div>` : (toolCallsHtml ? '' : '<div class="message-bubble"></div>')}
+        <div class="message-bubble">${rendered}</div>
         <div class="message-meta">
           <span class="message-time">${formatTime(msg.timestamp)}</span>
           <div class="message-actions">
@@ -1863,7 +1874,20 @@ function hideTypingIndicator() { document.getElementById('typing-indicator')?.re
 function updateLastAssistantBubble(content) {
   const msgs = document.querySelectorAll('.message.assistant');
   const last  = msgs[msgs.length - 1];
-  if (last) { last.querySelector('.message-bubble').innerHTML = renderMarkdown(content); scrollToBottom(); }
+  if (!last) return;
+  // A tool-only assistant message (toolCalls but empty content) has no
+  // .message-bubble yet — create one so streaming text after a tool_use block
+  // doesn't hit a null and abort the reply.
+  let bubble = last.querySelector('.message-bubble');
+  if (!bubble) {
+    bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+    const toolContainer = last.querySelector('.tool-calls-container');
+    if (toolContainer) toolContainer.after(bubble);
+    else (last.querySelector('.message-content') || last).prepend(bubble);
+  }
+  bubble.innerHTML = renderMarkdown(content);
+  scrollToBottom();
 }
 
 function scrollToBottom() {
@@ -4494,7 +4518,73 @@ function injectFollowup(text) {
 }
 
 
-document.addEventListener('DOMContentLoaded', boot);
+// localStorage keys holding this app's own state/data. Auth (cpu_auth_*) and
+// the encrypted key vault (cpu_apikeys_v2) are intentionally excluded so a
+// reset recovers from corrupt app state without logging the user out or
+// destroying their stored keys.
+const RESETTABLE_KEYS = [
+  STORAGE_KEY, LEGACY_KEY,
+  'claude_power_ui_v2', 'claude_power_ui_v1',
+  ONBOARDING_KEY, FOLLOWUP_KEY,
+];
+
+function resetLocalData() {
+  try {
+    RESETTABLE_KEYS.forEach(k => localStorage.removeItem(k));
+  } catch (e) {
+    console.error('Reset local data failed:', e);
+  }
+  location.reload();
+}
+
+function renderBootError(err) {
+  console.error('Boot failed:', err);
+  const app = document.getElementById('app');
+  if (!app) return;
+  app.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                min-height:100vh;background:#030712;color:#e2e8f0;font-family:system-ui,sans-serif;
+                padding:40px;text-align:center;gap:20px">
+      <div style="font-size:48px">⚠️</div>
+      <h1 style="font-size:24px;font-weight:700;margin:0;color:#f8fafc">Something went wrong</h1>
+      <p style="max-width:480px;color:#94a3b8;line-height:1.6;margin:0">
+        Async couldn't finish loading. This is usually caused by corrupted local data.
+        You can reset this app's local data (your account and saved API keys are kept) and try again.
+      </p>
+      <pre style="max-width:520px;width:100%;overflow:auto;background:#0f172a;border:1px solid #1e293b;
+                  border-radius:8px;padding:14px;font-size:12px;color:#f87171;text-align:left;margin:0">${esc(String(err?.stack || err?.message || err))}</pre>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+        <button id="boot-error-reload" style="padding:12px 28px;background:#1e293b;color:#e2e8f0;
+                border:1px solid #334155;border-radius:8px;font-weight:600;font-size:15px;cursor:pointer">
+          Reload
+        </button>
+        <button id="boot-error-reset" style="padding:12px 28px;background:#6366f1;color:#fff;
+                border:none;border-radius:8px;font-weight:600;font-size:15px;cursor:pointer">
+          Reset local data
+        </button>
+      </div>
+    </div>`;
+  app.querySelector('#boot-error-reload')?.addEventListener('click', () => location.reload());
+  app.querySelector('#boot-error-reset')?.addEventListener('click', resetLocalData);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  boot().catch(renderBootError);
+});
+
+// Global safety nets — surface unexpected failures to the user instead of
+// failing silently. These do NOT auto-reset; they only inform.
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  console.error('Unhandled promise rejection:', reason);
+  toast('Unexpected error: ' + (reason?.message || String(reason)), 'error', 6000);
+});
+
+window.onerror = function (message, source, lineno, colno, error) {
+  console.error('Uncaught error:', error || message, source, lineno, colno);
+  toast('Unexpected error: ' + (error?.message || message), 'error', 6000);
+  return false;
+};
 
 // ============================================================
 // Cost Breakdown Popover
@@ -4788,7 +4878,6 @@ window.setAgentBackground = function(url) {
 };
 
 window.ServerSync = ServerSync;
-window.STATE = STATE;
 
 window.copyCodeBlock = copyCodeBlock;
 window.injectSkillFromSuggestion = injectSkillFromSuggestion;
