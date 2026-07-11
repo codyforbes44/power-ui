@@ -238,7 +238,7 @@
     /* ── Desktop ≥1024px: permanent sidebar column ── */
     @media(min-width:1024px){
       #app{grid-template-columns:var(--sw) 1fr;grid-template-areas:"hdr hdr" "sb main"}
-      #sidebar{position:static;transform:none;width:auto;z-index:auto;grid-area:sb;box-shadow:none;transition:none}
+      #sidebar{position:static;transform:none;width:auto;z-index:auto;grid-area:sb;box-shadow:none;transition:none;min-height:0;overflow-y:auto}
       #sidebar[inert]{display:flex}
       .hamburger,.sb-head{display:none}
       #drawer-backdrop{display:none}
@@ -340,7 +340,7 @@
       <div class="sbnav">
         <button class="sbbtn" onclick="qi('What do you remember about me and our past conversations?')">🧠 Recall all memory</button>
         <button class="sbbtn" onclick="qi('Search the knowledge base and give me a full summary.')">📚 Search knowledge base</button>
-        <button class="sbbtn" onclick="qi('Get the latest tech and AI headlines for today.')">📰 Today\'s news</button>
+        <button class="sbbtn" onclick="qi('Get the latest tech and AI headlines for today.')">📰 Today's news</button>
         <button class="sbbtn" onclick="qi('What is the weather in Austin, TX right now?')">🌤 Austin weather</button>
         <a class="sbbtn" href="admin.html">⚙ Admin dashboard</a>
         <a class="sbbtn" href="index.html">← Back to App</a>
@@ -368,7 +368,7 @@
           <button class="qp" onclick="qi('Search GitHub for trending JavaScript repos this week.')">🐙 GitHub trending</button>
           <button class="qp" onclick="qi('What is the current weather in Austin, TX?')">🌤 Austin weather</button>
           <button class="qp" onclick="qi('Search my knowledge base and summarize everything you know.')">📚 Knowledge base</button>
-          <button class="qp" onclick="qi('What tasks do I have in progress? What should I prioritize?')">✅ What\'s next?</button>
+          <button class="qp" onclick="qi('What tasks do I have in progress? What should I prioritize?')">✅ What's next?</button>
         </div>
       </div>
     </div>
