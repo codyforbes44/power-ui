@@ -25,6 +25,22 @@ if (typeof firebase !== 'undefined') {
       window.firebaseAuth
         .setPersistence(firebase.auth.Auth.Persistence.LOCAL)
         .catch(() => {});
+
+      // Single source of truth for "Firebase auth is ready and we have a UID".
+      // Fires after ANY successful sign-in — including the deferred one from
+      // login()'s fire-and-forget ensureFirebaseUser, and after a late SDK
+      // load. app.js listens for this to rebind its Firestore sync from the
+      // old AuthSystem-id doc path to users/{firebaseUid}/state/current, so
+      // writes/snapshots stay on the rules-allowed path once strict rules go live.
+      try {
+        window.firebaseAuth.onAuthStateChanged((user) => {
+          if (user) {
+            window.dispatchEvent(new CustomEvent('cpu:firebase-auth-ready', { detail: { uid: user.uid } }));
+          }
+        });
+      } catch (e) {
+        console.warn('Firebase onAuthStateChanged hook failed:', e && e.message);
+      }
     } catch (e) {
       console.warn('Firebase Auth init failed:', e && e.message);
     }

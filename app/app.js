@@ -287,6 +287,9 @@ const ServerSync = (() => {
   let _evtSource   = null;
   let _indicator   = null;
   let _firebaseUnsub = null;
+  let _onStateChange = null;   // remembered so we can rebind after auth-ready
+  let _boundDocId    = null;   // doc id the current onSnapshot is bound to
+  let _authReadyBound = false; // guard: attach the auth-ready listener only once
 
   async function probe() {
     // 1. Probe local server for MCP features
@@ -372,7 +375,15 @@ const ServerSync = (() => {
     const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
     const subRef = (session && session.userId) ? cpuStateDocRef(session) : null;
     if (subRef) {
+      _onStateChange = onStateChange;
+      // login() signs into Firebase asynchronously, so this first subscription
+      // is usually bound to the OLD AuthSystem-id doc path (Firebase UID not
+      // ready yet). Attach a one-time listener that rebinds to the Firebase-UID
+      // path once auth becomes ready — otherwise, after strict rules deploy,
+      // this subscription keeps reading a now-denied path.
+      _bindAuthReadyRebind();
       if (_firebaseUnsub) return;
+      _boundDocId = cpuFirebaseUid() || (session && session.userId) || null;
       _firebaseUnsub = subRef
         .onSnapshot((doc) => {
           if (doc.exists && !doc.metadata.hasPendingWrites) {
@@ -384,6 +395,43 @@ const ServerSync = (() => {
 
     if (_mcpAvailable && !_evtSource) {
       _connect(onStateChange);
+    }
+  }
+
+  // Attach the one-time cpu:firebase-auth-ready listener (dispatched by
+  // firebase-config.js's onAuthStateChanged) that rebinds the Firestore
+  // subscription to the Firebase-UID doc path. Idempotent.
+  function _bindAuthReadyRebind() {
+    if (_authReadyBound) return;
+    _authReadyBound = true;
+    try {
+      window.addEventListener('cpu:firebase-auth-ready', _rebindFirebaseSync);
+    } catch { /* ignore */ }
+  }
+
+  // Tear down the existing onSnapshot subscription and re-create it against the
+  // current doc path (Firebase UID, falling back to session.userId). No-op when
+  // there is nothing subscribed yet or we're already bound to the target doc id
+  // (keeps it idempotent across repeated auth-ready events). Best-effort.
+  function _rebindFirebaseSync() {
+    try {
+      if (!_onStateChange) return; // nothing subscribed yet
+      const session = typeof AuthSystem !== 'undefined' ? AuthSystem.getCurrentSession() : null;
+      const targetId = cpuFirebaseUid() || (session && session.userId) || null;
+      if (!targetId || targetId === _boundDocId) return; // already bound correctly
+      const subRef = cpuStateDocRef(session);
+      if (!subRef) return;
+      if (_firebaseUnsub) { try { _firebaseUnsub(); } catch { /* ignore */ } _firebaseUnsub = null; }
+      _boundDocId = targetId;
+      _firebaseUnsub = subRef
+        .onSnapshot((doc) => {
+          if (doc.exists && !doc.metadata.hasPendingWrites) {
+            _onStateChange();
+          }
+        });
+      console.log('✦ Firestore: rebound sync → ' + targetId);
+    } catch (e) {
+      console.warn('Firestore rebind skipped:', e && e.message);
     }
   }
 

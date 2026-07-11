@@ -372,18 +372,20 @@ export const AuthSystem = (() => {
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  // Build a deterministic, RFC-valid synthetic email for a username. The
-  // local-part is restricted to [a-z0-9._-], non-empty, ≤64 chars, with no
-  // leading/trailing dot. Usernames that can't produce a valid local-part
-  // fall back to a stable hash of the lowercased username so the email (and
-  // hence the Firebase UID) stays deterministic across devices.
+  // Build a deterministic, COLLISION-SAFE synthetic email for a username.
+  // A readable sanitized prefix ([a-z0-9._-], ≤24 chars) is ALWAYS combined
+  // with a sha-256 suffix of the full lowercased username, so distinct
+  // usernames that sanitize to the same prefix (e.g. "john+doe" and "johndoe"
+  // both → "johndoe") still map to DIFFERENT emails → different Firebase UIDs.
+  // Without the always-on hash suffix those two accounts would merge into one
+  // Firebase UID and share state. Deterministic across devices; local-part is
+  // ≤24+1+16 = 41 chars, well within the 64-char RFC limit.
   async function firebaseSyntheticEmail(username) {
     const lower = String(username == null ? '' : username).trim().toLowerCase();
-    let local = lower.replace(/[^a-z0-9._-]/g, '').replace(/^\.+/, '').replace(/\.+$/, '');
-    if (!local || local.length > 64) {
-      local = 'u_' + (await sha256Hex(lower)).slice(0, 40);
-    }
-    return `${local}@${FIREBASE_EMAIL_DOMAIN}`;
+    const sanitized = lower.replace(/[^a-z0-9._-]/g, '').replace(/^\.+/, '').replace(/\.+$/, '');
+    const safe = sanitized.slice(0, 24) || 'u';
+    const suffix = (await sha256Hex(lower)).slice(0, 16);
+    return `${safe}_${suffix}@${FIREBASE_EMAIL_DOMAIN}`;
   }
 
   // Resolve once window.firebaseAuth exists (the Auth SDK loads dynamically
