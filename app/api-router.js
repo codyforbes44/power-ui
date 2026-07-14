@@ -265,7 +265,7 @@ export const ApiRouter = (() => {
         // Tool result from our loop
         return {
           role: 'user',
-          parts: [{ functionResponse: { name: m.name, response: { content: m.content } } }],
+          parts: [{ functionResponse: { name: m.name || 'tool', response: { content: m.content } } }],
         };
       }
       if (m.role === 'assistant' && m.tool_calls?.length) {

@@ -3419,14 +3419,14 @@ function buildHTML() {
       <div class="drawer-backdrop" id="drawer-backdrop"></div>
 
       <!-- ── Sidebar ────────────────────────────────── -->
-      <aside class="sidebar" id="sidebar">
+      <aside class="sidebar ${STATE.ui.sidebarCollapsed ? 'collapsed' : ''}" id="sidebar">
 
         <div class="sidebar-header">
           <div class="brand">
             <div class="brand-logo">✦</div>
             <span class="brand-name sidebar-text">Async</span>
           </div>
-          <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar" aria-label="Toggle sidebar">◀</button>
+          <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar" aria-label="Toggle sidebar">${STATE.ui.sidebarCollapsed ? '▶' : '◀'}</button>
         </div>
 
         <!-- Workspace selector -->

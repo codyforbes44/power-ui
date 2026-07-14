@@ -620,7 +620,7 @@ window.switchSession = async function switchSession(id) {
           if (lastAbub) {
             const bid = lastAbub.id;
             msg.results.forEach(tr => {
-              addTRC(bid, { id: tr.tool_use_id }, tr.content);
+              addTRC(bid, { id: tr.tool_use_id, name: tr.name }, tr.content);
             });
           }
         }
@@ -1105,8 +1105,8 @@ async function doStream(prov, mid, key, sys, tools) {
         catch (err) { res = 'Tool error: ' + err.message; }
         updTCS(tc.id, 'done');
         addTRC(bid, tc, res);
-        ae.toolResults = [...(ae.toolResults || []), { tool_use_id: tc.id, content: String(res) }];
-        toolResultMsgs.push({ tool_use_id: tc.id, content: String(res) });
+        ae.toolResults = [...(ae.toolResults || []), { tool_use_id: tc.id, content: String(res), name: tc.name }];
+        toolResultMsgs.push({ tool_use_id: tc.id, content: String(res), name: tc.name });
       }
 
       // Push tool results as a user-role message (required by Anthropic format)
@@ -1391,7 +1391,7 @@ function addTRC(bid, tc, res) {
   
   c.innerHTML =
     `<div class="trh" onclick="toggleC('${rid}')">` +
-    `<span>✓</span><span style="flex:1">Result: ${esc(tc.name)}</span>` +
+    `<span>✓</span><span style="flex:1">Result: ${esc(tc.name || 'Tool')}</span>` +
     `<span style="font-size:10px;color:var(--text-3)">▼</span></div>` +
     bHtml;
   bub.appendChild(c);
