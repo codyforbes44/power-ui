@@ -368,9 +368,26 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       const mems = this._load();
       if (!query) return mems.slice(-k);
       const q = query.toLowerCase();
-      return mems
-        .filter(m => (m.key + ' ' + m.value + ' ' + (m.tags || []).join(' ')).toLowerCase().includes(q))
-        .slice(-k);
+      const qw = q.split(/\W+/).filter(w => w.length > 2);
+      if (!qw.length) return mems.slice(-k);
+
+      const scored = mems.map(m => {
+        const text = (m.key + ' ' + m.value + ' ' + (m.tags || []).join(' ')).toLowerCase();
+        let score = 0;
+        if (m.key && q.includes(m.key.toLowerCase())) {
+          score += 10;
+        }
+        for (const w of qw) {
+          if (text.includes(w)) score++;
+        }
+        return { m, score };
+      });
+
+      return scored
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(x => x.m)
+        .slice(0, k);
     },
 
     getAll()           { return this._load(); },

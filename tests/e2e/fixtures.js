@@ -30,6 +30,7 @@ async function waitForServer(baseURL, timeoutMs = 15_000) {
  */
 async function loginAsAdmin(page) {
   await page.goto('/app/');
+  await page.evaluate(() => localStorage.setItem('async_onboarded_v1', '1'));
   await page.locator('#auth-username').waitFor({ state: 'visible' });
   await page.fill('#auth-username', 'admin');
   await page.fill('#auth-password', 'admin123');

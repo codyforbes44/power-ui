@@ -307,23 +307,12 @@ export const ApiRouter = (() => {
       payload.tools = [{ functionDeclarations: options.tools.map(toGeminiTool) }];
     }
 
-    let response;
-    if (USE_PROXY) {
-      response = await proxyFetch({
-        provider: 'google',
-        path: `/v1beta/models/${modelId}:streamGenerateContent`,
-        apiKey: '',
-        payload,
-        queryParams: { key: apiKey, alt: 'sse' },
-        signal: options.signal,
-      });
-    } else {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${apiKey}&alt=sse`;
-      response = await fetch(url, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload), signal: options.signal,
-      });
-    }
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${apiKey}&alt=sse`;
+    const response = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload), signal: options.signal,
+    });
+
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));

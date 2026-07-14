@@ -7,8 +7,8 @@ const { loadBrowserGlobal } = require('../helpers/loadBrowserGlobal');
 const MODELS_DATA = loadBrowserGlobal('app/models-data.js', 'MODELS_DATA');
 
 test('getModel returns the matching model by id', () => {
-  const model = MODELS_DATA.getModel('claude-opus-4-5');
-  assert.ok(model, 'expected claude-opus-4-5 to exist in the registry');
+  const model = MODELS_DATA.getModel('claude-3-opus-20240229');
+  assert.ok(model, 'expected claude-3-opus-20240229 to exist in the registry');
   assert.equal(model.provider, 'anthropic');
 });
 

@@ -1,0 +1,65 @@
+--- app/memory.js
++++ app/memory.js
+@@ -9,12 +9,35 @@
+   // Internal storage helpers
+   // ────────────────────────────────────────────────────────
+   function loadWS() {
+     try { return JSON.parse(localStorage.getItem(WS_KEY)) || []; } catch { return []; }
+   }
+-  function saveWS(arr) { localStorage.setItem(WS_KEY, JSON.stringify(arr)); }
++  function saveWS(arr) { 
++    localStorage.setItem(WS_KEY, JSON.stringify(arr));
++    _syncToFirestore();
++  }
+ 
+   function loadMem() {
+     try { return JSON.parse(localStorage.getItem(MEM_KEY)) || []; } catch { return []; }
+   }
++  function saveMem(arr) { 
++    localStorage.setItem(MEM_KEY, JSON.stringify(arr));
++    _syncToFirestore();
++  }
++  
++  let _syncDebounce = null;
++  function _syncToFirestore() {
++    if (!window.db || !window.AuthSystem) return;
++    const uid = window.AuthSystem.getFirebaseUid();
++    if (!uid) return;
++    clearTimeout(_syncDebounce);
++    _syncDebounce = setTimeout(() => {
++      const data = {
++        workspaces: loadWS(),
++        memories: loadMem(),
++        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
++      };
++      window.db.collection('users').doc(uid).collection('state').doc('memory_v1').set(data, { merge: true }).catch(console.error);
++    }, 1000);
++  }
+ 
+   function uid() { return Math.random().toString(36).slice(2,9) + Date.now().toString(36); }
+@@ -179,7 +202,23 @@
+   // Boot / migration
+   // ────────────────────────────────────────────────────────
+   function init() {
+-    workspaces.ensureDefault();
++    // If we have a Firebase UID, try to hydrate from Firestore first
++    if (window.db && window.AuthSystem) {
++      const uid = window.AuthSystem.getFirebaseUid();
++      if (uid) {
++        window.db.collection('users').doc(uid).collection('state').doc('memory_v1').get().then(doc => {
++          if (doc.exists) {
++            const data = doc.data();
++            if (data.workspaces) localStorage.setItem(WS_KEY, JSON.stringify(data.workspaces));
++            if (data.memories) localStorage.setItem(MEM_KEY, JSON.stringify(data.memories));
++          }
++          workspaces.ensureDefault();
++        }).catch(() => {
++          workspaces.ensureDefault();
++        });
++        return;
++      }
++    }
++    workspaces.ensureDefault();
+   }
+ 
+   return { workspaces, memories, init };

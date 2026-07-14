@@ -1275,9 +1275,9 @@ function renderMemoryPanel() {
       </button>
 
       <div class="workspace-prompt-section">
-        <div class="workspace-prompt-label">Workspace System Prefix</div>
+        <div class="workspace-prompt-label">Project System Prefix</div>
         <textarea class="workspace-prompt-input" id="ws-prompt-input"
-          placeholder="e.g. This workspace is for the Acme project. Always use Python 3.12.">${esc(ws?.systemPromptPrefix || '')}</textarea>
+          placeholder="e.g. This project is for the Acme project. Always use Python 3.12.">${esc(ws?.systemPromptPrefix || '')}</textarea>
         <button onclick="saveWorkspacePrompt()"
           style="margin-top:6px;font-size:11px;padding:4px 10px;background:var(--indigo-500);color:#fff;border:none;border-radius:4px;cursor:pointer">Save Prefix</button>
       </div>
@@ -1362,11 +1362,11 @@ function saveWorkspacePrompt() {
   if (!ws) return;
   const val = document.getElementById('ws-prompt-input')?.value || '';
   MemorySystem.workspaces.update(ws.id, { systemPromptPrefix: val });
-  toast('Workspace prefix saved', 'success');
+  toast('Project prefix saved', 'success');
 }
 
 // ============================================================
-// Workspace bar
+// Workspace/Project bar
 // ============================================================
 function renderWorkspaceBar() {
   const bar = document.getElementById('workspace-bar');
@@ -1374,27 +1374,47 @@ function renderWorkspaceBar() {
   const all    = MemorySystem.workspaces.list();
   const active = MemorySystem.workspaces.getActive();
   bar.innerHTML = `
-    <div class="workspace-label">Workspace</div>
+    <div class="workspace-label">Project</div>
     <div class="workspace-selector">
       <select class="workspace-select" onchange="handleWorkspaceChange(this.value)">
         ${all.map(w => `<option value="${esc(w.id)}" ${w.id === active?.id ? 'selected' : ''}>${esc(w.name)}</option>`).join('')}
       </select>
-      <button class="workspace-new-btn" onclick="handleNewWorkspace()" title="New workspace" aria-label="New workspace">+</button>
+      <button class="workspace-new-btn" onclick="handleNewWorkspace()" title="New Project" aria-label="New Project">+</button>
     </div>
   `;
 }
 
 function handleWorkspaceChange(id) {
   MemorySystem.workspaces.setActive(id);
-  toast('Workspace switched', 'info', 1500);
+  
+  const activeWs = MemorySystem.workspaces.getActive();
+  // Filter sessions belonging to the active workspace/project
+  const projectSessions = STATE.sessions.filter(s => {
+    if (!s.workspaceId) s.workspaceId = activeWs?.id || 'default';
+    return s.workspaceId === activeWs?.id;
+  });
+
+  if (projectSessions.length > 0) {
+    projectSessions.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    STATE.activeSessionId = projectSessions[0].id;
+  } else {
+    createSession();
+  }
+
+  saveState();
+  renderAll();
+  toast('Project switched', 'info', 1500);
 }
 
 function handleNewWorkspace() {
-  const name = prompt('Workspace name:', 'New Workspace');
+  const name = prompt('Project name:', 'New Project');
   if (!name?.trim()) return;
-  MemorySystem.workspaces.create(name.trim());
-  renderWorkspaceBar();
-  toast(`Workspace "${name}" created`, 'success');
+  const newWs = MemorySystem.workspaces.create(name.trim());
+  MemorySystem.workspaces.setActive(newWs.id);
+  createSession();
+  saveState();
+  renderAll();
+  toast(`Project "${name}" created`, 'success');
 }
 
 // ============================================================
@@ -1405,13 +1425,23 @@ function renderSessionList() {
   if (!list) return;
   list.innerHTML = '';
 
-  if (!STATE.sessions.length) {
+  const activeWs = MemorySystem.workspaces.getActive();
+  
+  // Filter sessions by active workspace, auto-assigning legacy ones
+  const filtered = STATE.sessions.filter(s => {
+    if (!s.workspaceId) {
+      s.workspaceId = activeWs?.id || 'default';
+    }
+    return s.workspaceId === activeWs?.id;
+  });
+
+  if (!filtered.length) {
     list.innerHTML = `<div style="padding:20px 16px;text-align:center;font-size:11px;color:var(--text-muted);line-height:1.6">No conversations yet.<br>Click + New Chat to start.</div>`;
     return;
   }
 
   // Sort: pinned first, then by updatedAt desc
-  const sorted = [...STATE.sessions].sort((a, b) => {
+  const sorted = [...filtered].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return  1;
     return (b.updatedAt || 0) - (a.updatedAt || 0);
@@ -1546,7 +1576,7 @@ function renderMessages() {
       <div class="welcome-state" id="welcome">
         <div class="welcome-logo">✶</div>
         <h2 class="welcome-title">What can I help you with today?</h2>
-        <p class="welcome-subtitle">Choose a starter below to kick off, or just type your first message. Each chat is saved automatically in your active workspace.</p>
+        <p class="welcome-subtitle">Choose a starter below to kick off, or just type your first message. Each chat is saved automatically in your active project.</p>
         <div class="tg-bar">
           <div class="tg-search-wrap">
             <span class="tg-search-icon">🔍</span>

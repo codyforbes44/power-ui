@@ -49,6 +49,8 @@ function loadBrowserGlobal(relativePath, globalName, extraGlobals = {}) {
     crypto: webcrypto,
     console,
     fetch: async () => { throw new Error('fetch() is not available in the unit-test sandbox'); },
+    addEventListener: () => {},
+    removeEventListener: () => {},
     ...extraGlobals,
   };
   sandbox.window = sandbox;

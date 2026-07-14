@@ -1,0 +1,17 @@
+--- app/app.js
++++ app/app.js
+@@ -4006,6 +4006,12 @@
+     window.addEventListener('resize', handleResize);
+   }
+ 
++  // Memory system async hydration
++  window.addEventListener('cpu:memory-ready', () => {
++    renderWorkspaceBar();
++    if (document.getElementById('skills-panel').classList.contains('open')) {
++      renderMemoryList();
++    }
++  });
++
+   // ──────────────────────────────────────────────────────────
+   // Session List Interaction
+   // ──────────────────────────────────────────────────────────
