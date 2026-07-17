@@ -260,13 +260,14 @@ export const ApiRouter = (() => {
     // Convert messages, handle tool_result role and assistant tool_calls
     // (buildApiMessages() in app.js emits OpenAI-shaped { tool_calls: [...] }
     // for every non-Anthropic provider, including Gemini — translate here).
-    const contents = messages.map(m => {
+    const rawTurns = [];
+    for (const m of messages) {
       if (m.role === 'tool') {
-        // Tool result from our loop
-        return {
+        rawTurns.push({
           role: 'user',
           parts: [{ functionResponse: { name: m.name || 'tool', response: { content: m.content } } }],
-        };
+        });
+        continue;
       }
       if (m.role === 'assistant' && m.tool_calls?.length) {
         const parts = [];
@@ -276,7 +277,8 @@ export const ApiRouter = (() => {
           try { args = JSON.parse(tc.function?.arguments || '{}'); } catch {}
           parts.push({ functionCall: { name: tc.function?.name, args } });
         }
-        return { role: 'model', parts };
+        rawTurns.push({ role: 'model', parts });
+        continue;
       }
       if (Array.isArray(m.content)) {
         const parts = m.content.map(p => {
@@ -290,13 +292,31 @@ export const ApiRouter = (() => {
           }
           return { text: JSON.stringify(p) };
         });
-        return { role: m.role === 'assistant' ? 'model' : 'user', parts };
+        rawTurns.push({ role: m.role === 'assistant' ? 'model' : 'user', parts });
+        continue;
       }
-      return {
+      rawTurns.push({
         role:  m.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: m.content || ' ' }],
-      };
-    });
+      });
+    }
+
+    const contents = [];
+    for (const turn of rawTurns) {
+      if (contents.length === 0) {
+        if (turn.role === 'model') {
+          contents.push({ role: 'user', parts: [{ text: ' ' }] });
+        }
+        contents.push(turn);
+      } else {
+        const last = contents[contents.length - 1];
+        if (last.role === turn.role) {
+          last.parts = last.parts.concat(turn.parts);
+        } else {
+          contents.push(turn);
+        }
+      }
+    }
 
     const payload = {
       contents,
@@ -308,10 +328,24 @@ export const ApiRouter = (() => {
     }
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${apiKey}&alt=sse`;
-    const response = await fetch(url, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload), signal: options.signal,
-    });
+    let response;
+    
+    if (USE_PROXY) {
+      // Gemini uses query params for auth, so we pass it in queryParams to the proxy.
+      response = await proxyFetch({ 
+        provider: 'google', 
+        path: `/v1beta/models/${modelId}:streamGenerateContent`, 
+        apiKey, 
+        payload, 
+        queryParams: { key: apiKey, alt: 'sse' },
+        signal: options.signal 
+      });
+    } else {
+      response = await fetch(url, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload), signal: options.signal,
+      });
+    }
 
 
     if (!response.ok) {

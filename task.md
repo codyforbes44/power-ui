@@ -1,0 +1,23 @@
+# Tasks
+
+- [x] Restructure `agent-chat.html` settings drawer to support a tabbed interface (Settings & Reference Gallery)
+- [x] Extend `ImageDb` utility in IndexedDB with `put`, `delete`, and `getAll` methods
+- [x] Implement the Reference Gallery tab with an upload file input and dynamic image grid
+- [x] Add vision model analysis inside the file upload event to automatically generate a title and detailed description
+- [x] Implement an interactive details panel allowing editing, saving, deletion, and attaching images to the composer
+- [x] Inject active preset reference images (titles + descriptions) into the system prompt context during message submission
+- [x] Fix onboarding overlay flakiness in E2E tests by setting `async_onboarded_v1 = '1'` in `localStorage` on boot
+- [x] Write E2E test covering the entire Reference Gallery upload, vision analysis mock, and editing workflow
+- [x] Verify that agent-chat sessions are able to access items in knowledge base and memories tabs in Agent Config
+- [x] Fix AgentMemory search query tokenization & scoring bug
+- [x] Add E2E verification test for KB & Memory context injection in agent-chat
+- [x] Scope Knowledge Base and Memory items to the active preset personality configuration
+- [x] Add E2E test verifying scoped preset containment for KB and memories
+- [x] Integrate Fal video generation models (Kling v3 Turbo Pro, Sync Lipsync v3, Grok 1.5 Video) into the models registry and ImageRouter
+- [x] Support reference image zone toggles and settings configuration (quantity, safety tolerance) contextually in `/app/` and `/app/agent-chat/` popovers
+- [x] Enable the agent's `generate_image` tool to accept and pass `model` and `image_url` parameters
+- [x] Update chat message rendering to display `<video>` element loops for video media results
+- [x] Write E2E test covering the Kling v3 video generation flow end-to-end
+- [x] Route base64 data: URIs through fal.ai's secure Google Cloud Storage pre-signed upload CDN endpoint (resolves 400 file_download_error)
+- [x] Verify all 27 unit and E2E tests are passing
+- [x] Deploy verified changes to Netlify production

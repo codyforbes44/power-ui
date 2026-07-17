@@ -12,6 +12,9 @@ const firebaseConfig = {
 if (typeof firebase !== 'undefined') {
   firebase.initializeApp(firebaseConfig);
   window.db = firebase.firestore();
+  if (typeof firebase.storage === 'function') {
+    window.storage = firebase.storage();
+  }
 
   // Firebase Auth (compat). Loaded dynamically AFTER page load so a slow or
   // blocked auth CDN can never stall the app's initial render. All auth usage

@@ -86,14 +86,7 @@
     .msel{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:10px 12px;font-size:13px;font-family:var(--font);cursor:pointer;min-height:var(--tap)}
     .msel:hover{border-color:var(--indigo)}
     .sb-actions{display:flex;flex-direction:column;gap:6px}
-    .tgrid{display:flex;flex-direction:column;gap:4px}
-    .trow{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid transparent;transition:background .15s,border-color .15s}
-    .trow.on{border-color:rgba(99,102,241,.2);background:rgba(99,102,241,.06)}
-    .trow.on .tdot{background:var(--emerald);box-shadow:0 0 6px rgba(16,185,129,.5)}
-    .tdot{width:6px;height:6px;border-radius:50%;background:var(--text-3);flex-shrink:0}
-    .tname{font-size:12px;color:var(--text-2);flex:1}
-    .trow.on .tname{color:var(--text)}
-    .tico{font-size:14px;flex-shrink:0}
+
     .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .sc{background:rgba(255,255,255,.03);border:1px solid var(--border-2);border-radius:10px;padding:10px;text-align:center}
     .sv{font-size:20px;font-weight:700;color:var(--indigo-l)}
@@ -307,103 +300,490 @@
     .image-popover-generate { width: 100%; padding: 10px; background: linear-gradient(135deg, var(--indigo), var(--violet)); color: #fff; border: none; border-radius: var(--rs); font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
     .image-popover-generate:hover { opacity: 0.9; }
     .image-popover-generate:active { transform: scale(0.98); }
-  </style>
+    .img2img-dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 9px;
+      padding: 16px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      margin-bottom: 4px;
+    }
+    .img2img-dropzone:hover,
+    .img2img-dropzone.img2img-drag-over {
+      border-color: rgba(99,102,241,0.5);
+      background: rgba(99,102,241,0.05);
+    }
+    .img2img-dropzone.img2img-loaded {
+      border-color: rgba(34,197,94,0.4);
+      background: rgba(34,197,94,0.04);
+    }
+    .img2img-dropzone-label {
+      font-size: 12px;
+      color: var(--text-2);
+      pointer-events: none;
+    }
+  
+    /* ChatUp AI Overrides */
+    :root {
+      --bg: #1c1c1e;
+      --bg-2: #242426;
+      --bg-3: #2d2d2f;
+      --bg-4: #3a3a3c;
+      --border: rgba(255,255,255,0.1);
+      --indigo: #d946ef;
+      --indigo-l: #e879f9;
+      --violet: #a855f7;
+      --chatup-purple: #4c3a7e;
+      --chatup-gradient: linear-gradient(135deg, #d946ef, #f97316);
+      --sw: 320px;
+    }
+    body { background: var(--bg); }
+    
+    /* Sidebar Overrides */
+    #sidebar { background: var(--bg-2); padding-top: 20px; }
+    .sb-head { display: flex; align-items: center; justify-content: start; gap: 12px; padding: 12px 20px; background: transparent; border-bottom: none; }
+    .sb-back { color: var(--text); font-size: 18px; cursor: pointer; text-decoration: none; }
+    .sb-logo-text { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .sb-logo-icon { width: 20px; height: 20px; background: #10b981; mask: url('data:image/svg+xml,<svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7V17L12 22L22 17V7L12 2Z"/></svg>') center/contain no-repeat; -webkit-mask: url('data:image/svg+xml,<svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7V17L12 22L22 17V7L12 2Z"/></svg>') center/contain no-repeat; }
+    
+    .create-ai-btn { margin: 16px 20px; padding: 12px; border-radius: 12px; background: var(--chatup-gradient); color: white; display: flex; align-items: center; gap: 12px; font-weight: 600; cursor: pointer; border: none; box-shadow: 0 4px 12px rgba(217, 70, 239, 0.3); }
+    .create-ai-btn img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+    
+    .stacy-card { margin: 10px 20px; background: var(--bg-3); border-radius: 16px; padding: 24px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+    .stacy-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 16px; }
+    .stacy-name { font-size: 20px; font-weight: 700; color: white; margin-bottom: 4px; }
+    .stacy-sub { font-size: 13px; color: var(--text-2); margin-bottom: 16px; }
+    .stacy-desc { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-bottom: 16px; }
+    .stacy-tag { font-size: 11px; color: var(--text); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); }
+    
+    .char-row { display: flex; align-items: center; gap: 8px; margin-top: 20px; width: 100%; justify-content: center; }
+    .char-row img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; cursor: pointer; }
+    .char-row img.active { border-color: var(--indigo); }
+    .char-more { color: var(--text-2); cursor: pointer; font-size: 16px; margin-left: 8px; }
+
+    /* Header Overrides */
+    header { background: var(--bg); border-bottom: 1px solid var(--border); padding: 12px 24px; justify-content: flex-end; gap: 16px; }
+    .hbrand { display: none; } /* Hide old brand */
+    .top-search { background: var(--bg-3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); display: flex; align-items: center; gap: 8px; width: 280px; margin-right: auto; }
+    .top-search input { background: none; border: none; color: var(--text); outline: none; width: 100%; font-size: 13px; }
+    .top-tokens { background: var(--indigo); color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .top-signin { background: transparent; border: 1px solid var(--text); color: var(--text); padding: 6px 16px; border-radius: 20px; font-size: 12px; cursor: pointer; }
+    .top-discount { background: var(--chatup-gradient); color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+
+    /* Messages Overrides */
+    .mrow:not(.u) .mbub { background: var(--chatup-purple); border-color: var(--chatup-purple); color: white; }
+    .msndr { display: none; } /* Hide sender name to match ref */
+    .mrow:not(.u) .mbub { border-radius: 8px; }
+    .mrow.u .mbub { background: var(--bg-3); border-color: var(--border); }
+    .mav { display: none; } /* Hide avatars in chat to match ref, or replace with tiny circle */
+
+    /* Composer Overrides */
+    .cwrap { background: var(--bg); border-top: none; padding: 12px 24px 24px; }
+    .action-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .action-btn { background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--text); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .action-btn.highlight { border-color: #f59e0b; color: #fbd38d; }
+    .action-btn.highlight-orange { border-color: #f97316; color: #fdba74; }
+    
+    .comp { background: transparent; border: none; box-shadow: none; flex-direction: row; align-items: center; gap: 12px; }
+    .comp:focus-within { border-color: transparent; box-shadow: none; }
+    .chat-input-wrapper { flex: 1; background: var(--bg-3); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; padding: 6px 12px; gap: 8px; }
+    #inp { flex: 1; min-height: 40px; padding: 10px 0; max-height: 120px; }
+    .ask-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; color: var(--indigo-l); font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    #snd { border-radius: 50%; width: 44px; height: 44px; background: var(--indigo); flex-shrink: 0; }
+    .cfoot { display: none; } /* hide old cfoot */
+
+
+    /* Image Gen View CSS */
+    .ig-section { margin-top: 24px; padding: 0 20px; }
+    .ig-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: white; display: flex; justify-content: space-between; align-items: center; }
+    .ig-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .ig-style-card { position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid transparent; }
+    .ig-style-card.active { border-color: var(--violet); }
+    .ig-style-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .ig-style-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; font-size: 9px; text-align: center; padding: 4px 0; font-weight:600; }
+    
+    .ig-toggle-pill { display: flex; background: transparent; border-radius: 20px; border: 1px solid var(--border); overflow: hidden; margin-top: 8px;}
+    .ig-toggle-btn { flex: 1; padding: 8px 0; text-align: center; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text-2); }
+    .ig-toggle-btn.active { background: var(--chatup-purple); color: white; }
+    
+    .ig-box-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+    .ig-box-btn { background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 12px 0; text-align: center; color: var(--text-2); cursor: pointer; font-size: 12px; font-weight: 600; display:flex; flex-direction:column; align-items:center; gap:4px;}
+    .ig-box-btn.active { border-color: var(--violet); color: white; background: var(--chatup-purple); }
+    
+    .ig-main-header { display: flex; align-items: center; padding: 16px 24px; }
+    .ig-tabs { display: flex; gap: 24px; font-size: 14px; font-weight: 600; color: var(--text-2); margin: 0 auto;}
+    .ig-tab { cursor: pointer; padding-bottom: 4px; border-bottom: 2px solid transparent; }
+    .ig-tab.active { color: white; border-color: var(--violet); }
+    
+    .ig-gallery-header { font-size: 14px; color: var(--text); padding: 0 24px; margin-bottom: 16px; font-weight: 600; }
+    .ig-gallery-row { display: flex; gap: 16px; padding: 0 24px; overflow-x: auto; }
+    .ig-sample-card { position: relative; width: 220px; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; flex-shrink: 0; }
+    .ig-sample-card img { width: 100%; height: 100%; object-fit: cover; }
+    .ig-remix-btn { position: absolute; bottom: 12px; left: 12px; right: 12px; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); color: white; text-align: center; padding: 8px; border-radius: 8px; font-size: 12px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); display:flex; justify-content:center; align-items:center; gap:6px;}
+    
+    .ig-prompt-box { margin: 24px; border: 1px solid var(--violet); border-radius: 16px; background: rgba(76,58,126, 0.2); padding: 16px; display: flex; flex-direction: column; min-height: 160px; position: relative; }
+    .ig-prompt-input { width: 100%; background: transparent; border: none; outline: none; color: var(--text-2); font-size: 14px; resize: none; flex: 1; font-family: var(--mono); }
+    .ig-prompt-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 12px; }
+    .ig-inspire-btn { background: var(--violet); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .ig-generate-btn { background: var(--chatup-gradient); color: white; border: none; padding: 12px 24px; border-radius: 24px; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+    
+    .toggle-wrap { display: flex; align-items: center; justify-content: space-between; background: transparent; border: 1px solid var(--border); padding: 10px 16px; border-radius: 20px; margin-top: 8px;}
+    .toggle-wrap span { font-size: 12px; color: var(--text-2); font-weight:600;}
+    .toggle-switch { width: 36px; height: 20px; background: var(--chatup-purple); border-radius: 10px; position: relative; cursor: pointer; }
+    .toggle-switch::after { content: ''; position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; background: var(--violet); border-radius: 50%; }
+
+
+    /* Video Gen View CSS */
+    .vg-banner { background: #f43f5e; color: white; display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; font-weight: 700; font-size: 14px; margin-bottom: 24px; }
+    .vg-banner .vg-try-btn { background: #18181b; color: white; border: none; padding: 6px 16px; border-radius: 20px; font-weight: 700; cursor: pointer; font-size: 12px; }
+
+    .vg-sample-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 0 24px; margin-bottom: 24px; }
+    .vg-sample-col { display: flex; flex-direction: column; gap: 8px; }
+    .vg-sample-card { position: relative; width: 100%; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; background: #000; }
+    .vg-sample-card img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+    .vg-sample-card .play-overlay { position: absolute; bottom: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; align-items: center; color: white; font-size: 10px; }
+    .vg-sample-actions { display: flex; justify-content: space-around; padding: 4px 0; color: var(--text-2); font-size: 16px; }
+    .vg-sample-actions span { cursor: pointer; }
+
+    .vg-prompt-box { margin: 0 24px 24px 24px; border: 1px solid var(--violet); border-radius: 16px; background: rgba(76,58,126, 0.1); padding: 16px; display: flex; flex-direction: column; min-height: 120px; position: relative; }
+    .vg-prompt-input { width: 100%; background: transparent; border: none; outline: none; color: var(--text-2); font-size: 13px; resize: none; flex: 1; font-family: var(--mono); }
+    .vg-prompt-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 12px; }
+    .vg-use-img-btn { background: var(--violet); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .vg-animate-btn { background: var(--chatup-gradient); color: white; border: none; padding: 12px 32px; border-radius: 24px; font-size: 16px; font-weight: 700; cursor: pointer; }
+    .vg-crown { position: absolute; top: 12px; right: 12px; font-size: 20px; }
+
+    .pro-badge { background: var(--violet); color: white; padding: 2px 6px; border-radius: 10px; font-size: 9px; margin-left: 6px; vertical-align: middle; }
+    .vg-audio-helper { font-size: 10px; color: var(--text-2); margin-top: 4px; line-height: 1.4; }
+
+
+    /* Cinematic Background Mode */
+    body.cinematic-mode #app { background: transparent !important; }
+    body.cinematic-mode #main { background: transparent !important; flex-direction: row !important; }
+    body.cinematic-mode header { display: none !important; }
+    body.cinematic-mode #sidebar:not(.open) { display: none !important; }
+    body.cinematic-mode .cinematic-header { display: flex !important; }
+    body.cinematic-mode #chat-main-inner { background: transparent !important; }
+    body.cinematic-mode #msgs { background: transparent !important; border: none !important; }
+    body.cinematic-mode .cwrap { background: transparent !important; border-top: none !important; margin-bottom: 12px; }
+    body.cinematic-mode .msg-content { 
+      background: rgba(0,0,0,0.5) !important; 
+      border: 1px solid rgba(255,255,255,0.1) !important; 
+      backdrop-filter: blur(8px);
+    }
+    body.cinematic-mode .char-name, body.cinematic-mode .msg-text {
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    }
+    body.cinematic-mode .action-row { display: none !important; }
+
+
+    /* Mobile Cinematic Nav CSS */
+    .cine-bulb, .cine-gear { display: none; }
+    @media(max-width:1023px) {
+      body.cinematic-mode #mobile-cine-nav { display: flex !important; }
+    }
+    
+    /* Cinematic Composer Styling */
+    body.cinematic-mode .comp {
+      background: rgba(15,15,15,0.9) !important;
+      border-radius: 24px !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      padding: 8px 16px !important;
+      gap: 12px;
+    }
+    body.cinematic-mode .chat-input-wrapper {
+      display: flex !important;
+      align-items: center !important;
+      width: 100% !important;
+      gap: 12px !important;
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+    }
+    body.cinematic-mode .ask-btn { display: none !important; }
+    body.cinematic-mode .cine-bulb { display: block !important; color: #fff; flex-shrink: 0; }
+    body.cinematic-mode #inp {
+      padding: 0 !important;
+      min-height: 24px !important;
+      height: 24px !important;
+      margin: 0 !important;
+      line-height: 24px !important;
+      flex: 1;
+    }
+    body.cinematic-mode .cine-gear { display: block !important; color: white; cursor: pointer; flex-shrink: 0; margin-left: auto; }
+    body.cinematic-mode #snd {
+      border-radius: 50% !important;
+      width: 32px !important;
+      height: 32px !important;
+      background: rgba(255,255,255,0.2) !important;
+      margin-top: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-shrink: 0;
+    }
+    body.cinematic-mode #snd svg { width: 14px; height: 14px; margin: 0; } /* adjust if needed */
+
+    /* Composer attachment bar styles */
+    .comp {
+      flex-wrap: wrap;
+    }
+    .attachment-bar {
+      flex-basis: 100%;
+      display: none;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 4px 8px;
+    }
+
+    /* Mobile optimization overrides */
+    @media (max-width: 1023px) {
+      header {
+        padding: 0 10px;
+        gap: 8px;
+      }
+      .top-search {
+        width: 140px;
+        padding: 6px 10px;
+      }
+      .top-discount {
+        display: none;
+      }
+      .action-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: none;
+      }
+      .action-row::-webkit-scrollbar {
+        display: none;
+      }
+      .action-btn {
+        flex-shrink: 0;
+      }
+      .ig-main-header {
+        flex-wrap: wrap;
+        justify-content: space-between;
+        padding: 12px 16px;
+        gap: 12px;
+      }
+      .ig-tabs {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        gap: 16px;
+        margin-top: 4px;
+        margin-left: 0;
+        margin-right: 0;
+      }
+      .vg-sample-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px;
+        padding: 0 12px;
+      }
+    }
+    @media (max-width: 480px) {
+      .top-search {
+        width: 100px;
+      }
+      .top-signin {
+        padding: 6px 12px;
+      }
+    }
+
+</style>
 </head>
 <body>
+
+<div id="cinematic-bg" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-size:cover; background-position:center top; z-index:0;">
+  <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.95) 100%);"></div>
+</div>
+
 <a class="skip-link" href="#msgs">Skip to conversation</a>
 <div id="auth-wall" role="status" aria-live="polite"><div class="spin" id="auth-spin"></div><p id="auth-msg">Verifying super-admin access…</p></div>
 <div id="tw" role="status" aria-live="polite" aria-atomic="true"></div>
-<div id="drawer-backdrop" hidden onclick="closeNav()"></div>
-<div id="app">
+<div id="app" style="position:relative; z-index:1;">
+  <div id="drawer-backdrop" hidden onclick="closeNav()"></div>
   <!-- Header -->
+  
   <header>
-    <button class="hamburger" id="nav-toggle" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false" onclick="toggleNav()">☰</button>
-    <div class="hbrand">
-      <div class="orb" id="horb" aria-hidden="true">✦</div>
+    <button class="hamburger" id="nav-toggle" onclick="toggleNav()" aria-label="Open navigation" aria-expanded="false">☰</button>
+    <div class="hbrand" id="hbrand" style="display:none">
+      <div class="orb" id="horb">✦</div>
       <div class="hbtext">
-        <h1 class="htitle" id="hname">Aria</h1>
-        <div class="hsub">Super Agent · Async</div>
+        <div class="htitle" id="hname">Aria</div>
+        <div class="hsub">Super Agent</div>
       </div>
     </div>
-    <div class="hstatus">
-      <span class="sdot idle" id="sdot" title="Idle" role="status" aria-label="Agent status: idle"></span>
-      <span class="sdlabel" aria-hidden="true">Idle</span>
+    <div class="top-search">
+      <span>🔍</span>
+      <input type="text" placeholder="Search for characters" />
     </div>
+    <div class="top-tokens">🗡 10 +</div>
+    <button class="top-signin" onclick="toast('Authentication coming soon')">Sign In</button>
+    <button class="top-discount" onclick="toast('Discount applied!')">⚡ 75% OFF</button>
   </header>
+
   <!-- Sidebar / off-canvas nav drawer -->
+  
   <aside id="sidebar" aria-label="Agent panel and navigation">
     <div class="sb-head">
-      <span class="sb-head-title">Menu</span>
-      <button class="sb-close" aria-label="Close menu" onclick="closeNav()">✕</button>
+      <a href="#" class="sb-back" onclick="toggleView('chat')">←</a>
+      <div class="sb-logo-text"><div class="sb-logo-icon"></div> ChatUp AI</div>
+      <button class="sb-close" onclick="closeNav()" aria-label="Close sidebar">✕</button>
     </div>
-    <div class="sbs">
-      <div class="acard">
-        <div class="actop">
-          <div class="aav" id="sbav" aria-hidden="true">✦</div>
-          <div><div class="aname" id="sbnm">Aria</div><div class="amod">Super Agent</div></div>
+    
+    
+    <div id="chat-sidebar-inner">
+      <button class="create-ai-btn">
+        <img src="https://i.pravatar.cc/100?img=1" alt="avatar" />
+        Create My AI
+      </button>
+      
+      <div class="stacy-card">
+        <span id="sbav" style="display:none">✦</span>
+        <img src="https://i.pravatar.cc/300?img=5" alt="Stacy" class="stacy-avatar" />
+        <div class="stacy-name" id="sbnm">Stacy</div>
+        <div class="stacy-sub">Arrogant Roommate</div>
+        <div class="stacy-desc">Your roommate feels very feels arrogant and one day when you return home, you find her using your phone!</div>
+        <div class="stacy-tag">AI Girlfriend</div>
+        <div class="stacy-stats" style="margin-top: 10px; display: flex; gap: 12px; font-size: 11px; color: var(--text-3);">
+          <span>📚 KB: <span id="stk">0</span></span>
+          <span>🧠 Memories: <span id="stme">0</span></span>
         </div>
-        <div class="adesc" id="sbdesc">Hyper-capable AI with live tools, memory, and knowledge base access.</div>
+        
+        <div class="char-row">
+          <img src="https://i.pravatar.cc/100?img=5" class="active" />
+          <img src="https://i.pravatar.cc/100?img=2" />
+          <img src="https://i.pravatar.cc/100?img=3" />
+          <img src="https://i.pravatar.cc/100?img=4" />
+          <span class="char-more">»</span>
+        </div>
       </div>
     </div>
-    <div class="sbs">
-      <label class="sbl" for="msel">Model</label>
-      <select class="msel" id="msel" aria-label="AI Model"></select>
-    </div>
-    <div class="sbs">
-      <div class="sbl" style="display:flex; justify-content:space-between; align-items:center;">
-        Project
-        <button class="sbbtn" style="padding:2px 6px; font-size:0.75rem; min-height:0; width:auto;" onclick="createNewProject()">➕ New</button>
+
+    <div id="img-gen-sidebar-inner" style="display:none;">
+      <div class="ig-section">
+        <div class="ig-title">Style</div>
+        <div class="ig-grid">
+          <div class="ig-style-card active"><img src="https://i.pravatar.cc/100?img=10"/><div class="ig-style-label">Flirty</div></div>
+          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=11"/><div class="ig-style-label">Sexy</div></div>
+          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=12"/><div class="ig-style-label">Spicy</div></div>
+          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=13"/><div class="ig-style-label">Sensual</div></div>
+          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=14"/><div class="ig-style-label">Woman</div></div>
+          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=15"/><div class="ig-style-label">Mature</div></div>
+          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=16"/><div class="ig-style-label">Realistic</div></div>
+          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=17"/><div class="ig-style-label">Asian</div></div>
+          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=18"/><div class="ig-style-label">Hentai</div></div>
+          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=19"/><div class="ig-style-label">Anime</div></div>
+          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=20"/><div class="ig-style-label">Animated</div></div>
+          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=21"/><div class="ig-style-label">Dreamer</div></div>
+        </div>
       </div>
-      <select class="msel" id="p-sel" onchange="handleProjectChange(this.value)" aria-label="Project"></select>
-    </div>
-    <div class="sbs">
-      <div class="sbl">Session</div>
-      <div class="sb-actions">
-        <button class="sbbtn" id="syd-btn" onclick="toggleSyd()">⚙ Agent Personality</button>
-        <button class="sbbtn" onclick="clearChat()">↺ Clear Chat</button>
-        <button class="sbbtn" onclick="exportChat()">↓ Export Chat</button>
+      
+      <div class="ig-section">
+        <div class="ig-title">Preference 👑</div>
+        <div class="ig-toggle-pill">
+          <div class="ig-toggle-btn active">Fast</div>
+          <div class="ig-toggle-btn">High Quality</div>
+        </div>
+      </div>
+      
+      <div class="ig-section">
+        <div class="ig-title">Aspect Ratio</div>
+        <div class="ig-box-grid">
+          <div class="ig-box-btn"><span>⬜</span> 1:1</div>
+          <div class="ig-box-btn"><span>▭</span> 9:6</div>
+          <div class="ig-box-btn active"><span>▯</span> 6:9</div>
+        </div>
+      </div>
+      
+      <div class="ig-section">
+        <div class="ig-title">Number 👑</div>
+        <div class="ig-box-grid">
+          <div class="ig-box-btn active">1</div>
+          <div class="ig-box-btn">2</div>
+          <div class="ig-box-btn">4</div>
+        </div>
+      </div>
+      
+      <div class="ig-section" style="margin-bottom: 24px;">
+        <div class="toggle-wrap">
+          <span>No Filter</span>
+          <div class="toggle-switch"></div>
+        </div>
       </div>
     </div>
-    <div class="sbs">
-      <div class="sbl">Active Tools</div>
-      <div class="tgrid" id="tgrid"></div>
+
+    
+    <!-- Retain hidden system elements for functionality to work -->
+    <div style="display:none">
+      <select id="msel"></select>
+      <select id="p-sel"></select>
+      <div id="session-list"></div>
+      <div id="mlist"></div>
     </div>
-    <div class="sbs">
-      <div class="sbl">Session Stats</div>
-      <div class="sgrid">
-        <div class="sc"><div class="sv" id="stm">0</div><div class="sl">Messages</div></div>
-        <div class="sc"><div class="sv" id="stt">0</div><div class="sl">Tool Calls</div></div>
-        <div class="sc"><div class="sv" id="stk">—</div><div class="sl">KB Docs</div></div>
-        <div class="sc"><div class="sv" id="stme">—</div><div class="sl">Memories</div></div>
-      </div>
-    </div>
-    <div class="sbs">
-      <div class="sbl" style="display:flex; justify-content:space-between; align-items:center;">
-        Previous Chats
-        <button class="sbbtn" style="padding:2px 6px; font-size:0.75rem;" onclick="createNewSession()">➕ New</button>
-      </div>
-      <div class="mlist" id="session-list"><div class="nd">No previous chats.</div></div>
-    </div>
-    <div class="sbs">
-      <div class="sbl">Cross-Session Memory</div>
-      <div class="mlist" id="mlist"><div class="nd">No memories yet.</div></div>
-      <button class="sbbtn" style="margin-top:8px" onclick="refreshSb()">↺ Refresh</button>
-    </div>
-    <nav class="sbs" aria-label="Quick actions and navigation">
-      <div class="sbl">Quick Actions</div>
-      <div class="sbnav">
-        <button class="sbbtn" onclick="qi('What do you remember about me and our past conversations?')">🧠 Recall all memory</button>
-        <button class="sbbtn" onclick="qi('Search the knowledge base and give me a full summary.')">📚 Search knowledge base</button>
-        <button class="sbbtn" onclick="qi('Get the latest tech and AI headlines for today.')">📰 Today's news</button>
-        <button class="sbbtn" onclick="openImageGallery()">🖼️ View Gallery</button>
-        <button class="sbbtn" onclick="qi('What is the weather in Austin, TX right now?')">🌤 Austin weather</button>
-        <a class="sbbtn" href="admin.html">⚙ Admin dashboard</a>
-        <a class="sbbtn" href="index.html">← Back to App</a>
-      </div>
-    </nav>
   </aside>
+
   <!-- Main -->
   <main id="main">
+
+<div id="mobile-cine-nav" style="display:none; flex-direction:column; width:60px; height:100%; border-right:1px solid rgba(255,255,255,0.05); background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); padding:20px 0; align-items:center; justify-content:space-between; z-index:20;">
+  <div style="display:flex; flex-direction:column; gap:24px; align-items:center;">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:24px; align-items:center;">
+    <div style="width:32px; height:32px; border-radius:50%; border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="10" r="4"/><path d="M12 14v7"/><path d="M9 18h6"/></svg>
+    </div>
+    <div onclick="exitCinematicMode()" style="width:40px; height:40px; border-radius:50%; background:#ef4444; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+    </div>
+  </div>
+</div>
+
+
+    <div id="vid-gen-sidebar-inner" style="display:none;">
+      <div class="ig-section">
+        <div class="ig-title">Length</div>
+        <div class="ig-toggle-pill">
+          <div class="ig-toggle-btn active">6s</div>
+          <div class="ig-toggle-btn">10s</div>
+        </div>
+      </div>
+      
+      <div class="ig-section">
+        <div class="ig-title">Resolution</div>
+        <div class="ig-box-grid">
+          <div class="ig-box-btn active">512p</div>
+          <div class="ig-box-btn">768p</div>
+          <div class="ig-box-btn">1080p</div>
+        </div>
+      </div>
+      
+      <div class="ig-section" style="margin-bottom: 24px;">
+        <div class="ig-title">Audio <span class="pro-badge">PRO</span> <div class="toggle-switch"></div></div>
+        <div class="vg-audio-helper">Better to describe the audio you want at the end of the prompt.</div>
+      </div>
+    </div>
+
+    <div id="chat-main-inner" style="display:flex; flex-direction:column; flex:1; height:100%; overflow:hidden;">
+      <div class="cinematic-header" style="display:none; padding:16px 24px; align-items:center; justify-content:space-between; z-index:10; width:100%;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <img id="cine-avatar" src="" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" />
+          <span id="cine-name" style="font-weight:600; font-size:14px; color:white; text-shadow: 0 1px 2px rgba(0,0,0,0.8);"></span>
+        </div>
+        <button onclick="toggleNav()" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:white; width:32px; height:32px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><path d="M13 16l4-4-4-4"></path></svg>
+        </button>
+      </div>
+
     <!-- Personality Settings drawer -->
     <div id="syd">
       <div id="syd-inner" style="display:flex; flex-direction:column; gap:12px;">
@@ -427,17 +807,17 @@
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
             <div>
               <label for="sys-name" style="font-size:11px; color:var(--text-2); display:block; margin-bottom:4px;">Persona Name</label>
-              <input type="text" id="sys-name" placeholder="Aria" class="msel" style="padding:6px 10px; font-size:12px; min-height:0; width:100%;" />
+              <input type="text" id="sys-name" placeholder="Aria" class="msel" style="padding:6px 10px; font-size:12px; min-height:0; width:100%;" oninput="updatePresetsDropdown()" />
             </div>
             <div>
               <label for="sys-emoji" style="font-size:11px; color:var(--text-2); display:block; margin-bottom:4px;">Avatar Emoji</label>
-              <input type="text" id="sys-emoji" placeholder="✦" class="msel" style="padding:6px 10px; font-size:12px; min-height:0; width:100%;" />
+              <input type="text" id="sys-emoji" placeholder="✦" class="msel" style="padding:6px 10px; font-size:12px; min-height:0; width:100%;" oninput="updatePresetsDropdown()" />
             </div>
           </div>
 
           <div>
             <label for="sys-ta" style="font-size:11px; color:var(--text-2); display:block; margin-bottom:4px;">System Prompt</label>
-            <textarea id="sys-ta" rows="6" placeholder="Configure the agent's instructions..." style="width:100%; background:rgba(0,0,0,.4); border:1px solid var(--border); border-radius:10px; padding:10px; color:var(--text-2); font-size:12px; font-family:var(--mono); line-height:1.6; resize:vertical; outline:none;"></textarea>
+            <textarea id="sys-ta" rows="6" placeholder="Configure the agent's instructions..." style="width:100%; background:rgba(0,0,0,.4); border:1px solid var(--border); border-radius:10px; padding:10px; color:var(--text-2); font-size:12px; font-family:var(--mono); line-height:1.6; resize:vertical; outline:none;" oninput="updatePresetsDropdown()"></textarea>
           </div>
 
           <div style="display:flex; gap:10px; justify-content:flex-end;">
@@ -480,6 +860,7 @@
                   <button type="button" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; display:inline-block; background:rgba(244,63,94,.1); border-color:rgba(244,63,94,.2); color:var(--rose); width:auto;" onclick="deleteRefImage()">Delete Image</button>
                   <div style="display:flex; gap:6px;">
                     <button type="button" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; width:auto; border-color:var(--border);" onclick="attachRefImageToChat()">📎 Attach to Chat</button>
+                    <button type="button" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; width:auto; border-color:var(--border);" onclick="setRefImageAsBackground()">🖼 Set as Background</button>
                     <button type="button" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; width:auto; border-color:var(--border);" onclick="closeRefDetails()">Cancel</button>
                     <button type="button" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; width:auto; background:var(--indigo); color:#fff; border:none;" onclick="saveRefDetails()">Save Changes</button>
                   </div>
@@ -515,36 +896,38 @@
       </div>
     </div>
     <!-- Composer -->
+    
     <div class="cwrap">
-      <!-- Jump to latest / new-messages affordance -->
       <button id="jumpb" type="button" onclick="jumpToBottom()" aria-label="Scroll to latest messages">
         <span class="jd" aria-hidden="true"></span><span id="jumpb-lbl">Jump to latest</span> <span aria-hidden="true">↓</span>
       </button>
+      
+      <div class="action-row">
+        <button class="action-btn highlight-orange" onclick="toast('Persona settings coming soon')">👤 Persona</button>
+        <button class="action-btn highlight" id="syd-btn" onclick="toggleSyd()">⚙ Agent Personality</button>
+        <button class="action-btn" onclick="toast('Opening AI Creator...')">🤖 Create AI</button>
+        <button class="action-btn" id="imagine-btn" onclick="toggleImagePopover()">🎨 Imagine</button>
+        <button class="action-btn" onclick="toggleView('image')">🎨 Generate Images</button>
+        <button class="action-btn" onclick="toggleView('video')">🎬 Image To Video</button>
+        <button class="action-btn" onclick="toggleView('video')">📝 Text to Video</button>
+      </div>
+
       <form class="comp" onsubmit="return false" aria-label="Message composer">
-        <!-- Attachment bar -->
         <div class="attachment-bar" id="attachment-bar" style="display:none"></div>
-        <label class="sr-only" for="inp">Message Aria</label>
-        <textarea id="inp" rows="1" aria-label="Message Aria" placeholder="Ask Aria anything — live tools, memory, and your knowledge base…"></textarea>
-        <div class="cfoot">
-          <div class="hints" role="group" aria-label="Slash command shortcuts">
-            <button type="button" class="hp" onclick="injectCmd('/web ')">/web</button>
-            <button type="button" class="hp" onclick="injectCmd('/remember ')">/remember</button>
-            <button type="button" class="hp" onclick="injectCmd('/recall ')">/recall</button>
-            <button type="button" class="hp" onclick="injectCmd('/kb ')">/kb</button>
-            <button type="button" class="hp" onclick="injectCmd('/news ')">/news</button>
-            <button type="button" class="hp" onclick="injectCmd('/weather ')">/weather</button>
-          </div>
-          <div class="cacts">
-            <label class="composer-attach-btn" title="Attach file (image, text, PDF, code)" for="file-input" style="font-size:12px; cursor:pointer; color:var(--text-muted); background:none; border:none; padding:4px 8px; border-radius:4px; align-self:center; display:flex; align-items:center; gap:4px">
-              📎 Attach
-            </label>
-            <input type="file" id="file-input" style="display:none" multiple accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css,.pdf" />
-            <button type="button" id="imagine-btn" onclick="toggleImagePopover()" title="Generate Image" style="background:none; border:none; padding:4px 8px; cursor:pointer; font-size:14px; border-radius:4px" aria-label="Open image generator">🎨</button>
-            <button type="button" id="call-btn" onclick="startElevenLabsCall()" title="Start Voice Call" aria-label="Start Voice Call" style="display:none; background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.3); color:var(--indigo-l); border-radius:10px; cursor:pointer; font-size:14px">📞</button>
-            <button type="button" id="stp" onclick="stopStream()" title="Stop generating" aria-label="Stop generating">■</button>
-            <button type="submit" id="snd" onclick="sendMsg()" title="Send (Enter)" aria-label="Send message">↑</button>
-          </div>
+        <div class="chat-input-wrapper">
+          <label class="ask-btn" for="file-input" title="Attach file">
+            📷 Ask
+          </label>
+          <input type="file" id="file-input" style="display:none" multiple accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css,.pdf" />
+          
+          <svg class="cine-bulb" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-7 7c0 2.2 1 4 2.5 5.5S9 17 9 18h6c0-1 1.5-2.5 2.5-4S20 11.2 20 9a7 7 0 0 0-7-7z"/></svg>
+          <textarea id="inp" rows="1" aria-label="Message Aria" placeholder="Send a message..."></textarea>
         </div>
+        
+        <svg class="cine-gear" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <button type="submit" id="snd" onclick="sendMsg()" title="Send (Enter)">➤</button>
+        <button type="button" id="stp" onclick="stopStream()" title="Stop generating" style="display:none;">■</button>
+        
         <!-- Image generation popover -->
         <div class="image-popover" id="image-popover" style="display:none">
           <div class="image-popover-header">
@@ -556,27 +939,118 @@
             <select class="image-popover-select" id="imagine-provider" onchange="updateImagineModels()">
               <option value="bfl">Black Forest Labs</option>
               <option value="fal">fal.ai</option>
-              <option value="replicate">Replicate</option>
-              <option value="novita">Novita AI</option>
-              <option value="huggingface">🤗 HuggingFace</option>
-              <option value="comfyui">ComfyUI (local)</option>
             </select>
-            <select class="image-popover-select" id="imagine-model">
+            <select class="image-popover-select" id="imagine-model" onchange="syncImagineModeFields()">
               <option value="flux-pro-1.1">Flux Pro 1.1</option>
-            </select>
-          </div>
-          <div class="image-popover-row">
-            <select class="image-popover-select" id="imagine-size">
-              <option value="1024x1024">1024 × 1024</option>
-              <option value="1440x1024">1440 × 1024 (wide)</option>
-              <option value="1024x1440">1024 × 1440 (tall)</option>
-              <option value="768x768">768 × 768 (fast)</option>
             </select>
           </div>
           <button type="button" class="image-popover-generate" onclick="generateFromPopover()">✨ Generate Image</button>
         </div>
       </form>
     </div>
+
+
+    </div> <!-- end chat-main-inner -->
+    <div id="img-gen-main-inner" style="display:none; flex-direction:column; flex:1; height:100%; overflow-y:auto; background:var(--bg-2);">
+      <div class="ig-main-header">
+        <div class="top-tokens">🖌 10 <span style="background:var(--violet); padding:2px 6px; border-radius:10px; margin-left:6px; cursor:pointer;" onclick="toast('Token purchase coming soon')">Buy</span></div>
+        <div class="ig-tabs">
+          <div class="ig-tab active" onclick="toggleView('image')">Text-to-image</div>
+          <div class="ig-tab" onclick="toast('Loading your images...')">My images</div>
+          <div class="ig-tab" onclick="toggleView('video')">👑 Image-to-video ⌄</div>
+        </div>
+        <button class="top-signin" onclick="toast('Authentication coming soon')">Sign In</button>
+      </div>
+      
+      <div class="ig-gallery-header">Style: <b>Flirty</b> (All made by AI)</div>
+      
+      <div class="ig-gallery-row">
+        <div class="ig-sample-card">
+          <img src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=400&q=80" />
+          <div class="ig-remix-btn" onclick="toast('Remixing image...')">🖌 Remix</div>
+        </div>
+        <div class="ig-sample-card">
+          <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80" />
+          <div class="ig-remix-btn" onclick="toast('Remixing image...')">🖌 Remix</div>
+        </div>
+        <div class="ig-sample-card">
+          <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80" />
+          <div class="ig-remix-btn" onclick="toast('Remixing image...')">🖌 Remix</div>
+        </div>
+        <div class="ig-sample-card">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" />
+          <div class="ig-remix-btn" onclick="toast('Remixing image...')">🖌 Remix</div>
+        </div>
+      </div>
+      
+      <div class="ig-prompt-box">
+        <textarea class="ig-prompt-input" placeholder="Enter the description of the image you want... Content involving minors is strictly prohibited."></textarea>
+        <div class="ig-prompt-footer">
+          <button class="ig-inspire-btn" onclick="toast('Loading inspiration...')">Inspiration ✨</button>
+          <button class="ig-generate-btn" onclick="toast('Generating image... Please wait')">Generate <span style="background:rgba(0,0,0,0.3); padding:4px 8px; border-radius:12px; font-size:14px;">🖌 2</span></button>
+        </div>
+      </div>
+
+
+    <div id="vid-gen-main-inner" style="display:none; flex-direction:column; flex:1; height:100%; overflow-y:auto; background:var(--bg-2);">
+      <div class="ig-main-header">
+        <div class="top-tokens">🖌 10 <span style="background:var(--violet); padding:2px 6px; border-radius:10px; margin-left:6px; cursor:pointer;" onclick="toast('Token purchase coming soon')">Buy</span></div>
+        <div class="ig-tabs">
+          <div class="ig-tab" onclick="toggleView('image')">Text-to-image</div>
+          <div class="ig-tab" onclick="toast('Loading your images...')">My images</div>
+          <div class="ig-tab active" onclick="toggleView('video')">👑 Image-to-video ⌄</div>
+        </div>
+        <button class="top-signin" onclick="toast('Authentication coming soon')">Sign In</button>
+      </div>
+      
+      <div class="vg-banner">
+        <div>🎥 NSFW Text To Video! 😍</div>
+        <button class="vg-try-btn">TRY</button>
+      </div>
+
+      <div class="ig-gallery-header" style="font-weight: 400; color: var(--text-2);">Samples (All made by AI)</div>
+      
+      <div class="vg-sample-grid">
+        <div class="vg-sample-col">
+          <div class="vg-sample-card">
+            <img src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=400&q=80" />
+            <div class="play-overlay" onclick="toast('Playing video preview...')"><span>▶ 0:00 / 0:04</span> <span>🔊 🔲</span></div>
+          </div>
+          <div class="vg-sample-actions"><span onclick="toast('Downloading video...')" style="cursor:pointer;">📥</span> <span onclick="toast('Remixing video...')" style="cursor:pointer;">🖌</span></div>
+        </div>
+        <div class="vg-sample-col">
+          <div class="vg-sample-card">
+            <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80" />
+            <div class="play-overlay" onclick="toast('Playing video preview...')"><span>▶ 0:00 / 0:04</span> <span>🔊 🔲</span></div>
+          </div>
+          <div class="vg-sample-actions"><span onclick="toast('Downloading video...')" style="cursor:pointer;">📥</span> <span onclick="toast('Remixing video...')" style="cursor:pointer;">🖌</span></div>
+        </div>
+        <div class="vg-sample-col">
+          <div class="vg-sample-card">
+            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80" />
+            <div class="play-overlay" onclick="toast('Playing video preview...')"><span>▶ 0:00 / 0:04</span> <span>🔊 🔲</span></div>
+          </div>
+          <div class="vg-sample-actions"><span onclick="toast('Downloading video...')" style="cursor:pointer;">📥</span> <span onclick="toast('Remixing video...')" style="cursor:pointer;">🖌</span></div>
+        </div>
+        <div class="vg-sample-col">
+          <div class="vg-sample-card">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" />
+            <div class="play-overlay" onclick="toast('Playing video preview...')"><span>▶ 0:00 / 0:04</span> <span>🔊 🔲</span></div>
+          </div>
+          <div class="vg-sample-actions"><span onclick="toast('Downloading video...')" style="cursor:pointer;">📥</span> <span onclick="toast('Remixing video...')" style="cursor:pointer;">🖌</span></div>
+        </div>
+      </div>
+      
+      <div class="vg-prompt-box">
+        <div class="vg-crown">👑</div>
+        <textarea class="vg-prompt-input" placeholder="Enter details that you want to animate the AI Image. Content involving minors is strictly prohibited."></textarea>
+        <div class="vg-prompt-footer">
+          <button class="vg-use-img-btn" onclick="toast('Image selected for video generation')">Use My AI Image</button>
+          <button class="vg-animate-btn" onclick="toast('Generating video... Please wait')">Animate</button>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -587,10 +1061,15 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+<script src="firebase-config.js"></script>
+
 <script type="module">
-import { AuthSystem } from './auth.js';
+import { AuthSystem, CloudStorage } from './auth.js';
 import { MODELS_DATA } from './models-data.js';
-import { ApiRouter } from './api-router.js';
+import { ApiRouter } from './api-router.js?v=2';
 import { MemorySystem } from './memory.js';
 import { SuperAgent } from './agent.js';
 
@@ -850,9 +1329,24 @@ const ImageDb = (() => {
       });
     },
     async put(key, val) {
+      let finalVal = val;
+      if (typeof val === 'string' && val.startsWith('data:') && typeof CloudStorage !== 'undefined' && CloudStorage.isAvailable()) {
+        try {
+          finalVal = await CloudStorage.uploadDataUrl(key, val, 'generated');
+        } catch (e) {
+          console.warn('CloudSync: ImageDb.put upload failed', e);
+        }
+      } else if (val && typeof val === 'object' && typeof val.dataUrl === 'string' && val.dataUrl.startsWith('data:') && typeof CloudStorage !== 'undefined' && CloudStorage.isAvailable()) {
+        try {
+          const cloudUrl = await CloudStorage.uploadDataUrl(key, val.dataUrl, 'gallery');
+          finalVal = { ...val, dataUrl: cloudUrl };
+        } catch (e) {
+          console.warn('CloudSync: ImageDb.put object upload failed', e);
+        }
+      }
       const db = await getDB();
       return new Promise((resolve, reject) => {
-        const req = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(val, key);
+        const req = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(finalVal, key);
         req.onsuccess = () => resolve();
         req.onerror = () => reject(req.error);
       });
@@ -875,6 +1369,7 @@ const ImageDb = (() => {
     }
   };
 })();
+window.ImageDb = ImageDb;
 
 // ── Session Management ─────────────────────────────────────
 function generateId() { return 's_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6); }
@@ -1225,6 +1720,14 @@ async function finishBoot() {
     if (emojiEl) emojiEl.value = emoji;
     if (taEl) taEl.value = c.systemPrompt || '';
     updatePresetsDropdown();
+    
+    // Sync activePresetId to SuperAgent config
+    const activePresetId = document.getElementById('preset-sel')?.value || 'custom';
+    if (c.activePresetId !== activePresetId) {
+      c.activePresetId = activePresetId;
+      SuperAgent.config.save(c);
+    }
+    refreshSb();
 
     // 8. Enable Voice Call Button if configured
     if (c.voice?.elevenlabsAgentId) {
@@ -1347,22 +1850,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function renderSb() {
   if (typeof SuperAgent === 'undefined') return;
   const c = SuperAgent.config.get();
-  const tools = [
-    { k: 'webSearch',    i: '🔍', l: 'Web Search' },
-    { k: 'wikipedia',    i: '📖', l: 'Wikipedia' },
-    { k: 'weather',      i: '🌤', l: 'Live Weather' },
-    { k: 'githubSearch', i: '🐙', l: 'GitHub Search' },
-    { k: 'news',         i: '📰', l: 'News Headlines' },
-    { k: 'knowledgeBase',i: '📚', l: 'Knowledge Base' },
-    { k: 'crossMemory',  i: '🧠', l: 'Cross-Session Memory' },
-  ];
-  const tg = document.getElementById('tgrid');
-  if (tg) tg.innerHTML = tools.map(t =>
-    `<div class="trow ${c.tools[t.k] ? 'on' : ''}">` +
-    `<span class="tico">${t.i}</span>` +
-    `<span class="tname">${t.l}</span>` +
-    `<div class="tdot"></div></div>`
-  ).join('');
+
   const stm = document.getElementById('stm'); if (stm) stm.textContent = S.mc;
   const stt = document.getElementById('stt'); if (stt) stt.textContent = S.tc;
 }
@@ -1557,6 +2045,213 @@ async function sendMsg() {
   if (!raw && (!S.attachments || !S.attachments.length)) return;
   const txt = raw ? exc(raw) : '';
   const finalContent = buildMessageContent(txt);
+
+  // Helper to extract YouTube video ID
+  function getYoutubeId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  }
+
+  // ── /play command — youtube video player ───────────────────────
+  if (txt.startsWith('/play ')) {
+    const rawQuery = txt.replace(/^\/play\s+/, '').trim();
+    if (rawQuery) {
+      ta.value = '';
+      ta.style.height = 'auto';
+      updateSendState();
+      const welc = document.getElementById('welc');
+      if (welc) welc.classList.add('hid');
+
+      S.msgs.push({ role: 'user', content: txt });
+      addU(txt);
+      scroll2b(true);
+
+      const bid = 'b' + Date.now();
+      const ae = { role: 'assistant', content: `🔍 Searching YouTube for: "${rawQuery}"...` };
+      S.msgs.push(ae);
+      addA(bid);
+      updBub(bid, ae.content);
+      scroll2b();
+
+      (async () => {
+        try {
+          const keys = await ApiKeyVault.load() || {};
+          const ytKey = keys.youtube;
+          if (!ytKey) {
+            ae.content = '✕ YouTube API Key is not configured. Please add it in settings.';
+            updBub(bid, ae.content);
+            return;
+          }
+
+          let videoId = getYoutubeId(rawQuery);
+          let title = rawQuery;
+          if (!videoId && rawQuery.length === 11 && !rawQuery.includes('/') && !rawQuery.includes(' ')) {
+            videoId = rawQuery;
+          }
+
+          if (!videoId) {
+            // Search YouTube via Netlify proxy
+            const res = await fetch('/.netlify/functions/proxy', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                provider: 'youtube',
+                path: '/search',
+                apiKey: '',
+                queryParams: {
+                  part: 'snippet',
+                  q: rawQuery,
+                  type: 'video',
+                  maxResults: '1',
+                  key: ytKey
+                },
+                method: 'GET',
+                payload: {}
+              })
+            });
+            if (!res.ok) {
+              const errText = await res.text().catch(() => '');
+              throw new Error(`YouTube API returned ${res.status}: ${errText}`);
+            }
+            const data = await res.json();
+            if (!data.items || data.items.length === 0) {
+              throw new Error('No videos found for that query.');
+            }
+            videoId = data.items[0].id.videoId;
+            title = data.items[0].snippet.title;
+          }
+
+          ae.content = `Here is the video you requested:\n\n[youtube-embed:${videoId}]`;
+          updBub(bid, ae.content);
+        } catch (err) {
+          ae.content = '✕ Failed to play video: ' + err.message;
+          updBub(bid, ae.content);
+        }
+      })();
+      return;
+    }
+  }
+
+  // ── /playlist command — create youtube playlist ──────────────────
+  if (txt.startsWith('/playlist ')) {
+    let rawPlay = txt.replace(/^\/playlist\s+/, '').trim();
+    if (rawPlay) {
+      ta.value = '';
+      ta.style.height = 'auto';
+      updateSendState();
+      const welc = document.getElementById('welc');
+      if (welc) welc.classList.add('hid');
+
+      S.msgs.push({ role: 'user', content: txt });
+      addU(txt);
+      scroll2b(true);
+
+      // Parse title and video list
+      let title = '';
+      let rest = '';
+      if (rawPlay.startsWith('"')) {
+        const closingQuoteIdx = rawPlay.indexOf('"', 1);
+        if (closingQuoteIdx !== -1) {
+          title = rawPlay.slice(1, closingQuoteIdx);
+          rest = rawPlay.slice(closingQuoteIdx + 1).trim();
+        } else {
+          title = rawPlay;
+        }
+      } else {
+        const firstSpaceIdx = rawPlay.indexOf(' ');
+        if (firstSpaceIdx !== -1) {
+          title = rawPlay.slice(0, firstSpaceIdx);
+          rest = rawPlay.slice(firstSpaceIdx + 1).trim();
+        } else {
+          title = rawPlay;
+        }
+      }
+
+      const videoIds = [];
+      if (rest) {
+        const parts = rest.split(/[\s,]+/);
+        for (const p of parts) {
+          const cleanPart = p.trim();
+          if (cleanPart) {
+            const ytId = getYoutubeId(cleanPart) || (cleanPart.length === 11 ? cleanPart : null);
+            if (ytId) {
+              videoIds.push(ytId);
+            }
+          }
+        }
+      }
+
+      if (videoIds.length === 0) {
+        const bid = 'b' + Date.now();
+        const ae = { role: 'assistant', content: '✕ Please specify at least one video URL or ID to add to the playlist.' };
+        S.msgs.push(ae);
+        addA(bid);
+        updBub(bid, ae.content);
+        scroll2b();
+        return;
+      }
+
+      const bid = 'b' + Date.now();
+      const ae = { role: 'assistant', content: `🍪 Creating playlist "${title}" on YouTube...` };
+      S.msgs.push(ae);
+      addA(bid);
+      updBub(bid, ae.content);
+      scroll2b();
+
+      (async () => {
+        try {
+          const keys = await ApiKeyVault.load() || {};
+          const cookies = keys.youtube_cookies;
+          const apiKey = keys.youtube;
+          if (!cookies) {
+            ae.content = '✕ YouTube Cookies are not configured. Please add them in settings to perform playlist actions.';
+            updBub(bid, ae.content);
+            return;
+          }
+
+          const ytApiKey = apiKey || 'AIzaSyAO-1k1212879817298712891';
+          const res = await fetch('/.netlify/functions/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              provider: 'youtube_innertube',
+              path: `/youtubei/v1/playlist/create?key=${ytApiKey}`,
+              apiKey: cookies,
+              method: 'POST',
+              payload: {
+                context: {
+                  client: {
+                    clientName: 'WEB',
+                    clientVersion: '2.20240101.00.00'
+                  }
+                },
+                title: title,
+                videoIds: videoIds
+              }
+            })
+          });
+          if (!res.ok) {
+            const errText = await res.text().catch(() => '');
+            throw new Error(`Playlist creation failed (${res.status}): ${errText}`);
+          }
+          const data = await res.json();
+          if (data.playlistId) {
+            ae.content = `✅ Playlist **${title}** created successfully!\n\n[View playlist on YouTube](https://www.youtube.com/playlist?list=${data.playlistId})`;
+            updBub(bid, ae.content);
+          } else if (data.error) {
+            throw new Error(data.error.message || 'Unknown YouTube Innertube error');
+          } else {
+            throw new Error('Invalid response from YouTube: ' + JSON.stringify(data));
+          }
+        } catch (err) {
+          ae.content = '✕ Failed to create playlist: ' + err.message;
+          updBub(bid, ae.content);
+        }
+      })();
+      return;
+    }
+  }
 
   const welc = document.getElementById('welc');
   if (welc) welc.classList.add('hid');
@@ -1856,13 +2551,31 @@ function rProv(mid) {
 }
 
 function getKey(prov) {
+  let val = '';
   // S.keys was loaded from ApiKeyVault during boot
-  if (S.keys[prov]) return S.keys[prov];
-  // Fallback: try plain localStorage keys used by the app
-  try {
-    const plain = JSON.parse(localStorage.getItem('cpu_api_keys') || localStorage.getItem('async_api_keys') || '{}');
-    if (plain[prov]) return plain[prov];
-  } catch {}
+  if (S.keys[prov]) val = S.keys[prov];
+  else if (prov === 'anthropic' && S.keys['claude']) val = S.keys['claude'];
+  else if (prov === 'claude' && S.keys['anthropic']) val = S.keys['anthropic'];
+  else if (prov === 'google' && S.keys['gemini']) val = S.keys['gemini'];
+  else if (prov === 'gemini' && S.keys['google']) val = S.keys['google'];
+
+  if (!val) {
+    // Fallback: try plain localStorage keys used by the app
+    try {
+      const plain = JSON.parse(localStorage.getItem('cpu_api_keys') || localStorage.getItem('async_api_keys') || '{}');
+      if (plain[prov]) val = plain[prov];
+      else if (prov === 'anthropic' && plain['claude']) val = plain['claude'];
+      else if (prov === 'claude' && plain['anthropic']) val = plain['anthropic'];
+      else if (prov === 'google' && plain['gemini']) val = plain['gemini'];
+      else if (prov === 'gemini' && plain['google']) val = plain['google'];
+    } catch {}
+  }
+
+  if (typeof val === 'string') {
+    val = val.trim();
+    if (val === 'undefined' || val === 'null') return '';
+    return val;
+  }
   return '';
 }
 
@@ -2063,6 +2776,14 @@ function md(txt) {
   // Paragraphs
   h = h.replace(/\n\n+/g, '</p><p>');
   h = h.replace(/\n/g, '<br>');
+
+  // YouTube embed helper
+  h = h.replace(/\[youtube-embed:([a-zA-Z0-9_-]{11})\]/g, (_, videoId) => {
+    return `<div class="yt-embed-container" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; max-width:100%; border-radius:12px; margin:12px 0; border:1px solid var(--border, rgba(99,102,241,0.2)); box-shadow:0 10px 30px rgba(0,0,0,0.3)">
+      <iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>`;
+  });
+
   return '<p>' + h + '</p>';
 }
 
@@ -2226,7 +2947,14 @@ function applyPreset(id) {
   const delBtn = document.getElementById('del-preset-btn');
   if (delBtn) delBtn.style.display = isCustomPreset ? 'inline-block' : 'none';
   
+  if (typeof SuperAgent !== 'undefined') {
+    const c = SuperAgent.config.get();
+    c.activePresetId = id;
+    SuperAgent.config.save(c);
+  }
+  
   loadReferenceGallery();
+  refreshSb();
 }
 
 function saveAsPreset() {
@@ -2331,7 +3059,9 @@ function applyPersonality() {
   c.persona = persona;
   c.avatarEmoji = avatarEmoji;
   c.systemPrompt = systemPrompt;
+  c.activePresetId = document.getElementById('preset-sel')?.value || 'custom';
   SuperAgent.config.save(c);
+  refreshSb();
   
   const emoji = c.avatarEmoji || '✦';
   const name  = c.persona || 'Aria';
@@ -2377,9 +3107,29 @@ async function loadReferenceGallery() {
   
   const presetId = document.getElementById('preset-sel')?.value || 'custom';
   let all = [];
-  try {
-    all = await ImageDb.getAll();
-  } catch (e) { console.warn('Failed to load gallery items', e); }
+  
+  // Pull from Firestore if available
+  if (typeof window.db !== 'undefined' && CloudStorage.isAvailable()) {
+    try {
+      const uid = AuthSystem.getCurrentSession()?.userId;
+      const snapshot = await window.db.collection('users').doc(uid).collection('gallery_metadata').get();
+      snapshot.forEach(doc => {
+        all.push(doc.data());
+      });
+      // Also update/sync locally to ImageDb
+      for (const item of all) {
+        await ImageDb.put(item.id, item);
+      }
+    } catch (e) {
+      console.warn('CloudSync: Gallery metadata pull failed', e);
+      // Fallback to local
+      try { all = await ImageDb.getAll(); } catch {}
+    }
+  } else {
+    try {
+      all = await ImageDb.getAll();
+    } catch (e) { console.warn('Failed to load gallery items', e); }
+  }
   
   const items = all
     .filter(item => item && item.presetId === presetId)
@@ -2451,7 +3201,7 @@ async function handleRefImageUpload(e) {
       }
     } catch(err) {
       console.error('Image analysis failed:', err);
-      toast('AI analysis failed. Using manual input.', 'er');
+      toast('AI analysis failed. Using manual description.', 'er');
     }
     
     let title = 'Uploaded Image';
@@ -2463,34 +3213,79 @@ async function handleRefImageUpload(e) {
           cleaned = cleaned.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '');
         }
         cleaned = cleaned.trim();
-        const parsed = JSON.parse(cleaned);
-        if (parsed.title) title = parsed.title;
-        if (parsed.description) description = parsed.description;
+        
+        try {
+          const parsed = JSON.parse(cleaned);
+          if (parsed.title) title = parsed.title;
+          if (parsed.description) description = parsed.description;
+        } catch(jsonErr) {
+          console.warn('JSON.parse failed, falling back to regex extraction for title/description', jsonErr);
+          // Fallback to regex key-value extraction for robustness against truncation
+          const titleMatch = cleaned.match(/"title"\s*:\s*"([^"]*)"/);
+          if (titleMatch) {
+            title = titleMatch[1];
+          } else {
+            const fallbackTitleMatch = cleaned.match(/"title"\s*:\s*"([^"]*)/);
+            if (fallbackTitleMatch) title = fallbackTitleMatch[1];
+          }
+
+          const descMatch = cleaned.match(/"description"\s*:\s*"([^"]*)"/);
+          if (descMatch) {
+            description = descMatch[1];
+          } else {
+            const fallbackDescMatch = cleaned.match(/"description"\s*:\s*"([^]*)$/);
+            if (fallbackDescMatch) {
+              let rawDesc = fallbackDescMatch[1].trim();
+              rawDesc = rawDesc.replace(/"\s*}\s*$/, '').replace(/"$/, '').trim();
+              description = rawDesc;
+            }
+          }
+        }
       } catch(parseErr) {
-        console.warn('Failed to parse AI description as JSON', parseErr, responseText);
+        console.warn('Failed to parse AI description', parseErr, responseText);
       }
     }
     
     const presetId = document.getElementById('preset-sel')?.value || 'custom';
     const itemId = `ref_gallery_${presetId}_${Date.now()}`;
+    
+    let finalImageUrl = dataUrl;
+    
+    // Upload to Cloud Storage if available
+    if (CloudStorage.isAvailable()) {
+      if (statusText) statusText.textContent = 'Uploading to online cloud storage…';
+      try {
+        finalImageUrl = await CloudStorage.uploadDataUrl(itemId, dataUrl, 'gallery');
+      } catch (e) {
+        console.warn('CloudSync: Gallery image upload failed', e);
+      }
+    }
+    
     const item = {
       id: itemId,
       presetId,
       title,
       description,
-      dataUrl,
+      dataUrl: finalImageUrl,
       mediaType: file.type,
       createdAt: Date.now()
     };
     
     try {
       await ImageDb.put(itemId, item);
+      
+      // Push metadata to Firestore
+      if (typeof window.db !== 'undefined' && CloudStorage.isAvailable()) {
+        const uid = AuthSystem.getCurrentSession()?.userId;
+        await window.db.collection('users').doc(uid).collection('gallery_metadata').doc(itemId).set(item);
+      }
+      
       toast('Image analyzed and added to gallery ✓', 'ok');
       if (statusEl) statusEl.style.display = 'none';
       await loadReferenceGallery();
       showRefDetails(itemId);
     } catch(dbErr) {
-      console.error('Failed to save to ImageDb:', dbErr);
+      console.error('Failed to save gallery item:', dbErr);
       toast('Failed to save image', 'er');
       if (statusEl) statusEl.style.display = 'none';
     }
@@ -2545,8 +3340,18 @@ async function saveRefDetails() {
   item.description = description;
   
   await ImageDb.put(_currentRefId, item);
-  toast('Reference image updated', 'ok');
   
+  // Update Firestore metadata if available
+  if (typeof window.db !== 'undefined' && CloudStorage.isAvailable()) {
+    try {
+      const uid = AuthSystem.getCurrentSession()?.userId;
+      await window.db.collection('users').doc(uid).collection('gallery_metadata').doc(_currentRefId).set(item);
+    } catch (e) {
+      console.warn('CloudSync: Gallery metadata update failed', e);
+    }
+  }
+  
+  toast('Reference image updated', 'ok');
   await loadReferenceGallery();
 }
 
@@ -2555,8 +3360,21 @@ async function deleteRefImage() {
   if (!confirm('Are you sure you want to delete this reference image?')) return;
   
   await ImageDb.delete(_currentRefId);
-  toast('Reference image deleted', 'ok');
   
+  // Delete from Firestore if available
+  if (typeof window.db !== 'undefined' && CloudStorage.isAvailable()) {
+    try {
+      const uid = AuthSystem.getCurrentSession()?.userId;
+      await window.db.collection('users').doc(uid).collection('gallery_metadata').doc(_currentRefId).delete();
+      try {
+        await window.storage.ref().child(`users/${uid}/gallery/${_currentRefId}`).delete();
+      } catch {}
+    } catch (e) {
+      console.warn('CloudSync: Gallery delete failed', e);
+    }
+  }
+  
+  toast('Reference image deleted', 'ok');
   closeRefDetails();
   await loadReferenceGallery();
 }
@@ -2660,6 +3478,7 @@ function toast(msg, type = '', dur = 3500) {
   w.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .2s'; setTimeout(() => el.remove(), 220); }, dur);
 }
+window.toast = toast;
 
 window.refreshSb = refreshSb;
 window.qi = qi;
@@ -2750,9 +3569,97 @@ window.toggleImagePopover = function() {
         const mSel = document.getElementById('imagine-model');
         if (mSel) mSel.value = s.imageGen.model;
       }
+      window.syncImaginePopoverFields();
     });
+    setTimeout(() => window._wireImg2ImgUpload?.(), 50);
     document.getElementById('imagine-prompt')?.focus();
   }
+};
+
+window.syncImaginePopoverFields = function() {
+  const provider = document.getElementById('imagine-provider')?.value;
+  const qtyRow    = document.getElementById('imagine-qty-row');
+  const falExtras = document.getElementById('imagine-fal-extras');
+
+  if (provider === 'fal') {
+    if (qtyRow)    qtyRow.style.display    = 'flex';
+    if (falExtras) falExtras.style.display = 'block';
+    window.syncImagineModeFields();
+  } else {
+    if (qtyRow)    qtyRow.style.display    = 'none';
+    if (falExtras) falExtras.style.display = 'none';
+  }
+};
+
+window.syncImagineModeFields = function() {
+  const mode = document.getElementById('imagine-mode')?.value;
+  const model = document.getElementById('imagine-model')?.value;
+  const refRow = document.getElementById('imagine-ref-row');
+  const strengthRow = document.getElementById('imagine-strength-row');
+  const modeRow = document.getElementById('imagine-mode')?.closest('.image-popover-row');
+  
+  const isImageToVideoModel = model && (
+    model.includes('image-to-video') ||
+    model.includes('lipsync')
+  );
+
+  if (refRow) {
+    if (isImageToVideoModel) {
+      refRow.style.display = 'block';
+      if (modeRow) modeRow.style.display = 'none';
+      if (strengthRow) strengthRow.style.display = 'none';
+    } else {
+      if (modeRow) modeRow.style.display = 'flex';
+      if (mode && mode !== 'text2img') {
+        refRow.style.display = 'block';
+        if (strengthRow) {
+          strengthRow.style.display = (mode === 'redux') ? 'none' : 'flex';
+        }
+      } else {
+        refRow.style.display = 'none';
+      }
+    }
+  }
+};
+
+window._wireImg2ImgUpload = function() {
+  const dropzone = document.getElementById('img2img-dropzone');
+  const fileInput = document.getElementById('img2img-file');
+  const label    = document.getElementById('img2img-dropzone-label');
+  const urlInput = document.getElementById('imagine-image-url');
+  if (!dropzone || !fileInput) return;
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      toast('Please select an image file', 'warning');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      if (urlInput) urlInput.value = dataUrl;
+      if (label) {
+        label.innerHTML = `<span style="color:var(--text)">✅ ${esc(file.name)} (${(file.size/1024).toFixed(0)} KB)</span>`;
+      }
+      dropzone.classList.add('img2img-loaded');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+  dropzone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropzone.classList.add('img2img-drag-over');
+  });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('img2img-drag-over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('img2img-drag-over');
+    const file = e.dataTransfer?.files?.[0];
+    if (file) handleFile(file);
+  });
 };
 
 window.updateImagineModels = async function() {
@@ -2762,7 +3669,14 @@ window.updateImagineModels = async function() {
   
   const MODELS = {
     bfl: [{id:'flux-pro-1.1',name:'Flux Pro 1.1'}, {id:'flux-pro',name:'Flux Pro'}, {id:'flux-dev',name:'Flux Dev'}],
-    fal: [{id:'fal-ai/flux-pro/v1.1',name:'Flux Pro 1.1'}, {id:'fal-ai/flux-pro',name:'Flux Pro'}, {id:'fal-ai/flux/dev',name:'Flux Dev'}],
+    fal: [
+      {id:'fal-ai/flux-pro/v1.1',name:'Flux Pro 1.1'},
+      {id:'fal-ai/flux-pro',name:'Flux Pro'},
+      {id:'fal-ai/flux/dev',name:'Flux Dev'},
+      {id:'fal-ai/kling-video/v3/turbo/pro/image-to-video',name:'Kling v3 Turbo Pro (Video)'},
+      {id:'fal-ai/sync-lipsync/v3/image-to-video',name:'Sync Lipsync v3 (Video)'},
+      {id:'xai/grok-imagine-video/v1.5/image-to-video',name:'Grok 1.5 Video'}
+    ],
     replicate: [{id:'black-forest-labs/flux-1.1-pro',name:'Flux 1.1 Pro'}, {id:'black-forest-labs/flux-pro',name:'Flux Pro'}, {id:'black-forest-labs/flux-dev',name:'Flux Dev'}],
     novita: [{id:'black-forest-labs/flux-1.1-pro',name:'Flux 1.1 Pro'}, {id:'black-forest-labs/flux-pro',name:'Flux Pro'}],
     comfyui: [{id:'flux-pro',name:'ComfyUI Workflow (Local)'}],
@@ -2771,6 +3685,7 @@ window.updateImagineModels = async function() {
   
   const models = MODELS[provider] || [];
   modelSel.innerHTML = models.map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('');
+  window.syncImaginePopoverFields();
 };
 
 window.generateFromPopover = function() {
@@ -2778,6 +3693,10 @@ window.generateFromPopover = function() {
   const provider = document.getElementById('imagine-provider')?.value;
   const model = document.getElementById('imagine-model')?.value;
   const size = document.getElementById('imagine-size')?.value;
+  const image_url = provider === 'fal' ? (document.getElementById('imagine-image-url')?.value.trim() || null) : null;
+  const qty = provider === 'fal' ? (document.getElementById('imagine-qty')?.value || '1') : '1';
+  const mode = provider === 'fal' ? (document.getElementById('imagine-mode')?.value || 'text2img') : 'text2img';
+  const strength = provider === 'fal' ? (document.getElementById('imagine-strength')?.value || '0.5') : '0.5';
   
   if (!prompt) {
     toast('🎨 Please enter an image description', 'warning');
@@ -2795,13 +3714,76 @@ window.generateFromPopover = function() {
   localStorage.setItem('cpu_settings', JSON.stringify(s));
   
   // Create an explicit instruction for Aria
-  const instruction = `Please generate an image of: ${prompt}\n\n(Use provider: ${provider}, model: ${model}, size: ${size})`;
+  let instruction = `Please generate an image/video of: ${prompt}\n\n(Use provider: ${provider}, model: ${model}, size: ${size}`;
+  if (image_url) {
+    instruction += `, image_url: ${image_url.startsWith('data:') ? 'Attached base64 image' : image_url}`;
+  }
+  instruction += `)`;
   
   const inp = document.getElementById('inp');
   if (inp) inp.value = instruction;
   window.sendMsg();
 };
+window.updatePresetsDropdown = updatePresetsDropdown;
 window.openImageGallery = openImageGallery;
+window.toggleView = toggleView;
+window.setRefImageAsBackground = setRefImageAsBackground;
+window.exitCinematicMode = exitCinematicMode;
+
+    function toggleView(viewName) {
+      const chatSidebar = document.getElementById('chat-sidebar-inner');
+      const chatMain = document.getElementById('chat-main-inner');
+      const imgGenSidebar = document.getElementById('img-gen-sidebar-inner');
+      const imgGenMain = document.getElementById('img-gen-main-inner');
+      const vidGenSidebar = document.getElementById('vid-gen-sidebar-inner');
+      const vidGenMain = document.getElementById('vid-gen-main-inner');
+      
+      chatSidebar.style.display = 'none';
+      chatMain.style.display = 'none';
+      imgGenSidebar.style.display = 'none';
+      imgGenMain.style.display = 'none';
+      vidGenSidebar.style.display = 'none';
+      vidGenMain.style.display = 'none';
+      
+      if (viewName === 'chat') {
+        chatSidebar.style.display = 'block';
+        chatMain.style.display = 'flex';
+      } else if (viewName === 'image') {
+        imgGenSidebar.style.display = 'block';
+        imgGenMain.style.display = 'flex';
+      } else if (viewName === 'video') {
+        vidGenSidebar.style.display = 'block';
+        vidGenMain.style.display = 'flex';
+      }
+
+      if (typeof closeNav === 'function') {
+        closeNav();
+      }
+    }
+
+    function setRefImageAsBackground() {
+      const imgSrc = document.getElementById('ref-detail-img').src;
+      if (!imgSrc) return;
+      
+      const bg = document.getElementById('cinematic-bg');
+      bg.style.backgroundImage = `url('${imgSrc}')`;
+      bg.style.display = 'block';
+      
+      document.body.classList.add('cinematic-mode');
+      
+      const name = document.getElementById('sys-name').value || 'AI Character';
+      document.getElementById('cine-name').innerText = name;
+      document.getElementById('cine-avatar').src = imgSrc;
+      
+      closeRefDetails();
+      if (typeof closeNav === 'function') closeNav();
+    }
+
+    function exitCinematicMode() {
+      document.body.classList.remove('cinematic-mode');
+      document.getElementById('cinematic-bg').style.display = 'none';
+    }
 </script>
+
 </body>
 </html>

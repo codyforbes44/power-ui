@@ -87,6 +87,9 @@ export const ImageRouter = (() => {
       { id: 'fal-ai/flux-2-pro',     name: 'Flux 2 Pro' },
       { id: 'fal-ai/flux-lora',      name: 'Flux Dev with LoRA' },
       { id: 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video', name: 'Kling v2.5 Turbo (Video)' },
+      { id: 'fal-ai/kling-video/v3/turbo/pro/image-to-video', name: 'Kling v3 Turbo Pro (Video)' },
+      { id: 'fal-ai/sync-lipsync/v3/image-to-video', name: 'Sync Lipsync v3 (Video)' },
+      { id: 'xai/grok-imagine-video/v1.5/image-to-video', name: 'Grok 1.5 Video' },
       { id: 'xai/grok-imagine-image', name: 'Grok Imagine Image' },
       { id: 'fal-ai/z-image/turbo',  name: 'Z-Image Turbo' }
     ],
@@ -317,6 +320,71 @@ export const ImageRouter = (() => {
     throw new Error(`Generation timed out after ${Math.round(MAX_RETRIES * POLL_INTERVAL / 1000)}s`);
   }
 
+  function dataURItoBlob(dataURI) {
+    const parts = dataURI.split(',');
+    const byteString = atob(parts[1]);
+    const mimeString = parts[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  }
+
+  async function uploadToFalCDN(dataUri, apiKey, signal) {
+    if (!dataUri.startsWith('data:')) {
+      return dataUri;
+    }
+    const blob = dataURItoBlob(dataUri);
+    const mimeType = blob.type || 'image/png';
+    const ext = mimeType.split('/')[1] || 'png';
+    const fileName = `upload-${Date.now()}.${ext}`;
+
+    const initiateResp = await cloudFetch({
+      provider: 'fal',
+      baseUrl: 'https://fal.run',
+      path: '/storage/upload/initiate',
+      headers: {
+        'Authorization': `Key ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: {
+        file_name: fileName,
+        content_type: mimeType
+      },
+      method: 'POST',
+      signal
+    });
+
+    if (!initiateResp.ok) {
+      const errText = await initiateResp.text().catch(() => '');
+      throw new Error(`Failed to initiate fal.ai upload: ${initiateResp.status} ${errText}`);
+    }
+
+    const initData = await initiateResp.json();
+    const { upload_url, file_url } = initData;
+    if (!upload_url || !file_url) {
+      throw new Error(`Invalid initiate response from fal.ai storage: ${JSON.stringify(initData)}`);
+    }
+
+    const putResp = await fetch(upload_url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': mimeType
+      },
+      body: blob,
+      signal
+    });
+
+    if (!putResp.ok) {
+      const errText = await putResp.text().catch(() => '');
+      throw new Error(`Failed to upload file bytes to GCS: ${putResp.status} ${errText}`);
+    }
+
+    return file_url;
+  }
+
   // ---------------------------------------------------------------------------
   // Provider: fal.ai
   // ---------------------------------------------------------------------------
@@ -330,38 +398,67 @@ export const ImageRouter = (() => {
     const FAL_BASE = 'https://fal.run';
     const headers = { 'Authorization': `Key ${apiKey}` };
 
-    let endpoint = `/${model}`;
-    const body = {
-      prompt,
-      image_size: { width, height },
-      num_inference_steps: steps,
-      num_images: num_images || 1
-    };
-
-    if (enable_safety_checker !== undefined) {
-      body.enable_safety_checker = enable_safety_checker;
-    }
-    if (safety_tolerance !== undefined) {
-      body.safety_tolerance = safety_tolerance;
-    }
-
-    if (image_url) {
-      if (mode === 'img2img') {
-        endpoint = '/fal-ai/flux/dev/image-to-image';
-        body.image_url = image_url;
-        body.strength = strength !== undefined ? strength : 0.5;
-      } else if (mode === 'pose' || mode === 'controlnet') {
-        endpoint = '/fal-ai/flux-controlnet';
-        body.controlnet_model = control_model || 'openpose';
-        body.control_image_url = image_url;
-        body.controlnet_strength = strength !== undefined ? strength : 0.5;
-      } else if (mode === 'redux') {
-        endpoint = '/fal-ai/flux/dev/redux';
-        body.image_url = image_url;
+    let uploadedImageUrl = image_url;
+    if (image_url && image_url.startsWith('data:')) {
+      try {
+        uploadedImageUrl = await uploadToFalCDN(image_url, apiKey, signal);
+        console.log("Successfully uploaded reference image to fal CDN:", uploadedImageUrl);
+      } catch (err) {
+        console.error("Fal upload helper failed, falling back to raw data URI:", err);
       }
     }
 
-    if (seed !== -1) body.seed = seed;
+    let endpoint = `/${model}`;
+    let body = {};
+
+    const isImageToVideo = model.includes('image-to-video') || model.includes('lipsync');
+
+    if (isImageToVideo) {
+      body = {
+        image_url: uploadedImageUrl || "",
+        prompt: prompt || ""
+      };
+      if (model.includes('lipsync')) {
+        let audio_url = "https://github.com/rafaelreis-hotmart/Audio-Sample-files/raw/master/sample.mp3";
+        const audioMatch = prompt.match(/(https?:\/\/[^\s]+(?:\.mp3|\.wav|\.m4a|\.ogg))/i);
+        if (audioMatch) {
+          audio_url = audioMatch[1];
+        }
+        body.audio_url = audio_url;
+      }
+    } else {
+      body = {
+        prompt,
+        image_size: { width, height },
+        num_inference_steps: steps,
+        num_images: num_images || 1
+      };
+
+      if (enable_safety_checker !== undefined) {
+        body.enable_safety_checker = enable_safety_checker;
+      }
+      if (safety_tolerance !== undefined) {
+        body.safety_tolerance = safety_tolerance;
+      }
+
+      if (uploadedImageUrl) {
+        if (mode === 'img2img') {
+          endpoint = '/fal-ai/flux/dev/image-to-image';
+          body.image_url = uploadedImageUrl;
+          body.strength = strength !== undefined ? strength : 0.5;
+        } else if (mode === 'pose' || mode === 'controlnet') {
+          endpoint = '/fal-ai/flux-controlnet';
+          body.controlnet_model = control_model || 'openpose';
+          body.control_image_url = uploadedImageUrl;
+          body.controlnet_strength = strength !== undefined ? strength : 0.5;
+        } else if (mode === 'redux') {
+          endpoint = '/fal-ai/flux/dev/redux';
+          body.image_url = uploadedImageUrl;
+        }
+      }
+
+      if (seed !== -1) body.seed = seed;
+    }
 
     const resp = await cloudFetch({
       provider: 'fal',

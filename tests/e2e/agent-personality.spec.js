@@ -255,3 +255,147 @@ test('Agent-chat session can retrieve and access items from Knowledge Base and M
   expect(interceptedSystemPrompt).toContain('Woody Ford Address');
   expect(interceptedSystemPrompt).toContain('123 Ford Street, Madill, OK');
 });
+
+test('Each personality configuration has exclusive containment of its Knowledge Base and Memory', async ({ loggedInPage: page }) => {
+  page.on('console', msg => console.log(`BROWSER LOG [${msg.type()}]:`, msg.text()));
+  page.on('pageerror', err => console.error('BROWSER ERROR:', err));
+
+  // 1. Configure a mock Anthropic API key
+  await saveApiKey(page, 'anthropic', 'sk-ant-test-key-not-real');
+
+  // 2. Go to agent-chat.html and select "default" preset (Personality)
+  await page.goto('/app/agent-chat.html');
+  await page.waitForURL('**/agent-chat.html');
+  
+  await page.click('#syd-btn'); // Open personality drawer
+  const presetSelect = page.locator('#preset-sel');
+  await presetSelect.selectOption('default');
+  await page.click('button:has-text("Apply & Save")');
+
+  // 3. Go to admin.html and add KB and Memory for Aria (default)
+  await page.goto('/app/admin.html');
+  await page.waitForURL('**/admin.html');
+  
+  const hamburger = page.locator('button[onclick="AdminApp.toggleSidebar()"]');
+  if (await hamburger.isVisible()) await hamburger.click();
+  await page.click('#nav-item-agent');
+
+  // KB tab upload
+  await page.click('#agent-tabbtn-kb');
+  await page.setInputFiles('#kb-file-input', {
+    name: 'aria-notes.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Aria special knowledge: The Opera House is famous.')
+  });
+  await expect(page.locator('.kb-doc-title')).toContainText('aria-notes.txt');
+
+  // Memory tab add
+  await page.click('#agent-tabbtn-memory');
+  await page.click('button:has-text("+ Add")');
+  await page.fill('#mem-new-key', 'Aria Fact');
+  await page.fill('#mem-new-val', 'Aria loves stargazing.');
+  await page.click('button[onclick="AgentPanel.saveNewMemory()"]');
+  await expect(page.locator('#mem-list')).toContainText('Aria Fact');
+
+  // 4. Return to agent-chat.html, switch preset to "wf-marketing"
+  await page.goto('/app/agent-chat.html');
+  await page.waitForURL('**/agent-chat.html');
+  
+  // Verify Aria stats count
+  await expect(page.locator('#stk')).toContainText('1');
+  await expect(page.locator('#stme')).toContainText('1');
+
+  await page.click('#syd-btn'); // Open personality drawer
+  await presetSelect.selectOption('wf-marketing');
+  await page.click('button:has-text("Apply & Save")');
+
+  // Verify stats reset for Woody Ford Marketing (containment proof!)
+  await expect(page.locator('#stk')).toContainText('0');
+  await expect(page.locator('#stme')).toContainText('0');
+
+  // 5. Add Woody Ford KB and Memory
+  await page.goto('/app/admin.html');
+  await page.waitForURL('**/admin.html');
+  if (await hamburger.isVisible()) await hamburger.click();
+  await page.click('#nav-item-agent');
+
+  // KB tab upload
+  await page.click('#agent-tabbtn-kb');
+  await page.setInputFiles('#kb-file-input', {
+    name: 'wf-notes.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Woody Ford special marketing knowledge: Madill OK is the hometown.')
+  });
+  await expect(page.locator('.kb-doc-title')).toContainText('wf-notes.txt');
+
+  // Memory tab add
+  await page.click('#agent-tabbtn-memory');
+  await page.click('button:has-text("+ Add")');
+  await page.fill('#mem-new-key', 'Woody Ford Fact');
+  await page.fill('#mem-new-val', 'Woody Ford loves trucks.');
+  await page.click('button[onclick="AgentPanel.saveNewMemory()"]');
+  await expect(page.locator('#mem-list')).toContainText('Woody Ford Fact');
+
+  // 6. Return to agent-chat.html and test containment
+  await page.goto('/app/agent-chat.html');
+  await page.waitForURL('**/agent-chat.html');
+
+  // Woody Ford is active, stats should show 1 each
+  await expect(page.locator('#stk')).toContainText('1');
+  await expect(page.locator('#stme')).toContainText('1');
+
+  // Mock message generation & check prompt containment
+  let interceptedSystemPrompt = '';
+  await page.route('https://api.anthropic.com/v1/messages', async (route) => {
+    const request = route.request();
+    const postData = request.postDataJSON();
+    interceptedSystemPrompt = postData.system || '';
+    
+    const prompt = (postData.messages?.[postData.messages.length - 1]?.content || '').toLowerCase();
+    const replyText = prompt.includes('aria') ? 'Aria loves stargazing' : 'Madill OK';
+    
+    const sse = [
+      `data: ${JSON.stringify({ type: 'message_start', message: { usage: { input_tokens: 50 } } })}`,
+      `data: ${JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text: replyText } })}`,
+      `data: ${JSON.stringify({ type: 'message_delta', usage: { output_tokens: 10 } })}`,
+      `data: ${JSON.stringify({ type: 'message_stop' })}`,
+    ];
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: sse.join('\n\n') + '\n\n',
+    });
+  });
+
+  // Send message for Woody Ford Marketing
+  await page.fill('#inp', 'Tell me about Woody Ford Fact');
+  await page.click('#snd');
+  await expect(page.locator('#msgs')).toContainText('Madill OK');
+
+  // Verify Woody Ford prompt contains Woody Ford knowledge, not Aria
+  expect(interceptedSystemPrompt).toContain('Woody Ford special marketing knowledge');
+  expect(interceptedSystemPrompt).toContain('Woody Ford Fact');
+  expect(interceptedSystemPrompt).not.toContain('Aria special knowledge');
+  expect(interceptedSystemPrompt).not.toContain('Aria Fact');
+
+  // Reset interceptor, switch back to Aria (default)
+  interceptedSystemPrompt = '';
+  await page.click('#syd-btn');
+  await presetSelect.selectOption('default');
+  await page.click('button:has-text("Apply & Save")');
+
+  // Aria active, stats should show 1 each
+  await expect(page.locator('#stk')).toContainText('1');
+  await expect(page.locator('#stme')).toContainText('1');
+
+  // Send message for Aria
+  await page.fill('#inp', 'Tell me about Aria Fact');
+  await page.click('#snd');
+  await expect(page.locator('#msgs')).toContainText('Aria loves stargazing');
+
+  // Verify Aria prompt contains Aria knowledge, not Woody Ford
+  expect(interceptedSystemPrompt).toContain('Aria special knowledge');
+  expect(interceptedSystemPrompt).toContain('Aria Fact');
+  expect(interceptedSystemPrompt).not.toContain('Woody Ford special marketing knowledge');
+  expect(interceptedSystemPrompt).not.toContain('Woody Ford Fact');
+});

@@ -1200,6 +1200,20 @@ export const ApiKeyVault = (() => {
     }
   }
 
+  function sanitizeKeys(keys) {
+    if (!keys || typeof keys !== 'object') return {};
+    const sanitized = {};
+    for (const [k, v] of Object.entries(keys)) {
+      if (typeof v === 'string') {
+        const cleaned = v.trim();
+        if (cleaned && cleaned !== 'undefined' && cleaned !== 'null') {
+          sanitized[k] = cleaned;
+        }
+      }
+    }
+    return sanitized;
+  }
+
   /** Decrypt and return apiKeys object, or {} if unavailable/locked. */
   async function load() {
     const stored = localStorage.getItem(VAULT_LS);
@@ -1213,7 +1227,8 @@ export const ApiKeyVault = (() => {
         key,
         new Uint8Array(data)
       );
-      return JSON.parse(new TextDecoder().decode(plain));
+      const raw = JSON.parse(new TextDecoder().decode(plain));
+      return sanitizeKeys(raw);
     } catch { return {}; }
   }
 
@@ -1242,7 +1257,8 @@ export const ApiKeyVault = (() => {
       const plain = await crypto.subtle.decrypt(
         { name: 'AES-GCM', iv: new Uint8Array(iv) }, key, new Uint8Array(data)
       );
-      return JSON.parse(new TextDecoder().decode(plain));
+      const raw = JSON.parse(new TextDecoder().decode(plain));
+      return sanitizeKeys(raw);
     } catch { return {}; }
   }
 
@@ -1330,6 +1346,115 @@ export const ApiKeyVault = (() => {
     setWebSearchKey, getWebSearchKey, hasWebSearchKey,
   };
 })();
+// ──────────────────────────────────────────────────────────
+// CloudStorage — Firebase Storage operations
+// ──────────────────────────────────────────────────────────
+export const CloudStorage = (() => {
+  'use strict';
+
+  function dataUrlToBlob(dataUrl) {
+    const parts = dataUrl.split(',');
+    if (parts.length < 2) return null;
+    const mimeMatch = parts[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+    const bstr = atob(parts[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  }
+
+  async function uploadBlob(id, blob, folder = 'images') {
+    const session = AuthSystem.getCurrentSession();
+    const uid = session && session.userId;
+    if (!uid) {
+      throw new Error('User is not authenticated');
+    }
+
+    let bucket = '';
+    let idToken = '';
+
+    if (typeof firebase !== 'undefined' && firebase.app) {
+      try {
+        bucket = firebase.app().options.storageBucket;
+        if (firebase.auth().currentUser) {
+          idToken = await firebase.auth().currentUser.getIdToken();
+        }
+      } catch (e) {
+        console.warn('Could not read firebase configuration or token:', e);
+      }
+    }
+
+    if (!bucket) {
+      bucket = 'async-power-ui-2026.appspot.com';
+    }
+
+    // Convert Blob to base64 for JSON proxy transmission
+    const base64Data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const parts = reader.result.split(',');
+        resolve(parts[1]);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+    const response = await fetch('/.netlify/functions/proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        provider: 'firebase_storage',
+        path: '/o',
+        payload: {
+          id,
+          folder,
+          bucket,
+          userId: uid,
+          base64Data,
+          contentType: blob.type || 'image/png',
+          idToken
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Proxy upload failed: ${errText}`);
+    }
+
+    const resJson = await response.json();
+    if (!resJson.downloadUrl) {
+      throw new Error('Proxy upload returned no downloadUrl');
+    }
+
+    return resJson.downloadUrl;
+  }
+
+  async function uploadDataUrl(id, dataUrl, folder = 'images') {
+    const blob = dataUrlToBlob(dataUrl);
+    if (!blob) throw new Error('Invalid Data URL');
+    return await uploadBlob(id, blob, folder);
+  }
+
+  function isAvailable() {
+    const session = AuthSystem.getCurrentSession();
+    return !!(session && session.userId);
+  }
+
+  return {
+    uploadBlob,
+    uploadDataUrl,
+    isAvailable,
+    dataUrlToBlob
+  };
+})();
+window.CloudStorage = CloudStorage;
+
 window.AuthSystem = AuthSystem;
 window.ApiKeyVault = ApiKeyVault;
 

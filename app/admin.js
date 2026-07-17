@@ -969,6 +969,17 @@ python3 cli.py export --format json</pre>
       testPath: '/user',
       testHeaders: (k) => ({ 'Authorization': `Bearer ${k}`, 'User-Agent': 'Async-App' }),
     },
+    {
+      id: 'youtube',
+      name: 'YouTube API Key',
+      icon: '📺',
+      color: '#ff0000',
+      placeholder: 'AIzaSy…',
+      baseUrl: 'https://www.googleapis.com/youtube/v3',
+      docsUrl: 'https://console.cloud.google.com/apis/credentials',
+      desc: 'YouTube Data API v3 key. Used for searching videos in the /play slash command and agent tool.',
+      testPath: '/search?part=snippet&q=test&maxResults=1&key=KEY',
+    },
   ];
 
   // ── ComfyUI local URL (not a key — a URL setting) ────────
@@ -1197,6 +1208,35 @@ python3 cli.py export --format json</pre>
     sectionHeading('🐙 Developer Tokens', 'GitHub and other platform credentials');
     DEV_TOKEN_DEFS.forEach(p => renderKeyCard(p, !!(storedKeys[p.id]?.trim())));
 
+    // YouTube Cookies Card
+    const ytCookiesVal = storedKeys['youtube_cookies'] || '';
+    const ytCookiesCard = document.createElement('div');
+    ytCookiesCard.className = 'api-key-card';
+    ytCookiesCard.id = 'api-card-youtube_cookies';
+    ytCookiesCard.style.setProperty('--provider-color', '#ff0000');
+    ytCookiesCard.innerHTML = `
+      <div class="api-key-card-header">
+        <div class="api-key-provider-icon" style="color:#ff0000">🍪</div>
+        <div>
+          <div class="api-key-provider-name">YouTube Cookies</div>
+          <div class="api-key-provider-url">Required for /playlist actions</div>
+          <div class="api-key-provider-desc">Cookies header string (e.g. "SID=...; HSID=...") sourced from your browser session to create/manage playlists.</div>
+        </div>
+        <div class="api-key-status-pill ${ytCookiesVal ? 'present' : 'missing'}" id="pill-youtube_cookies">
+          <div class="api-key-status-dot"></div>
+          ${ytCookiesVal ? 'Configured' : 'Not set'}
+        </div>
+      </div>
+      <div class="api-key-input-row">
+        <textarea class="api-key-input" id="key-input-youtube_cookies" rows="3"
+          placeholder="SID=xxxx; HSID=xxxx; ..." style="font-family:monospace; resize:vertical; width:100%; border-radius:6px; padding:8px; background:rgba(0,0,0,0.2); border:1px solid var(--border)" autocomplete="off">${esc(ytCookiesVal)}</textarea>
+      </div>
+      <div class="api-key-actions">
+        <button class="btn-sm primary" onclick="AdminApp.saveYoutubeCookies()">Save Cookies</button>
+      </div>
+    `;
+    grid.appendChild(ytCookiesCard);
+
     // ComfyUI URL (not a key — a URL setting)
     const comfyUrlVal = _getImageSetting('comfyUrl') || 'http://127.0.0.1:8188';
     const comfyCard = document.createElement('div');
@@ -1367,6 +1407,10 @@ python3 cli.py export --format json</pre>
           path = '/v1beta/models';
           queryParams = { key };
           apiKey = '';
+        } else if (pDef.id === 'youtube') {
+          path = '/videos';
+          queryParams = { part: 'snippet', chart: 'mostPopular', maxResults: '1', key };
+          apiKey = '';
         }
 
         res = await fetch('/.netlify/functions/proxy', {
@@ -1382,8 +1426,11 @@ python3 cli.py export --format json</pre>
           })
         });
       } else {
-        let url = pDef.baseUrl + (pDef.id === 'google' ? pDef.testPath.replace('KEY', encodeURIComponent(key)) : pDef.testPath);
-        const headers = pDef.testHeaders(key);
+        let url = pDef.baseUrl + pDef.testPath;
+        if (pDef.id === 'google' || pDef.id === 'youtube') {
+          url = pDef.baseUrl + pDef.testPath.replace('KEY', encodeURIComponent(key));
+        }
+        const headers = pDef.testHeaders ? pDef.testHeaders(key) : {};
         res = await fetch(url, { method: 'GET', headers });
       }
 
@@ -1402,6 +1449,27 @@ python3 cli.py export --format json</pre>
     } finally {
       btn.disabled = false;
       if (spin) spin.style.display = 'none';
+    }
+  }
+
+  async function saveYoutubeCookies() {
+    const input = document.getElementById('key-input-youtube_cookies');
+    if (!input) return;
+    const keyVal = input.value.trim();
+    try {
+      let storedKeys = {};
+      try { storedKeys = await ApiKeyVault.load() || {}; } catch {}
+      storedKeys['youtube_cookies'] = keyVal;
+      await ApiKeyVault.save(storedKeys);
+
+      const pill = document.getElementById('pill-youtube_cookies');
+      if (pill) {
+        pill.className = `api-key-status-pill ${keyVal ? 'present' : 'missing'}`;
+        pill.innerHTML = `<div class="api-key-status-dot"></div>${keyVal ? 'Configured' : 'Not set'}`;
+      }
+      toast(`YouTube Cookies ${keyVal ? 'saved' : 'cleared'}.`, 'success');
+    } catch (e) {
+      toast('Failed to save cookies: ' + e.message, 'error');
     }
   }
 
@@ -1961,6 +2029,7 @@ python3 cli.py export --format json</pre>
     toggleKeyReveal,
     saveApiKey,
     testApiKey,
+    saveYoutubeCookies,
     saveComfyUrl,
     testComfyUrl,
     saveImageDefaults,

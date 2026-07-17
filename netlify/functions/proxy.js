@@ -28,6 +28,8 @@ const PROVIDER_BASE = {
   groq:      'https://api.groq.com/openai',
   mistral:   'https://api.mistral.ai',
   google:    'https://generativelanguage.googleapis.com',
+  youtube:   'https://www.googleapis.com/youtube/v3',
+  youtube_innertube: 'https://www.youtube.com',
   // Image generation providers
   bfl:          'https://api.bfl.ml',
   fal:          'https://fal.run',
@@ -43,6 +45,7 @@ const PROVIDER_BASE = {
   // Super-Agent tools
   fetch_url:    '__DYNAMIC__',  // URL is provided in payload.url
   wikipedia:    'https://en.wikipedia.org',
+  firebase_storage: '__DYNAMIC__',
 };
 
 // CORS headers are built per-request against the validated caller Origin —
@@ -267,6 +270,41 @@ async function fetchProvider(url, upstreamHeaders, payload, method = 'POST') {
   });
 }
 
+function uploadToFirebaseREST(bucket, objectPath, contentType, buffer, idToken) {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    const uploadUrl = `/v0/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(objectPath)}`;
+    const headers = {
+      'Content-Type': contentType || 'image/png',
+      'Content-Length': buffer.length
+    };
+    if (idToken) {
+      headers['Authorization'] = `Bearer ${idToken}`;
+    }
+
+    const options = {
+      hostname: 'firebasestorage.googleapis.com',
+      port: 443,
+      path: uploadUrl,
+      method: 'POST',
+      headers
+    };
+
+    const chunks = [];
+    const req = https.request(options, (res) => {
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => {
+        const bodyStr = Buffer.concat(chunks).toString('utf8');
+        resolve({ status: res.statusCode, body: bodyStr });
+      });
+    });
+
+    req.on('error', reject);
+    req.write(buffer);
+    req.end();
+  });
+}
+
 exports.handler = async function(event) {
   const startedAt = Date.now();
 
@@ -361,6 +399,33 @@ exports.handler = async function(event) {
       headers: { ...cors, 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, url: targetUrl, status: step.status }),
     };
+  }
+
+  if (provider === 'firebase_storage') {
+    const { id, folder, bucket, userId, base64Data, contentType, idToken } = payload || {};
+    if (!id || !folder || !bucket || !userId || !base64Data) {
+      return response(400, { error: 'firebase_storage: missing required fields in payload' });
+    }
+
+    try {
+      const buffer = Buffer.from(base64Data, 'base64');
+      const objectPath = `users/${userId}/${folder}/${id}`;
+      const uploadRes = await uploadToFirebaseREST(bucket, objectPath, contentType, buffer, idToken);
+
+      if (uploadRes.status < 200 || uploadRes.status >= 300) {
+        log({ event: 'firebase_storage_upload_failed', status: uploadRes.status, body: uploadRes.body });
+        return response(uploadRes.status, { error: `Firebase Storage upload failed: ${uploadRes.body}` });
+      }
+
+      const metadata = JSON.parse(uploadRes.body);
+      const downloadToken = (metadata.downloadTokens || '').split(',')[0];
+      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(objectPath)}?alt=media${downloadToken ? `&token=${downloadToken}` : ''}`;
+
+      return response(200, { downloadUrl, name: metadata.name });
+    } catch (e) {
+      log({ event: 'firebase_storage_proxy_error', message: e.message });
+      return response(500, { error: `Firebase Storage proxy error: ${e.message}` });
+    }
   }
 
   // ── DuckDuckGo instant answers (GET, no auth) ────────────
@@ -515,14 +580,21 @@ exports.handler = async function(event) {
     upstreamHeaders['User-Agent']    = 'Async-App/1.0';
     upstreamHeaders['Accept']        = 'application/vnd.github+json';
     upstreamHeaders['X-GitHub-Api-Version'] = '2022-11-28';
+  } else if (provider === 'youtube') {
+    // YouTube Data API v3 — key is passed in query param (handled by caller via queryParams)
+  } else if (provider === 'youtube_innertube') {
+    upstreamHeaders['Cookie'] = apiKey || '';
+    upstreamHeaders['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    upstreamHeaders['Referer'] = 'https://www.youtube.com/';
+    upstreamHeaders['Origin'] = 'https://www.youtube.com';
+    upstreamHeaders['X-Youtube-Client-Name'] = '1';
+    upstreamHeaders['X-Youtube-Client-Version'] = '2.20240101.00.00';
   } else if (provider === 'brave') {
-    // Brave Search API — key in X-Subscription-Token header
     upstreamHeaders['Accept']                = 'application/json';
     upstreamHeaders['Accept-Encoding']       = 'gzip';
     upstreamHeaders['X-Subscription-Token'] = apiKey || '';
   } else if (provider === 'serpapi') {
     // SerpAPI — key goes in query param (handled by caller via queryParams)
-    // No auth header needed; key is passed as api_key query param
   } else if (provider !== 'google' && provider !== 'ddg') {
     // openai, groq, mistral — Bearer token
     upstreamHeaders['Authorization'] = `Bearer ${apiKey || ''}`;

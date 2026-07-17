@@ -138,7 +138,10 @@ export async function renderAgentPanel() {
             { id: 'mistral', label: 'Mistral API Key' },
           ].map(p => `
             <div class="agent-field">
-              <label>${p.label}</label>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+                <label style="margin:0">${p.label}</label>
+                ${ariaKeys[p.id] ? `<span class="agent-clear-link" onclick="AgentPanel.clearAriaKey('${p.id}')" style="font-size:11px; color:var(--admin-danger, #ff4444); cursor:pointer; text-decoration:underline">Clear</span>` : ''}
+              </div>
               <input type="password" id="aria-key-${p.id}" class="admin-input" placeholder="${ariaKeys[p.id] ? '•••••••• (saved)' : 'Inherit from platform…'}" />
             </div>
           `).join('')}
@@ -153,7 +156,10 @@ export async function renderAgentPanel() {
             { id: 'novita', label: 'Novita API Key' }
           ].map(p => `
             <div class="agent-field">
-              <label>${p.label}</label>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+                <label style="margin:0">${p.label}</label>
+                ${ariaKeys[p.id] ? `<span class="agent-clear-link" onclick="AgentPanel.clearAriaKey('${p.id}')" style="font-size:11px; color:var(--admin-danger, #ff4444); cursor:pointer; text-decoration:underline">Clear</span>` : ''}
+              </div>
               <input type="password" id="aria-key-${p.id}" class="admin-input" placeholder="${ariaKeys[p.id] ? '•••••••• (saved)' : 'Inherit from platform…'}" />
             </div>
           `).join('')}
@@ -581,9 +587,18 @@ export const AgentPanel = {
     let changed = false;
     for (const p of providers) {
       const el = _ap_el('aria-key-' + p);
-      if (el && el.value.trim() !== '') {
-        keys[p] = el.value.trim();
-        changed = true;
+      if (el) {
+        let val = el.value.trim();
+        if (val !== '') {
+          // Strip potential copy-paste prefixes
+          val = val
+            .replace(/^Key\s+/i, '')
+            .replace(/^Token\s+/i, '')
+            .replace(/^Bearer\s+/i, '')
+            .trim();
+          keys[p] = val;
+          changed = true;
+        }
       }
     }
     if (changed) {
@@ -592,6 +607,16 @@ export const AgentPanel = {
       renderAgentPanel();
     } else {
       AdminApp?.toast?.('No new keys entered', 'info', 1500);
+    }
+  },
+
+  async clearAriaKey(providerId) {
+    const keys = await ApiKeyVault.loadAria() || {};
+    if (keys[providerId] !== undefined) {
+      delete keys[providerId];
+      await ApiKeyVault.saveAria(keys);
+      AdminApp?.toast?.(`${providerId} API key cleared ✓`, 'success', 1500);
+      renderAgentPanel();
     }
   },
 

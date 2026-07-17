@@ -72,3 +72,73 @@ test('generating an image via the Imagine popover submits, polls, and renders th
   await expect(page.locator('.image-gen-provider')).toContainText('bfl');
   expect(pollCount).toBeGreaterThanOrEqual(2);
 });
+
+test('generating a video via the Imagine popover with fal provider renders video tag', async ({ loggedInPage: page }) => {
+  await saveApiKey(page, 'fal', 'fal-test-key-not-real');
+  await page.goto('/app/');
+  await expect(page.locator('#message-input')).toBeVisible();
+
+  await page.route('https://fal.run/storage/upload/initiate', async (route) => {
+    if (route.request().method() === 'OPTIONS') return fulfillCors(route, {});
+    expect(route.request().method()).toBe('POST');
+    await fulfillCors(route, {
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        upload_url: 'https://storage.googleapis.com/test-bucket/upload-123',
+        file_url: 'https://fal.run/generated-uploaded.jpg'
+      }),
+    });
+  });
+
+  await page.route('https://storage.googleapis.com/test-bucket/upload-123', async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: CORS_HEADERS });
+      return;
+    }
+    expect(route.request().method()).toBe('PUT');
+    await route.fulfill({ status: 200, headers: CORS_HEADERS });
+  });
+
+  await page.route('https://fal.run/fal-ai/kling-video/v3/turbo/pro/image-to-video', async (route) => {
+    if (route.request().method() === 'OPTIONS') return fulfillCors(route, {});
+    expect(route.request().method()).toBe('POST');
+    // Ensure the payload contains the uploaded public CDN image_url, not the raw base64 string
+    const reqBody = JSON.parse(route.request().postData());
+    expect(reqBody.image_url).toBe('https://fal.run/generated-uploaded.jpg');
+    
+    await fulfillCors(route, {
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ video: { url: 'https://fal.run/generated.mp4' }, seed: 123 }),
+    });
+  });
+
+  const onePxMp4 = Buffer.from(
+    'AAAAIGZ0eXBtcDQyAAAAAG1wNDJpc29tYXZjMQAAAAh0cmVmAAAAAGZyZWUAAAAIbWRhdAAAAAhzaWR4AAAAAG1ldGE=',
+    'base64'
+  );
+  await page.route('https://fal.run/generated.mp4', async (route) => {
+    await fulfillCors(route, { status: 200, contentType: 'video/mp4', body: onePxMp4 });
+  });
+
+  await page.click('button:has-text("🎨 Imagine")');
+  await page.locator('#imagine-prompt').waitFor({ state: 'visible' });
+  await page.selectOption('#imagine-provider', 'fal');
+  
+  // Choose the Kling v3 Turbo Pro Video model
+  await page.selectOption('#imagine-model', 'fal-ai/kling-video/v3/turbo/pro/image-to-video');
+  
+  // Verify that the reference image input becomes visible
+  await expect(page.locator('#imagine-ref-row')).toBeVisible();
+  
+  // Fill in inputs with a base64 Data URI
+  await page.fill('#imagine-image-url', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
+  await page.fill('#imagine-prompt', 'make the character wave');
+  await page.click('.image-popover-generate');
+
+  // Verify that the video tag is rendered in the chat
+  const videoLocator = page.locator('video.image-gen-img');
+  await expect(videoLocator).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator('.image-gen-provider')).toContainText('fal');
+});

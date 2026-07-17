@@ -5,11 +5,11 @@
    ============================================================ */
 
 import { MODELS_DATA } from './models-data.js';
-import { ApiRouter } from './api-router.js';
+import { ApiRouter } from './api-router.js?v=2';
 import { ImageRouter } from './image-router.js';
 import { MemorySystem } from './memory.js';
 import { SKILLS_DATA } from './skills-data.js';
-import { AuthSystem, ApiKeyVault } from './auth.js';
+import { AuthSystem, ApiKeyVault, CloudStorage } from './auth.js';
 import { ProfileSystem } from './profile.js';
 import { SuperAgent } from './agent.js';
 import { Analytics } from './analytics.js';
@@ -145,11 +145,26 @@ const ImageDb = (() => {
   }
 
   async function set(key, value) {
+    let finalVal = value;
+    if (typeof value === 'string' && value.startsWith('data:') && typeof CloudStorage !== 'undefined' && CloudStorage.isAvailable()) {
+      try {
+        finalVal = await CloudStorage.uploadDataUrl(key, value, 'generated');
+      } catch (e) {
+        console.warn('CloudSync: ImageDb.set upload failed', e);
+      }
+    } else if (value && typeof value === 'object' && typeof value.dataUrl === 'string' && value.dataUrl.startsWith('data:') && typeof CloudStorage !== 'undefined' && CloudStorage.isAvailable()) {
+      try {
+        const cloudUrl = await CloudStorage.uploadDataUrl(key, value.dataUrl, 'gallery');
+        finalVal = { ...value, dataUrl: cloudUrl };
+      } catch (e) {
+        console.warn('CloudSync: ImageDb.set object upload failed', e);
+      }
+    }
     const db = await getDB();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.put(value, key);
+      const request = store.put(finalVal, key);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
@@ -168,6 +183,7 @@ const ImageDb = (() => {
 
   return { get, set, remove };
 })();
+window.ImageDb = ImageDb;
 
 // ============================================================
 // IndexedDB Session Store (Resolves localStorage quota limits)
@@ -797,7 +813,15 @@ function renderMarkdown(text) {
 
   html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
   html = html.replace(/(<tr>.*<\/tr>)/gs, '<table>$1</table>');
-  if (!html.match(/^<(h[1-6]|ul|ol|pre|table|blockquote|hr)/)) html = `<p>${html}</p>`;
+  
+  // YouTube embed helper
+  html = html.replace(/\[youtube-embed:([a-zA-Z0-9_-]{11})\]/g, (_, videoId) => {
+    return `<div class="yt-embed-container" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; max-width:100%; border-radius:12px; margin:12px 0; border:1px solid var(--border, rgba(99,102,241,0.2)); box-shadow:0 10px 30px rgba(0,0,0,0.3)">
+      <iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>`;
+  });
+
+  if (!html.match(/^<(h[1-6]|ul|ol|pre|table|blockquote|hr|div)/)) html = `<p>${html}</p>`;
   return html;
 }
 
@@ -971,6 +995,26 @@ const SLASH_COMMANDS = [
     detail:   'Supports --provider bfl|fal|replicate, --size WxH, --steps N',
     insert:   '/imagine ',
     category: 'image',
+  },
+  {
+    trigger:  '/play',
+    aliases:  [],
+    icon:     '📺',
+    name:     '/play',
+    desc:     'Play or embed a YouTube video in the chat',
+    detail:   'e.g. /play lofi hip hop (or a YouTube URL)',
+    insert:   '/play ',
+    category: 'tools',
+  },
+  {
+    trigger:  '/playlist',
+    aliases:  [],
+    icon:     '🍪',
+    name:     '/playlist',
+    desc:     'Create a YouTube playlist using your cookies',
+    detail:   'e.g. /playlist "My Playlist" videoId1,videoId2',
+    insert:   '/playlist ',
+    category: 'tools',
   },
   {
     trigger:  '/web',
@@ -1658,12 +1702,16 @@ function renderMessages() {
         } else {
           const isDb = imgData.src && imgData.src.startsWith('db:');
           const dlLink = imgData.src
-            ? `<a class="image-gen-download" href="${isDb ? '#' : imgData.src}" download="generated-${imgData.seed || Date.now()}.png" title="Download image">⬇ Download</a>`
+            ? `<a class="image-gen-download" href="${isDb ? '#' : imgData.src}" download="generated-${imgData.seed || Date.now()}.${imgData.isVideo ? 'mp4' : 'png'}" title="Download media">⬇ Download</a>`
             : '';
+          
+          const mediaElementHtml = imgData.isVideo
+            ? `<video src="${isDb ? '' : imgData.src}" ${isDb ? `data-db-src="${imgData.src.slice(3)}"` : ''} autoplay loop muted controls class="image-gen-img ${isDb ? 'db-image-load' : ''}" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2)"></video>`
+            : `<img src="${isDb ? '' : imgData.src}" ${isDb ? `data-db-src="${imgData.src.slice(3)}"` : ''} alt="${esc(imgData.prompt)}" class="image-gen-img ${isDb ? 'db-image-load' : ''}" loading="lazy" onclick="this.classList.toggle('image-gen-img-expanded')" />`;
+
           imagesHtml = `
             <div class="image-gen-result">
-              <img src="${isDb ? '' : imgData.src}" ${isDb ? `data-db-src="${imgData.src.slice(3)}"` : ''} alt="${esc(imgData.prompt)}" class="image-gen-img ${isDb ? 'db-image-load' : ''}"
-                loading="lazy" onclick="this.classList.toggle('image-gen-img-expanded')" />
+              ${mediaElementHtml}
               <div class="image-gen-footer">
                 <span class="image-gen-provider">${esc(imgData.provider || '')} • ${esc(imgData.model || '')}</span>
                 <span class="image-gen-dims">${imgData.width}×${imgData.height}</span>
@@ -2394,6 +2442,202 @@ function handleSend() {
 
   const userText = input.value.trim();
 
+  // Helper to extract YouTube video ID
+  function getYoutubeId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  }
+
+  function updateMessageContent(sessionId, messageId, content) {
+    const sess = STATE.sessions.find(s => s.id === sessionId);
+    if (!sess) return;
+    const msg = sess.messages.find(m => m.id === messageId);
+    if (msg) {
+      msg.content = content;
+    }
+    saveState();
+    renderMessages();
+    scrollToBottom();
+  }
+
+  // ── /play command — youtube video player ───────────────────────
+  if (userText.startsWith('/play ')) {
+    const rawQuery = userText.replace(/^\/play\s+/, '').trim();
+    if (rawQuery) {
+      input.value = '';
+      autoResize(input);
+      addMessage(session.id, 'user', userText);
+      renderMessages();
+      scrollToBottom();
+
+      const placeholderId = addMessage(session.id, 'assistant', `🔍 Searching YouTube for: "${rawQuery}"...`);
+      renderMessages();
+      scrollToBottom();
+
+      (async () => {
+        try {
+          const keys = await ApiKeyVault.load() || {};
+          const ytKey = keys.youtube;
+          if (!ytKey) {
+            updateMessageContent(session.id, placeholderId, '✕ YouTube API Key is not configured. Please add it in settings.');
+            return;
+          }
+
+          let videoId = getYoutubeId(rawQuery);
+          let title = rawQuery;
+          if (!videoId && rawQuery.length === 11 && !rawQuery.includes('/') && !rawQuery.includes(' ')) {
+            videoId = rawQuery;
+          }
+
+          if (!videoId) {
+            // Search YouTube via Netlify proxy
+            const res = await fetch('/.netlify/functions/proxy', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                provider: 'youtube',
+                path: '/search',
+                apiKey: '',
+                queryParams: {
+                  part: 'snippet',
+                  q: rawQuery,
+                  type: 'video',
+                  maxResults: '1',
+                  key: ytKey
+                },
+                method: 'GET',
+                payload: {}
+              })
+            });
+            if (!res.ok) {
+              const errText = await res.text().catch(() => '');
+              throw new Error(`YouTube API returned ${res.status}: ${errText}`);
+            }
+            const data = await res.json();
+            if (!data.items || data.items.length === 0) {
+              throw new Error('No videos found for that query.');
+            }
+            videoId = data.items[0].id.videoId;
+            title = data.items[0].snippet.title;
+          }
+
+          updateMessageContent(session.id, placeholderId, `Here is the video you requested:\n\n[youtube-embed:${videoId}]`);
+        } catch (err) {
+          updateMessageContent(session.id, placeholderId, '✕ Failed to play video: ' + err.message);
+        }
+      })();
+      return;
+    }
+  }
+
+  // ── /playlist command — create youtube playlist ──────────────────
+  if (userText.startsWith('/playlist ')) {
+    let raw = userText.replace(/^\/playlist\s+/, '').trim();
+    if (raw) {
+      input.value = '';
+      autoResize(input);
+      addMessage(session.id, 'user', userText);
+      renderMessages();
+      scrollToBottom();
+
+      // Parse title and video list
+      let title = '';
+      let rest = '';
+      if (raw.startsWith('"')) {
+        const closingQuoteIdx = raw.indexOf('"', 1);
+        if (closingQuoteIdx !== -1) {
+          title = raw.slice(1, closingQuoteIdx);
+          rest = raw.slice(closingQuoteIdx + 1).trim();
+        } else {
+          title = raw;
+        }
+      } else {
+        const firstSpaceIdx = raw.indexOf(' ');
+        if (firstSpaceIdx !== -1) {
+          title = raw.slice(0, firstSpaceIdx);
+          rest = raw.slice(firstSpaceIdx + 1).trim();
+        } else {
+          title = raw;
+        }
+      }
+
+      const videoIds = [];
+      if (rest) {
+        const parts = rest.split(/[\s,]+/);
+        for (const p of parts) {
+          const cleanPart = p.trim();
+          if (cleanPart) {
+            const ytId = getYoutubeId(cleanPart) || (cleanPart.length === 11 ? cleanPart : null);
+            if (ytId) {
+              videoIds.push(ytId);
+            }
+          }
+        }
+      }
+
+      if (videoIds.length === 0) {
+        addMessage(session.id, 'assistant', '✕ Please specify at least one video URL or ID to add to the playlist.');
+        renderMessages();
+        scrollToBottom();
+        return;
+      }
+
+      const placeholderId = addMessage(session.id, 'assistant', `🍪 Creating playlist "${title}" on YouTube...`);
+      renderMessages();
+      scrollToBottom();
+
+      (async () => {
+        try {
+          const keys = await ApiKeyVault.load() || {};
+          const cookies = keys.youtube_cookies;
+          const apiKey = keys.youtube;
+          if (!cookies) {
+            updateMessageContent(session.id, placeholderId, '✕ YouTube Cookies are not configured. Please add them in settings to perform playlist actions.');
+            return;
+          }
+
+          const ytApiKey = apiKey || 'AIzaSyAO-1k1212879817298712891';
+          const res = await fetch('/.netlify/functions/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              provider: 'youtube_innertube',
+              path: `/youtubei/v1/playlist/create?key=${ytApiKey}`,
+              apiKey: cookies,
+              method: 'POST',
+              payload: {
+                context: {
+                  client: {
+                    clientName: 'WEB',
+                    clientVersion: '2.20240101.00.00'
+                  }
+                },
+                title: title,
+                videoIds: videoIds
+              }
+            })
+          });
+          if (!res.ok) {
+            const errText = await res.text().catch(() => '');
+            throw new Error(`Playlist creation failed (${res.status}): ${errText}`);
+          }
+          const data = await res.json();
+          if (data.playlistId) {
+            updateMessageContent(session.id, placeholderId, `✅ Playlist **${title}** created successfully!\n\n[View playlist on YouTube](https://www.youtube.com/playlist?list=${data.playlistId})`);
+          } else if (data.error) {
+            throw new Error(data.error.message || 'Unknown YouTube Innertube error');
+          } else {
+            throw new Error('Invalid response from YouTube: ' + JSON.stringify(data));
+          }
+        } catch (err) {
+          updateMessageContent(session.id, placeholderId, '✕ Failed to create playlist: ' + err.message);
+        }
+      })();
+      return;
+    }
+  }
+
   // ── /imagine command — image generation shortcut ──────────────
   if (userText.startsWith('/imagine ') || userText.startsWith('/img ')) {
     // Parse flags: --provider <id>  --model <id>  --size WxH  --steps N
@@ -3080,7 +3324,8 @@ async function handleImageGeneration(session, prompt, opts = {}) {
       height: result.height,
       seed: result.seed,
       timingS,
-      images: batchImages
+      images: batchImages,
+      isVideo: result.isVideo
     })}`;
 
     // Update the placeholder message with real content
@@ -3595,7 +3840,7 @@ function buildHTML() {
                     <option value="huggingface">🤗 HuggingFace</option>
                     <option value="comfyui">ComfyUI (local)</option>
                   </select>
-                  <select class="image-popover-select" id="imagine-model">
+                  <select class="image-popover-select" id="imagine-model" onchange="syncImagineModeFields()">
                     <option value="flux-pro-1.1">Flux Pro 1.1</option>
                   </select>
                 </div>
@@ -4202,17 +4447,31 @@ function syncImaginePopoverFields() {
 
 function syncImagineModeFields() {
   const mode = document.getElementById('imagine-mode')?.value;
+  const model = document.getElementById('imagine-model')?.value;
   const refRow = document.getElementById('imagine-ref-row');
   const strengthRow = document.getElementById('imagine-strength-row');
+  const modeRow = document.getElementById('imagine-mode')?.closest('.image-popover-row');
   
+  const isImageToVideoModel = model && (
+    model.includes('image-to-video') ||
+    model.includes('lipsync')
+  );
+
   if (refRow) {
-    if (mode && mode !== 'text2img') {
+    if (isImageToVideoModel) {
       refRow.style.display = 'block';
-      if (strengthRow) {
-        strengthRow.style.display = (mode === 'redux') ? 'none' : 'flex';
-      }
+      if (modeRow) modeRow.style.display = 'none';
+      if (strengthRow) strengthRow.style.display = 'none';
     } else {
-      refRow.style.display = 'none';
+      if (modeRow) modeRow.style.display = 'flex';
+      if (mode && mode !== 'text2img') {
+        refRow.style.display = 'block';
+        if (strengthRow) {
+          strengthRow.style.display = (mode === 'redux') ? 'none' : 'flex';
+        }
+      } else {
+        refRow.style.display = 'none';
+      }
     }
   }
 }
