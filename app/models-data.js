@@ -155,14 +155,14 @@ export const MODELS_DATA = {
 
     // ── Google ─────────────────────────────────────────────
     {
-      id: 'gemini-2.5-flash',
+      id: 'gemini-1.5-flash',
       provider: 'google',
-      name: 'Gemini 2.5 Flash',
-      shortName: '2.5 Flash',
-      tier: 'flagship',
+      name: 'Gemini 1.5 Flash',
+      shortName: '1.5 Flash',
+      tier: 'fast',
       contextK: 1000,
-      inputPer1M: 0.15,
-      outputPer1M: 0.60,
+      inputPer1M: 0.075,
+      outputPer1M: 0.30,
       supportsThinking: false,
     },
     {
@@ -177,14 +177,14 @@ export const MODELS_DATA = {
       supportsThinking: true,
     },
     {
-      id: 'gemini-1.5-flash',
+      id: 'gemini-2.0-flash-exp',
       provider: 'google',
-      name: 'Gemini 1.5 Flash',
-      shortName: '1.5 Flash',
-      tier: 'fast',
+      name: 'Gemini 2.0 Flash (Experimental)',
+      shortName: '2.0 Flash Exp',
+      tier: 'flagship',
       contextK: 1000,
-      inputPer1M: 0.075,
-      outputPer1M: 0.30,
+      inputPer1M: 0.10,
+      outputPer1M: 0.40,
       supportsThinking: false,
     },
 
