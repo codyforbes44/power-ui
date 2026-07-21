@@ -166,17 +166,6 @@ export const MODELS_DATA = {
       supportsThinking: false,
     },
     {
-      id: 'gemini-2.0-flash',
-      provider: 'google',
-      name: 'Gemini 2.0 Flash',
-      shortName: '2.0 Flash',
-      tier: 'fast',
-      contextK: 1000,
-      inputPer1M: 0.10,
-      outputPer1M: 0.40,
-      supportsThinking: false,
-    },
-    {
       id: 'gemini-1.5-pro',
       provider: 'google',
       name: 'Gemini 1.5 Pro',
