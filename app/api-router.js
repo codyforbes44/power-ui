@@ -263,30 +263,43 @@ export const ApiRouter = (() => {
     const rawContents = messages.map(m => {
       if (m.role === 'tool') {
         // Tool result from our loop
+        const toolName = m.name || 'tool';
+        const toolContent = m.content != null ? (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)) : '';
         return {
           role: 'user',
-          parts: [{ functionResponse: { name: m.name, response: { content: m.content } } }],
+          parts: [{ functionResponse: { name: toolName, response: { content: toolContent } } }],
         };
       }
       if (m.role === 'assistant' && m.tool_calls?.length) {
         const parts = [];
-        if (m.content) parts.push({ text: m.content });
+        if (typeof m.content === 'string' && m.content.trim()) {
+          parts.push({ text: m.content.trim() });
+        }
         for (const tc of m.tool_calls) {
           let args = {};
-          try { args = JSON.parse(tc.function?.arguments || '{}'); } catch {}
-          parts.push({ functionCall: { name: tc.function?.name, args } });
+          if (tc.function?.arguments) {
+            try {
+              args = typeof tc.function.arguments === 'string' ? JSON.parse(tc.function.arguments) : tc.function.arguments;
+            } catch {}
+          }
+          const fnName = tc.function?.name || tc.name;
+          if (fnName) {
+            parts.push({ functionCall: { name: fnName, args } });
+          }
         }
         return { role: 'model', parts };
       }
+      const txt = typeof m.content === 'string' ? m.content.trim() : (m.content ? String(m.content) : '');
       return {
         role:  m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
+        parts: txt ? [{ text: txt }] : [],
       };
     });
 
-    // Consolidate consecutive turns sharing the same role (e.g. tool result + follow-up user prompt)
+    // Consolidate consecutive turns sharing the same role & filter out turns with empty parts
     const contents = [];
     for (const item of rawContents) {
+      if (!item.parts || !item.parts.length) continue;
       const prev = contents[contents.length - 1];
       if (prev && prev.role === item.role) {
         prev.parts.push(...item.parts);
