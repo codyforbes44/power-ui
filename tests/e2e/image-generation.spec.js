@@ -54,12 +54,12 @@ test('generating an image via the Imagine popover submits, polls, and renders th
     }
   });
   // urlToDataUrl() fetches the resulting image URL directly to convert it to a data: URL.
-  const onePxPng = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  const redPxPng = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4AWL6z8DwHwAAAP//A3ONEwAAAAZJREFUAwAFCgIByRpMngAAAABJRU5ErkJggg==',
     'base64'
   );
   await page.route('https://api.bfl.ml/generated.png', async (route) => {
-    await fulfillCors(route, { status: 200, contentType: 'image/png', body: onePxPng });
+    await fulfillCors(route, { status: 200, contentType: 'image/png', body: redPxPng });
   });
 
   await page.click('button:has-text("🎨 Imagine")');
@@ -71,6 +71,30 @@ test('generating an image via the Imagine popover submits, polls, and renders th
   await expect(page.locator('.image-gen-img')).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('.image-gen-provider')).toContainText('bfl');
   expect(pollCount).toBeGreaterThanOrEqual(2);
+
+  // Verify that the rendered image is NOT completely black
+  const isBlack = await page.evaluate(async () => {
+    const img = document.querySelector('.image-gen-img');
+    if (!img) return true;
+    if (!img.complete) {
+      await new Promise(r => img.onload = r);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || img.width || 1;
+    canvas.height = img.naturalHeight || img.height || 1;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    
+    // Check if any pixel is non-black (non-zero R, G, or B, and has alpha > 0)
+    for (let i = 0; i < data.length; i += 4) {
+      if ((data[i] !== 0 || data[i+1] !== 0 || data[i+2] !== 0) && data[i+3] > 0) {
+        return false; // Found a non-black pixel!
+      }
+    }
+    return true; // All pixels are black or fully transparent
+  });
+  expect(isBlack).toBe(false);
 });
 
 test('generating a video via the Imagine popover with fal provider renders video tag', async ({ loggedInPage: page }) => {
@@ -141,4 +165,108 @@ test('generating a video via the Imagine popover with fal provider renders video
   const videoLocator = page.locator('video.image-gen-img');
   await expect(videoLocator).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('.image-gen-provider')).toContainText('fal');
+});
+
+test('generating an image via agent-chat Imagine popover renders non-black image', async ({ loggedInPage: page }) => {
+  await saveApiKey(page, 'anthropic', 'sk-ant-test-key-not-real');
+  await saveApiKey(page, 'bfl', 'bfl-test-key-not-real');
+  await page.goto('/app/agent-chat.html');
+  await page.waitForURL('**/agent-chat.html');
+
+  let messageCallCount = 0;
+  await page.route('https://api.anthropic.com/v1/messages', async (route) => {
+    messageCallCount += 1;
+    let sse;
+    if (messageCallCount === 1) {
+      // First call: Anthropic responds with a tool call to 'generate_image'
+      sse = [
+        `data: ${JSON.stringify({ type: 'message_start', message: { usage: { input_tokens: 20 } } })}`,
+        `data: ${JSON.stringify({ type: 'content_block_start', content_block: { type: 'tool_use', id: 'tool_agent_image', name: 'generate_image' } })}`,
+        `data: ${JSON.stringify({ type: 'content_block_delta', delta: { type: 'input_json_delta', partial_json: '{"prompt":"a beautiful sunset","provider":"bfl","size":"1024x1024"}' } })}`,
+        `data: ${JSON.stringify({ type: 'content_block_stop' })}`,
+        `data: ${JSON.stringify({ type: 'message_delta', usage: { output_tokens: 15 } })}`,
+        `data: ${JSON.stringify({ type: 'message_stop' })}`,
+      ];
+    } else {
+      // Second call: Anthropic responds with the final answer text
+      sse = [
+        `data: ${JSON.stringify({ type: 'message_start', message: { usage: { input_tokens: 40 } } })}`,
+        `data: ${JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text: 'I have generated the image for you.' } })}`,
+        `data: ${JSON.stringify({ type: 'message_delta', usage: { output_tokens: 10 } })}`,
+        `data: ${JSON.stringify({ type: 'message_stop' })}`,
+      ];
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: sse.join('\n\n') + '\n\n',
+    });
+  });
+
+  let pollCount = 0;
+  await page.route('https://api.bfl.ml/v1/flux-pro-1.1', async (route) => {
+    if (route.request().method() === 'OPTIONS') return fulfillCors(route, {});
+    expect(route.request().method()).toBe('POST');
+    await fulfillCors(route, { status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'job-e2e-agent-2' }) });
+  });
+  await page.route('https://api.bfl.ml/v1/get_result**', async (route) => {
+    if (route.request().method() === 'OPTIONS') return fulfillCors(route, {});
+    expect(route.request().method()).toBe('GET');
+    pollCount += 1;
+    if (pollCount < 2) {
+      await fulfillCors(route, { status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'Pending' }) });
+    } else {
+      await fulfillCors(route, {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'Ready', result: { sample: 'https://api.bfl.ml/generated.png', seed: 42 } }),
+      });
+    }
+  });
+
+  const redPxPng = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4AWL6z8DwHwAAAP//A3ONEwAAAAZJREFUAwAFCgIByRpMngAAAABJRU5ErkJggg==',
+    'base64'
+  );
+  await page.route('https://api.bfl.ml/generated.png', async (route) => {
+    await fulfillCors(route, { status: 200, contentType: 'image/png', body: redPxPng });
+  });
+
+  // Trigger the imagine popover on agent-chat
+  await page.click('#imagine-btn');
+  await page.locator('#imagine-prompt').waitFor({ state: 'visible' });
+  await page.fill('#imagine-prompt', 'a beautiful sunset');
+  await page.selectOption('#imagine-provider', 'bfl');
+  await page.click('.image-popover-generate');
+
+  // Expand the collapsed tool result block to make the image visible
+  await page.locator('.trh').click();
+
+  // Verify the image container is loaded and visible
+  const imgLocator = page.locator('div.trb.gal-source img');
+  await expect(imgLocator).toBeVisible({ timeout: 20_000 });
+
+  // Verify that the rendered image is NOT completely black
+  const isBlack = await page.evaluate(async () => {
+    const img = document.querySelector('div.trb.gal-source img');
+    if (!img) return true;
+    if (!img.complete) {
+      await new Promise(r => img.onload = r);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || img.width || 1;
+    canvas.height = img.naturalHeight || img.height || 1;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    
+    // Check if any pixel is non-black (non-zero R, G, or B, and has alpha > 0)
+    for (let i = 0; i < data.length; i += 4) {
+      if ((data[i] !== 0 || data[i+1] !== 0 || data[i+2] !== 0) && data[i+3] > 0) {
+        return false; // Found a non-black pixel!
+      }
+    }
+    return true; // All pixels are black or fully transparent
+  });
+  expect(isBlack).toBe(false);
 });

@@ -75,3 +75,27 @@ test('admin nav drawer opens via the header button and auto-closes on nav select
   await expect(page.locator('#admin-drawer-backdrop')).not.toHaveClass(/visible/);
   await expect(page.locator('.admin-topbar-title')).toContainText('User Management');
 });
+
+test('agent-chat drawer opens via nav-toggle and closes via close button or view switch on mobile', async ({ loggedInPage: page }) => {
+  await page.goto('/app/agent-chat.html');
+  await expect(page.locator('#nav-toggle')).toBeVisible();
+
+  // 1. Open drawer and close it via the Close button
+  await page.tap('#nav-toggle');
+  await expect(page.locator('#sidebar')).toHaveClass(/open/);
+  await page.tap('.sb-close');
+  await expect(page.locator('#sidebar')).not.toHaveClass(/open/);
+
+  // 2. Switch view to Image Gen (while drawer is closed)
+  await page.tap('.action-btn:has-text("Generate Images")');
+  await expect(page.locator('#img-gen-main-inner')).toBeVisible();
+
+  // 3. Open the drawer (now showing image gen settings)
+  await page.tap('#nav-toggle');
+  await expect(page.locator('#sidebar')).toHaveClass(/open/);
+
+  // 4. Tap the back arrow in the drawer to return to chat and auto-close the drawer
+  await page.tap('.sb-back');
+  await expect(page.locator('#sidebar')).not.toHaveClass(/open/);
+  await expect(page.locator('#chat-main-inner')).toBeVisible();
+});

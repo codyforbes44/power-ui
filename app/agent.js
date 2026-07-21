@@ -169,7 +169,6 @@ export const SuperAgent = (() => {
     enabled:      true,
     persona:      'Aria',
     avatarEmoji:  '✦',
-    activePresetId: 'default',
     systemPrompt: `You are Aria, a hyper-capable AI super-assistant with access to all tools, knowledge bases, and persistent memory. You have access to:
 - Web search (search the live internet for current information and real-time data)
 - Wikipedia lookups (authoritative reference information)
@@ -204,7 +203,6 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       createNote:     true,   // NEW
       listKbDocs:     true,   // NEW
       apiIntegrations:false,  // NEW (enabled when integrations configured)
-      youtube:        true,
     },
 
     // ── Web search ─────────────────────────────────────────
@@ -309,18 +307,6 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       try {
         localStorage.setItem(AGENT_CONFIG_KEY, JSON.stringify(_stripKeys(cfg)));
       } catch { _warnStorageFull(); }
-
-      // Push config to Firestore in background
-      if (typeof window.db !== 'undefined' && typeof AuthSystem !== 'undefined') {
-        const session = AuthSystem.getCurrentSession();
-        const uid = session && session.userId;
-        if (uid) {
-          window.db.collection('users').doc(uid).collection('agent_config').doc('current').set({
-            config: _stripKeys(cfg),
-            updatedAt: new Date().toISOString()
-          }).catch(e => console.warn('CloudSync: Config save failed', e));
-        }
-      }
     },
     /**
      * One-time migration: move any plaintext keys left in the legacy config
@@ -367,25 +353,12 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
     _save(mems) {
       try { localStorage.setItem(AGENT_MEM_KEY, JSON.stringify(mems)); }
       catch { _warnStorageFull(); }
-
-      // Push memories to Firestore in background
-      if (typeof window.db !== 'undefined' && typeof AuthSystem !== 'undefined') {
-        const session = AuthSystem.getCurrentSession();
-        const uid = session && session.userId;
-        if (uid) {
-          window.db.collection('users').doc(uid).collection('memory').doc('current').set({
-            memories: mems,
-            updatedAt: new Date().toISOString()
-          }).catch(e => console.warn('CloudSync: Memory save failed', e));
-        }
-      }
     },
 
     add(key, value, tags = [], category = 'general') {
       const mems = this._load();
-      const activePresetId = AgentConfig.get().activePresetId || 'custom';
-      const idx  = mems.findIndex(m => m.key === key && (m.presetId || 'custom') === activePresetId);
-      const entry = { key, value, tags, category, presetId: activePresetId, timestamp: new Date().toISOString(), source: 'agent' };
+      const idx  = mems.findIndex(m => m.key === key);
+      const entry = { key, value, tags, category, timestamp: new Date().toISOString(), source: 'agent' };
       if (idx >= 0) { mems[idx] = entry; } else { mems.push(entry); }
       this._save(mems);
       return entry;
@@ -393,49 +366,20 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
 
     search(query, k = 8) {
       const mems = this._load();
-      const activePresetId = AgentConfig.get().activePresetId || 'custom';
-      const filtered = mems.filter(m => (m.presetId || 'custom') === activePresetId);
-      if (!query) return filtered.slice(-k);
+      if (!query) return mems.slice(-k);
       const q = query.toLowerCase();
-      const qw = q.split(/\W+/).filter(w => w.length > 2);
-      if (!qw.length) return filtered.slice(-k);
-
-      const scored = filtered.map(m => {
-        const text = (m.key + ' ' + m.value + ' ' + (m.tags || []).join(' ')).toLowerCase();
-        let score = 0;
-        if (m.key && q.includes(m.key.toLowerCase())) {
-          score += 10;
-        }
-        for (const w of qw) {
-          if (text.includes(w)) score++;
-        }
-        return { m, score };
-      });
-
-      return scored
-        .filter(x => x.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .map(x => x.m)
-        .slice(0, k);
+      return mems
+        .filter(m => (m.key + ' ' + m.value + ' ' + (m.tags || []).join(' ')).toLowerCase().includes(q))
+        .slice(-k);
     },
 
-    getAll()           {
-      const activePresetId = AgentConfig.get().activePresetId || 'custom';
-      return this._load().filter(m => (m.presetId || 'custom') === activePresetId);
-    },
-    getByCategory(cat) {
-      const activePresetId = AgentConfig.get().activePresetId || 'custom';
-      return this._load().filter(m => m.category === cat && (m.presetId || 'custom') === activePresetId);
-    },
+    getAll()           { return this._load(); },
+    getByCategory(cat) { return this._load().filter(m => m.category === cat); },
 
     delete(key) {
-      const activePresetId = AgentConfig.get().activePresetId || 'custom';
-      this._save(this._load().filter(m => !(m.key === key && (m.presetId || 'custom') === activePresetId)));
+      this._save(this._load().filter(m => m.key !== key));
     },
-    clear() {
-      const activePresetId = AgentConfig.get().activePresetId || 'custom';
-      this._save(this._load().filter(m => (m.presetId || 'custom') !== activePresetId));
-    },
+    clear() { localStorage.removeItem(AGENT_MEM_KEY); },
 
     buildContextBlock(query = '') {
       const cfg = AgentConfig.get();
@@ -475,13 +419,11 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
 
     async listAll() {
       const db = await this._getDB();
-      const all = await new Promise((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         const req = db.transaction(KB_STORE, 'readonly').objectStore(KB_STORE).getAll();
         req.onsuccess = () => resolve(req.result || []);
         req.onerror   = () => reject(req.error);
       });
-      const activePresetId = AgentConfig.get().activePresetId || 'custom';
-      return all.filter(d => (d.presetId || 'custom') === activePresetId);
     },
 
     async get(id) {
@@ -494,67 +436,29 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
     },
 
     async add(doc) {
-      if (!doc.presetId) {
-        doc.presetId = AgentConfig.get().activePresetId || 'custom';
-      }
       const db = await this._getDB();
-      await new Promise((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         const req = db.transaction(KB_STORE, 'readwrite').objectStore(KB_STORE).put(doc);
         req.onsuccess = () => resolve(doc);
         req.onerror   = () => reject(req.error);
       });
-
-      // Push doc to Firestore in background
-      if (typeof window.db !== 'undefined' && typeof AuthSystem !== 'undefined') {
-        const session = AuthSystem.getCurrentSession();
-        const uid = session && session.userId;
-        if (uid) {
-          window.db.collection('users').doc(uid).collection('kb_documents').doc(doc.id).set({
-            ...doc,
-            updatedAt: new Date().toISOString()
-          }).catch(e => console.warn('CloudSync: KB doc save failed', e));
-        }
-      }
-      return doc;
     },
 
     async delete(id) {
       const db = await this._getDB();
-      await new Promise((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         const req = db.transaction(KB_STORE, 'readwrite').objectStore(KB_STORE).delete(id);
         req.onsuccess = () => resolve();
         req.onerror   = () => reject(req.error);
       });
-
-      // Delete doc from Firestore in background
-      if (typeof window.db !== 'undefined' && typeof AuthSystem !== 'undefined') {
-        const session = AuthSystem.getCurrentSession();
-        const uid = session && session.userId;
-        if (uid) {
-          window.db.collection('users').doc(uid).collection('kb_documents').doc(id).delete()
-            .catch(e => console.warn('CloudSync: KB doc delete failed', e));
-        }
-      }
     },
 
     async clear() {
       const db = await this._getDB();
-      const activePresetId = AgentConfig.get().activePresetId || 'custom';
-      const all = await new Promise((resolve, reject) => {
-        const req = db.transaction(KB_STORE, 'readonly').objectStore(KB_STORE).getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror   = () => reject(req.error);
-      });
-      const toDelete = all.filter(d => (d.presetId || 'custom') === activePresetId);
-      
-      const tx = db.transaction(KB_STORE, 'readwrite');
-      const store = tx.objectStore(KB_STORE);
-      for (const d of toDelete) {
-        store.delete(d.id);
-      }
       return new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
+        const req = db.transaction(KB_STORE, 'readwrite').objectStore(KB_STORE).clear();
+        req.onsuccess = () => resolve();
+        req.onerror   = () => reject(req.error);
       });
     },
 
@@ -816,15 +720,13 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
     },
     {
       name: 'generate_image',
-      description: 'Generate an image or video from a detailed text description. If the user provided an image and asks you to animate it, create a video from it, or do style transfer/image-to-image, pass the image URL as image_url.',
+      description: 'Generate an image from a detailed text description. Use whenever the user asks you to create, draw, visualize, illustrate, or render something as an image.',
       schema: {
         type: 'object',
         properties: {
-          prompt:   { type: 'string', description: 'Detailed visual description of the image or video to generate' },
-          size:     { type: 'string', enum: ['1024x1024', '1792x1024', '1024x1792'], description: 'Image/video dimensions (default 1024x1024)' },
-          provider: { type: 'string', enum: ['bfl', 'fal', 'replicate', 'novita', 'comfyui'], description: 'Image/video provider (default: user setting)' },
-          model:    { type: 'string', description: 'Specific model ID to use (optional)' },
-          image_url: { type: 'string', description: 'Optional reference image URL (for image-to-image or image-to-video generation)' }
+          prompt:   { type: 'string', description: 'Detailed visual description of the image to generate' },
+          size:     { type: 'string', enum: ['1024x1024', '1792x1024', '1024x1792'], description: 'Image dimensions (default 1024x1024)' },
+          provider: { type: 'string', enum: ['bfl', 'fal', 'replicate', 'novita', 'comfyui'], description: 'Image provider (default: user setting)' },
         },
         required: ['prompt'],
       },
@@ -889,29 +791,6 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
           params:  { type: 'object', description: 'Query parameters (optional)' },
         },
         required: ['name'],
-      },
-    },
-    {
-      name: 'youtube_search_play',
-      description: 'Search for a YouTube video and render the interactive player in the chat.',
-      schema: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'YouTube video title, keywords, or full URL to search and play.' },
-        },
-        required: ['query'],
-      },
-    },
-    {
-      name: 'youtube_create_playlist',
-      description: 'Create a new YouTube playlist with the specified videos using your cookies.',
-      schema: {
-        type: 'object',
-        properties: {
-          title: { type: 'string', description: 'Title of the playlist.' },
-          video_ids: { type: 'array', items: { type: 'string' }, description: 'Array of YouTube video IDs or URLs to add to the playlist.' },
-        },
-        required: ['title', 'video_ids'],
       },
     },
   ];
@@ -1174,16 +1053,9 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
         const apiKey = ariaKeys[provider] || keys[provider] || imgSettings.apiKey || '';
         const [w, h] = (input.size || '1024x1024').split('x').map(Number);
         
-        const model = input.model || (provider === imgSettings.provider && imgSettings.model 
-          ? imgSettings.model 
-          : provider === ImageRouter.DEFAULTS.provider
-            ? ImageRouter.DEFAULTS.model
-            : ImageRouter.MODELS[provider]?.[0]?.id);
-
-        let imageUrl = input.image_url || undefined;
-        if (imageUrl === 'Attached base64 image' || (!imageUrl && localStorage.getItem('imagine_temp_image_url'))) {
-          imageUrl = localStorage.getItem('imagine_temp_image_url') || undefined;
-        }
+        const model = provider === ImageRouter.DEFAULTS.provider
+          ? ImageRouter.DEFAULTS.model
+          : ImageRouter.MODELS[provider]?.[0]?.id;
 
         if (provider !== 'comfyui' && !apiKey) {
           return `⚠️ No API key configured for image provider "${provider}". Add it in Settings → Image Generation.`;
@@ -1192,7 +1064,6 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
           const result = await ImageRouter.generate(input.prompt, {
             provider, model, width: w || 1024, height: h || 1024,
             apiKey, comfyUrl: imgSettings.comfyUrl || 'http://127.0.0.1:8188',
-            image_url: imageUrl
           });
           const imgSrc = result.dataUrl || result.url;
           return `__TOOL_IMAGE__:${JSON.stringify({
@@ -1205,132 +1076,6 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
         } catch (e) {
           return `⚠️ Image generation failed: ${e.message}`;
         }
-      }
-
-      // ── YouTube Search & Play ─────────────────────────────
-      case 'youtube_search_play': {
-        const query = (input.query || '').trim();
-        if (!query) return '✕ No query specified.';
-        try {
-          const keys = await ApiKeyVault.load() || {};
-          const ytKey = keys.youtube;
-          if (!ytKey) {
-            return '✕ YouTube API Key is not configured. Please add it in settings.';
-          }
-
-          // Helper to extract YouTube video ID
-          function getYoutubeId(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-          }
-
-          let videoId = getYoutubeId(query);
-          let title = query;
-          if (!videoId && query.length === 11 && !query.includes('/') && !query.includes(' ')) {
-            videoId = query;
-          }
-
-          if (!videoId) {
-            const res = await fetch('/.netlify/functions/proxy', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                provider: 'youtube',
-                path: '/search',
-                apiKey: '',
-                queryParams: {
-                  part: 'snippet',
-                  q: query,
-                  type: 'video',
-                  maxResults: '1',
-                  key: ytKey
-                },
-                method: 'GET',
-                payload: {}
-              })
-            });
-            if (!res.ok) {
-              const errText = await res.text().catch(() => '');
-              throw new Error(`YouTube API returned ${res.status}: ${errText}`);
-            }
-            const data = await res.json();
-            if (!data.items || data.items.length === 0) {
-              throw new Error('No videos found for that query.');
-            }
-            videoId = data.items[0].id.videoId;
-            title = data.items[0].snippet.title;
-          }
-
-          return `Here is the video you requested:\n\n[youtube-embed:${videoId}]`;
-        } catch (e) { return `✕ YouTube search failed: ${e.message}`; }
-      }
-
-      // ── YouTube Create Playlist ────────────────────────────
-      case 'youtube_create_playlist': {
-        const title = (input.title || '').trim();
-        const rawVideoIds = input.video_ids || [];
-        if (!title) return '✕ No playlist title specified.';
-        if (!rawVideoIds.length) return '✕ No video IDs or URLs specified.';
-
-        try {
-          const keys = await ApiKeyVault.load() || {};
-          const cookies = keys.youtube_cookies;
-          const apiKey = keys.youtube;
-          if (!cookies) {
-            return '✕ YouTube Cookies are not configured. Please add them in settings.';
-          }
-
-          function getYoutubeId(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-          }
-
-          const videoIds = rawVideoIds.map(vid => {
-            const clean = vid.trim();
-            return getYoutubeId(clean) || (clean.length === 11 ? clean : null);
-          }).filter(Boolean);
-
-          if (!videoIds.length) {
-            return '✕ No valid YouTube video IDs or URLs parsed.';
-          }
-
-          const ytApiKey = apiKey || 'AIzaSyAO-1k1212879817298712891';
-          const res = await fetch('/.netlify/functions/proxy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              provider: 'youtube_innertube',
-              path: `/youtubei/v1/playlist/create?key=${ytApiKey}`,
-              apiKey: cookies,
-              method: 'POST',
-              payload: {
-                context: {
-                  client: {
-                    clientName: 'WEB',
-                    clientVersion: '2.20240101.00.00'
-                  }
-                },
-                title: title,
-                videoIds: videoIds
-              }
-            })
-          });
-
-          if (!res.ok) {
-            const errText = await res.text().catch(() => '');
-            throw new Error(`Playlist creation failed (${res.status}): ${errText}`);
-          }
-          const data = await res.json();
-          if (data.playlistId) {
-            return `✅ Playlist **${title}** created successfully! View at: https://www.youtube.com/playlist?list=${data.playlistId}`;
-          } else if (data.error) {
-            throw new Error(data.error.message || 'Unknown YouTube Innertube error');
-          } else {
-            throw new Error('Invalid response from YouTube: ' + JSON.stringify(data));
-          }
-        } catch (e) { return `✕ YouTube playlist creation failed: ${e.message}`; }
       }
 
       // ── Code runner (NEW) ────────────────────────────────
@@ -1541,7 +1286,6 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
       createNote:     ['create_note'],
       listKbDocs:     ['list_kb_docs'],
       apiIntegrations:['call_integration'],
-      youtube:        ['youtube_search_play', 'youtube_create_playlist'],
     };
     const enabled = new Set();
     for (const [key, toolNames] of Object.entries(map)) {
@@ -1622,69 +1366,6 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
     };
   })();
 
-  const CloudSync = {
-    async pullAll() {
-      if (typeof window.db === 'undefined' || typeof AuthSystem === 'undefined') return;
-      const session = AuthSystem.getCurrentSession();
-      const uid = session && session.userId;
-      if (!uid) return;
-
-      console.log('☁️ [CloudSync] Pulling latest data from Firestore…');
-
-      // 1. Config
-      try {
-        const configDoc = await window.db.collection('users').doc(uid).collection('agent_config').doc('current').get();
-        if (configDoc.exists) {
-          const cloudCfg = configDoc.data()?.config;
-          if (cloudCfg) {
-            localStorage.setItem(AGENT_CONFIG_KEY, JSON.stringify(cloudCfg));
-            console.log('   ✓ Config synced from cloud');
-          }
-        }
-      } catch (e) { console.warn('CloudSync: config pull failed', e); }
-
-      // 2. Memory
-      try {
-        const memoryDoc = await window.db.collection('users').doc(uid).collection('memory').doc('current').get();
-        if (memoryDoc.exists) {
-          const cloudMems = memoryDoc.data()?.memories;
-          if (Array.isArray(cloudMems)) {
-            localStorage.setItem(AGENT_MEM_KEY, JSON.stringify(cloudMems));
-            console.log('   ✓ Memories synced from cloud');
-          }
-        }
-      } catch (e) { console.warn('CloudSync: memory pull failed', e); }
-
-      // 3. KB Documents
-      try {
-        const snapshot = await window.db.collection('users').doc(uid).collection('kb_documents').get();
-        const cloudDocs = [];
-        snapshot.forEach(doc => cloudDocs.push(doc.data()));
-
-        if (cloudDocs.length > 0) {
-          const db = await KnowledgeBase._getDB();
-          const tx = db.transaction(KB_STORE, 'readwrite');
-          const store = tx.objectStore(KB_STORE);
-          
-          for (const doc of cloudDocs) {
-            store.put(doc);
-          }
-          console.log(`   ✓ Sync complete for ${cloudDocs.length} Knowledge Base docs`);
-        }
-      } catch (e) { console.warn('CloudSync: KB docs pull failed', e); }
-      
-      // Dispatch event to notify page to refresh its UI
-      window.dispatchEvent(new CustomEvent('cpu:cloud-sync-complete'));
-    }
-  };
-
-  // Wire auth ready rebind
-  if (typeof window !== 'undefined') {
-    window.addEventListener('cpu:firebase-auth-ready', () => {
-      CloudSync.pullAll().catch(() => {});
-    });
-  }
-
   // ──────────────────────────────────────────────────────────
   // Public API
   // ──────────────────────────────────────────────────────────
@@ -1699,7 +1380,6 @@ You are exclusively serving your super-admin user. Be direct, thorough, and high
     executeSuperTool,
     buildSuperAgentSystemPrompt,
     DEFAULT_CONFIG,
-    sync:        CloudSync,
   };
 
 })();

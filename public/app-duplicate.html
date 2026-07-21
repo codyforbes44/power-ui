@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Async — Premium AI Platform</title>
+  <meta name="description" content="Async is your premium AI workspace. Access Claude, GPT-4, Gemini, Llama, and every top image model with one subscription. 72 expert skills, persistent memory, and streaming." />
+  <meta name="theme-color" content="#0a0f1e" />
+
+  <!-- Content-Security-Policy (meta only — frame-ancestors requires HTTP header) -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' https://esm.sh;
+      script-src 'self' 'unsafe-inline' https://unpkg.com https://identity.netlify.com https://esm.sh https://*.firebasejs.com https://www.gstatic.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com https://frontend-cdn.perplexity.ai data:;
+      connect-src 'self' https://www.gstatic.com https://api.anthropic.com https://api.openai.com
+        https://generativelanguage.googleapis.com https://api.groq.com
+        https://api.mistral.ai https://api.bfl.ml https://fal.run https://*.fal.run https://*.fal.media
+        https://api.replicate.com https://api-inference.huggingface.co http://127.0.0.1:8188 http://localhost:8188
+        https://unpkg.com https://identity.netlify.com https://*.netlify.com
+        https://api.elevenlabs.io wss://api.elevenlabs.io https://elevenlabs.io
+        https://en.wikipedia.org https://wttr.in https://api.github.com https://gnews.io
+        https://esm.sh
+        https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://www.gstatic.com;
+      frame-src blob: https://identity.netlify.com;
+      img-src 'self' data: blob: https://*.fal.run https://*.fal.media https://*.replicate.delivery;
+      worker-src blob:;" />
+
+  <!-- M4: Inline SVG favicon — no file needed -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>✦</text></svg>" />
+
+  <!-- Design system -->
+  <link rel="stylesheet" href="../app/styles.css" />
+  <!-- Auth screen styles (used before app DOM is built) -->
+  <link rel="stylesheet" href="../app/auth.css" />
+</head>
+<body>
+  <!-- App root — buildHTML() injects all content here -->
+  <div id="app"></div>
+
+  <!-- L1: No-JS fallback -->
+  <noscript>
+    <div style="font-family:sans-serif;text-align:center;padding:80px 20px;background:#030712;color:#94a3b8;min-height:100vh">
+      <div style="font-size:40px;margin-bottom:16px">✦</div>
+      <h1 style="color:#e2e8f0;font-size:24px;margin-bottom:8px">Async</h1>
+      <p>JavaScript is required to run this application. Please enable JavaScript in your browser settings.</p>
+    </div>
+  </noscript>
+
+  <!--
+       Script loading order — DO NOT REORDER
+       1. models-data.js   → MODELS_DATA (provider/model registry)
+       2. api-router.js    → ApiRouter (streaming abstraction)
+       3. image-router.js  → ImageRouter (ComfyUI + Flux image generation)
+       4. memory.js        → MemorySystem (workspaces + TF-IDF memory)
+       5. skills-data.js   → SKILLS_DATA (72 skills + templates)
+       6. auth.js          → AuthSystem (login, roles, sessions)
+       7. analytics.js     → Analytics (event tracking + aggregators)
+       8. app.js           → boots app after DOMContentLoaded
+       Performance: defer prevents render-blocking
+  -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+  <script src="../app/firebase-config.js"></script>
+
+  <script type="module" src="../app/app.js" defer></script>
+</body>
+</html>

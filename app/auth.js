@@ -485,8 +485,8 @@ export const AuthSystem = (() => {
     if (users.find(u => u.username === uname)) throw new Error(`Username "${uname}" is already taken.`);
     if (!password || password.length < 6) throw new Error('Password must be at least 6 characters.');
 
-    // Super-admins always get admin role, regardless of what was passed
-    const assignedRole = SUPER_ADMINS.has(uname) ? 'admin' : role;
+    // Super-admins always get super_admin role, regardless of what was passed
+    const assignedRole = SUPER_ADMINS.has(uname) ? 'super_admin' : role;
 
     const salt = randomHex(16);
     const passwordHash = await hashPassword(password, salt); // always pbkdf2
@@ -667,9 +667,11 @@ export const AuthSystem = (() => {
     // before the admin designation was deployed). Also updates the session
     // in-place so subsequent calls use the fast path.
     const user = getUser(session.userId);
-    if (user?.role === 'admin') {
-      session.role = 'admin';
-      saveSession(session);
+    if (user?.role === 'admin' || user?.role === 'super_admin' || SUPER_ADMINS.has(user?.username)) {
+      if (session.role !== user?.role && user?.role) {
+        session.role = user.role;
+        saveSession(session);
+      }
       return true;
     }
     return false;
@@ -689,9 +691,10 @@ export const AuthSystem = (() => {
     // fast-path checks succeed.
     const user = getUser(session.userId);
     if (user && (SUPER_ADMINS.has(user.username) || user.role === 'super_admin')) {
-      if (user.role === 'super_admin') session.role = 'super_admin';
-      else if (session.role !== 'admin') session.role = 'admin';
-      saveSession(session);
+      if (session.role !== 'super_admin') {
+        session.role = 'super_admin';
+        saveSession(session);
+      }
       return true;
     }
     return false;
@@ -828,6 +831,30 @@ export const AuthSystem = (() => {
   }
 
   async function initAndMigrate() {
+    // ── First-run: create default admin ───────────────────
+    let users = loadUsers();
+    if (users.length === 0) {
+      const salt = randomHex(16);
+      const passwordHash = await hashPassword('admin123', salt, 'pbkdf2');
+      const admin = {
+        id:                 randomHex(8),
+        username:           'admin',
+        displayName:        'Admin',
+        role:               'admin',
+        salt,
+        passwordHash,
+        hashAlgo:           'pbkdf2',
+        createdAt:          Date.now(),
+        lastLogin:          null,
+        active:             true,
+        messageCount:       0,
+        totalCost:          0,
+        mustChangePassword: true,
+      };
+      saveUsers([admin]);
+      console.log('✦ AuthSystem: created default admin (PBKDF2) — change password on first login');
+    }
+
     // ── Process intents forwarded from /public/login.html ──
     // These are set by the login page before redirecting here.
 
@@ -852,21 +879,6 @@ export const AuthSystem = (() => {
       sessionStorage.removeItem('cpu_signup_intent');
       try {
         const { username, displayName, password } = JSON.parse(suRaw);
-        // Ensure first-run admin exists before we add the new user
-        const existing = loadUsers();
-        if (existing.length === 0) {
-          // No admin yet — run first-run init first, then create the user below
-          const salt = randomHex(16);
-          const passwordHash = await hashPassword('admin123', salt, 'pbkdf2');
-          const admin = {
-            id: randomHex(8), username: 'admin', displayName: 'Admin',
-            role: 'admin', salt, passwordHash, hashAlgo: 'pbkdf2',
-            createdAt: Date.now(), lastLogin: null, active: true,
-            messageCount: 0, totalCost: 0, mustChangePassword: true,
-          };
-          saveUsers([admin]);
-          console.log('✦ AuthSystem: auto-created admin on first signup');
-        }
         await createUser({ username, displayName, password, role: 'user' });
         const user = await login(username, password);
         const url = new URL(location.href);
@@ -899,49 +911,25 @@ export const AuthSystem = (() => {
     }
 
     // ── One-time role migration: promote super-admins ─────
-    // Ensures any existing SUPER_ADMINS user has the admin role,
+    // Ensures any existing SUPER_ADMINS user has the super_admin role,
     // e.g. if they registered before this code was deployed.
     const allUsers = loadUsers();
     let changed = false;
     allUsers.forEach(u => {
-      if (SUPER_ADMINS.has(u.username) && u.role !== 'admin') {
-        u.role = 'admin';
+      if (SUPER_ADMINS.has(u.username) && u.role !== 'super_admin') {
+        u.role = 'super_admin';
         changed = true;
-        console.log(`✦ AuthSystem: promoted ${u.username} → admin (super-admin rule)`);
+        console.log(`✦ AuthSystem: promoted ${u.username} → super_admin (super-admin rule)`);
       }
     });
     if (changed) saveUsers(allUsers);
 
     // Also update any active session for a just-promoted user
     const sess = loadSession();
-    if (sess && SUPER_ADMINS.has(sess.username) && sess.role !== 'admin') {
-      sess.role = 'admin';
+    if (sess && SUPER_ADMINS.has(sess.username) && sess.role !== 'super_admin') {
+      sess.role = 'super_admin';
       saveSession(sess);
     }
-
-    // ── First-run: create default admin ───────────────────
-    const users = loadUsers();
-    if (users.length > 0) return; // already initialized
-
-    const salt = randomHex(16);
-    const passwordHash = await hashPassword('admin123', salt, 'pbkdf2');
-    const admin = {
-      id:                 randomHex(8),
-      username:           'admin',
-      displayName:        'Admin',
-      role:               'admin',
-      salt,
-      passwordHash,
-      hashAlgo:           'pbkdf2',
-      createdAt:          Date.now(),
-      lastLogin:          null,
-      active:             true,
-      messageCount:       0,
-      totalCost:          0,
-      mustChangePassword: true,
-    };
-    saveUsers([admin]);
-    console.log('✦ AuthSystem: created default admin (PBKDF2) — change password on first login');
   }
 
   // ──────────────────────────────────────────────────────────

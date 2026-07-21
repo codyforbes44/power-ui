@@ -4,7 +4,7 @@
    Skill auto-suggest · Streaming · 4 providers
    ============================================================ */
 
-import { MODELS_DATA } from './models-data.js';
+import { MODELS_DATA } from './models-data.js?v=2';
 import { ApiRouter } from './api-router.js?v=2';
 import { ImageRouter } from './image-router.js';
 import { MemorySystem } from './memory.js';
