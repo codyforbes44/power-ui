@@ -33,6 +33,7 @@ const PROVIDER_BASE = {
   // Image generation providers
   bfl:          'https://api.bfl.ml',
   fal:          'https://fal.run',
+  fal_rest:     'https://rest.alpha.fal.ai',
   replicate:    'https://api.replicate.com',
   novita:       'https://api.novita.ai',
   huggingface:  'https://router.huggingface.co/hf-inference',
@@ -567,7 +568,7 @@ exports.handler = async function(event) {
     upstreamHeaders['anthropic-version'] = '2023-06-01';
   } else if (provider === 'bfl') {
     upstreamHeaders['x-key'] = apiKey || '';
-  } else if (provider === 'fal') {
+  } else if (provider === 'fal' || provider === 'fal_rest') {
     upstreamHeaders['Authorization'] = `Key ${apiKey || ''}`;
   } else if (provider === 'replicate') {
     upstreamHeaders['Authorization'] = `Token ${apiKey || ''}`;
