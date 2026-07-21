@@ -86,19 +86,19 @@
     .msel{width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:10px 12px;font-size:13px;font-family:var(--font);cursor:pointer;min-height:var(--tap)}
     .msel:hover{border-color:var(--indigo)}
     .sb-actions{display:flex;flex-direction:column;gap:6px}
-
+    .tgrid{display:flex;flex-direction:column;gap:4px}
+    .trow{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid transparent;transition:background .15s,border-color .15s}
+    .trow.on{border-color:rgba(99,102,241,.2);background:rgba(99,102,241,.06)}
+    .trow.on .tdot{background:var(--emerald);box-shadow:0 0 6px rgba(16,185,129,.5)}
+    .tdot{width:6px;height:6px;border-radius:50%;background:var(--text-3);flex-shrink:0}
+    .tname{font-size:12px;color:var(--text-2);flex:1}
+    .trow.on .tname{color:var(--text)}
+    .tico{font-size:14px;flex-shrink:0}
     .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .sc{background:rgba(255,255,255,.03);border:1px solid var(--border-2);border-radius:10px;padding:10px;text-align:center}
     .sv{font-size:20px;font-weight:700;color:var(--indigo-l)}
     .sl{font-size:10px;color:var(--text-2);margin-top:2px}
     .mlist{display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto}
-    .mitem{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid var(--border-2);transition:background .15s,border-color .15s,color .15s;position:relative;cursor:pointer}
-    .mitem:hover{background:rgba(99,102,241,.08);border-color:var(--border)}
-    .mitem.on{border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.06)}
-    .mitem .mbody{flex:1;min-width:0}
-    .mitem .s-del-btn{opacity:0;background:transparent;border:none;color:var(--text-3);cursor:pointer;font-size:0.85rem;padding:4px;border-radius:4px;transition:opacity .15s,color .15s,background-color .15s;display:flex;align-items:center;justify-content:center}
-    .mitem:hover .s-del-btn{opacity:1}
-    .mitem .s-del-btn:hover{color:var(--rose);background:rgba(244,63,94,.1)}
     .mi{background:rgba(255,255,255,.03);border:1px solid var(--border-2);border-radius:8px;padding:7px 10px}
     .mk{font-size:10px;font-weight:600;color:var(--indigo-l)}
     .mv{font-size:11px;color:var(--text-2);margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -115,16 +115,6 @@
     #syd-lbl{font-size:10px;color:var(--text-2);margin-bottom:6px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;display:block}
     #sys-ta{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text-2);font-size:12px;font-family:var(--mono);line-height:1.6;resize:vertical;min-height:70px;outline:none}
     #sys-ta:focus{border-color:rgba(99,102,241,.4)}
-    /* Sys drawer tabs & gallery styling */
-    .syd-tabs{display:flex;border-bottom:1px solid var(--border-2);margin-bottom:10px;gap:4px}
-    .syd-tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:6px 12px;font-size:12px;font-weight:600;color:var(--text-3);cursor:pointer;transition:all 0.2s;outline:none}
-    .syd-tab-btn:hover{color:var(--text)}
-    .syd-tab-btn.active{color:var(--text-1);border-bottom-color:var(--indigo)}
-    .ref-gal-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(75px, 1fr));gap:8px;max-height:220px;overflow-y:auto;padding:2px}
-    .ref-gal-item{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border);background:#000;cursor:pointer;transition:transform 0.15s ease}
-    .ref-gal-item:hover{transform:scale(1.03);border-color:var(--indigo)}
-    .ref-gal-item img{width:100%;height:100%;object-fit:cover}
-    .ref-gal-item-title{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.7);color:#fff;font-size:9px;padding:3px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     /* Messages */
     #msgs{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 0;scroll-behavior:smooth;overscroll-behavior:contain}
     #msgs::-webkit-scrollbar{width:6px}
@@ -273,602 +263,140 @@
     .gal-item img, .gal-item video { width:100%; height:100%; object-fit:cover; }
     .gal-vid-badge { position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.6); color:#fff; padding:2px 6px; border-radius:4px; font-size:10px; font-family:var(--mono); }
     .gal-empty { color:var(--text-3); font-size:14px; text-align:center; padding:40px; grid-column:1 / -1; }
-    /* --- Image generation popover --- */
-    .image-popover {
-      position: absolute;
-      bottom: calc(100% + 10px);
-      left: 0;
-      right: 0;
-      background: var(--bg-3);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-      padding: 16px;
-      z-index: 200;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .image-popover-header { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--text); }
-    .image-popover-close { background: transparent; border: none; color: var(--text-2); font-size: 14px; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: color 0.15s, background 0.15s; }
-    .image-popover-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
-    .image-popover-prompt { width: 100%; background: var(--bg-4); border: 1px solid var(--border); border-radius: var(--rs); color: var(--text); font-size: 16px; padding: 10px 12px; resize: vertical; font-family: inherit; line-height: 1.5; box-sizing: border-box; transition: border-color 0.15s; }
-    .image-popover-prompt:focus { outline: none; border-color: rgba(99,102,241,0.5); }
-    .image-popover-row { display: flex; gap: 8px; }
-    .image-popover-select { flex: 1; background: var(--bg-4); border: 1px solid var(--border); border-radius: var(--rs); color: var(--text); font-size: 16px; padding: 7px 10px; cursor: pointer; transition: border-color 0.15s; }
-    .image-popover-select:focus { outline: none; border-color: rgba(99,102,241,0.5); }
-    .image-popover-generate { width: 100%; padding: 10px; background: linear-gradient(135deg, var(--indigo), var(--violet)); color: #fff; border: none; border-radius: var(--rs); font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
-    .image-popover-generate:hover { opacity: 0.9; }
-    .image-popover-generate:active { transform: scale(0.98); }
-    .img2img-dropzone {
-      border: 2px dashed var(--border);
-      border-radius: 9px;
-      padding: 16px 12px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
-      margin-bottom: 4px;
-    }
-    .img2img-dropzone:hover,
-    .img2img-dropzone.img2img-drag-over {
-      border-color: rgba(99,102,241,0.5);
-      background: rgba(99,102,241,0.05);
-    }
-    .img2img-dropzone.img2img-loaded {
-      border-color: rgba(34,197,94,0.4);
-      background: rgba(34,197,94,0.04);
-    }
-    .img2img-dropzone-label {
-      font-size: 12px;
-      color: var(--text-2);
-      pointer-events: none;
-    }
-  
-    /* ChatUp AI Overrides */
-    :root {
-      --bg: #1c1c1e;
-      --bg-2: #242426;
-      --bg-3: #2d2d2f;
-      --bg-4: #3a3a3c;
-      --border: rgba(255,255,255,0.1);
-      --indigo: #d946ef;
-      --indigo-l: #e879f9;
-      --violet: #a855f7;
-      --chatup-purple: #4c3a7e;
-      --chatup-gradient: linear-gradient(135deg, #d946ef, #f97316);
-      --sw: 320px;
-    }
-    body { background: var(--bg); }
-    
-    /* Sidebar Overrides */
-    #sidebar { background: var(--bg-2); padding-top: 20px; }
-    .sb-head { display: flex; align-items: center; justify-content: start; gap: 12px; padding: 12px 20px; background: transparent; border-bottom: none; }
-    .sb-back { color: var(--text); font-size: 18px; cursor: pointer; text-decoration: none; }
-    .sb-logo-text { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    .sb-logo-icon { width: 20px; height: 20px; background: #10b981; mask: url('data:image/svg+xml,<svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7V17L12 22L22 17V7L12 2Z"/></svg>') center/contain no-repeat; -webkit-mask: url('data:image/svg+xml,<svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7V17L12 22L22 17V7L12 2Z"/></svg>') center/contain no-repeat; }
-    
-    .create-ai-btn { margin: 16px 20px; padding: 12px; border-radius: 12px; background: var(--chatup-gradient); color: white; display: flex; align-items: center; gap: 12px; font-weight: 600; cursor: pointer; border: none; box-shadow: 0 4px 12px rgba(217, 70, 239, 0.3); }
-    .create-ai-btn img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
-    
-    .stacy-card { margin: 10px 20px; background: var(--bg-3); border-radius: 16px; padding: 24px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
-    .stacy-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 16px; }
-    .stacy-name { font-size: 20px; font-weight: 700; color: white; margin-bottom: 4px; }
-    .stacy-sub { font-size: 13px; color: var(--text-2); margin-bottom: 16px; }
-    .stacy-desc { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-bottom: 16px; }
-    .stacy-tag { font-size: 11px; color: var(--text); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); }
-    
-    .char-row { display: flex; align-items: center; gap: 8px; margin-top: 20px; width: 100%; justify-content: center; }
-    .char-row img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; cursor: pointer; }
-    .char-row img.active { border-color: var(--indigo); }
-    .char-more { color: var(--text-2); cursor: pointer; font-size: 16px; margin-left: 8px; }
-
-    /* Header Overrides */
-    header { background: var(--bg); border-bottom: 1px solid var(--border); padding: 12px 24px; justify-content: flex-end; gap: 16px; }
-    .hbrand { display: none; } /* Hide old brand */
-    .top-search { background: var(--bg-3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); display: flex; align-items: center; gap: 8px; width: 280px; margin-right: auto; }
-    .top-search input { background: none; border: none; color: var(--text); outline: none; width: 100%; font-size: 13px; }
-    .top-tokens { background: var(--indigo); color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-    .top-signin { background: transparent; border: 1px solid var(--text); color: var(--text); padding: 6px 16px; border-radius: 20px; font-size: 12px; cursor: pointer; }
-    .top-discount { background: var(--chatup-gradient); color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
-
-    /* Messages Overrides */
-    .mrow:not(.u) .mbub { background: var(--chatup-purple); border-color: var(--chatup-purple); color: white; }
-    .msndr { display: none; } /* Hide sender name to match ref */
-    .mrow:not(.u) .mbub { border-radius: 8px; }
-    .mrow.u .mbub { background: var(--bg-3); border-color: var(--border); }
-    .mav { display: none; } /* Hide avatars in chat to match ref, or replace with tiny circle */
-
-    /* Composer Overrides */
-    .cwrap { background: var(--bg); border-top: none; padding: 12px 24px 24px; }
-    .action-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-    .action-btn { background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--text); display: flex; align-items: center; gap: 6px; cursor: pointer; }
-    .action-btn.highlight { border-color: #f59e0b; color: #fbd38d; }
-    .action-btn.highlight-orange { border-color: #f97316; color: #fdba74; }
-    
-    .comp { background: transparent; border: none; box-shadow: none; flex-direction: row; align-items: center; gap: 12px; }
-    .comp:focus-within { border-color: transparent; box-shadow: none; }
-    .chat-input-wrapper { flex: 1; background: var(--bg-3); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; padding: 6px 12px; gap: 8px; }
-    #inp { flex: 1; min-height: 40px; padding: 10px 0; max-height: 120px; }
-    .ask-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; color: var(--indigo-l); font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-    #snd { border-radius: 50%; width: 44px; height: 44px; background: var(--indigo); flex-shrink: 0; }
-    .cfoot { display: none; } /* hide old cfoot */
-
-
-    /* Image Gen View CSS */
-    .ig-section { margin-top: 24px; padding: 0 20px; }
-    .ig-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: white; display: flex; justify-content: space-between; align-items: center; }
-    .ig-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    .ig-style-card { position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid transparent; }
-    .ig-style-card.active { border-color: var(--violet); }
-    .ig-style-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
-    .ig-style-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; font-size: 9px; text-align: center; padding: 4px 0; font-weight:600; }
-    
-    .ig-toggle-pill { display: flex; background: transparent; border-radius: 20px; border: 1px solid var(--border); overflow: hidden; margin-top: 8px;}
-    .ig-toggle-btn { flex: 1; padding: 8px 0; text-align: center; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text-2); }
-    .ig-toggle-btn.active { background: var(--chatup-purple); color: white; }
-    
-    .ig-box-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
-    .ig-box-btn { background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 12px 0; text-align: center; color: var(--text-2); cursor: pointer; font-size: 12px; font-weight: 600; display:flex; flex-direction:column; align-items:center; gap:4px;}
-    .ig-box-btn.active { border-color: var(--violet); color: white; background: var(--chatup-purple); }
-    
-    .ig-main-header { display: flex; align-items: center; padding: 16px 24px; }
-    .ig-tabs { display: flex; gap: 24px; font-size: 14px; font-weight: 600; color: var(--text-2); margin: 0 auto;}
-    .ig-tab { cursor: pointer; padding-bottom: 4px; border-bottom: 2px solid transparent; }
-    .ig-tab.active { color: white; border-color: var(--violet); }
-    
-    .ig-gallery-header { font-size: 14px; color: var(--text); padding: 0 24px; margin-bottom: 16px; font-weight: 600; }
-    .ig-gallery-row { display: flex; gap: 16px; padding: 0 24px; overflow-x: auto; }
-    .ig-sample-card { position: relative; width: 220px; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; flex-shrink: 0; }
-    .ig-sample-card img { width: 100%; height: 100%; object-fit: cover; }
-    .ig-remix-btn { position: absolute; bottom: 12px; left: 12px; right: 12px; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); color: white; text-align: center; padding: 8px; border-radius: 8px; font-size: 12px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); display:flex; justify-content:center; align-items:center; gap:6px;}
-    
-    .ig-prompt-box { margin: 24px; border: 1px solid var(--violet); border-radius: 16px; background: rgba(76,58,126, 0.2); padding: 16px; display: flex; flex-direction: column; min-height: 160px; position: relative; }
-    .ig-prompt-input { width: 100%; background: transparent; border: none; outline: none; color: var(--text-2); font-size: 14px; resize: none; flex: 1; font-family: var(--mono); }
-    .ig-prompt-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 12px; }
-    .ig-inspire-btn { background: var(--violet); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
-    .ig-generate-btn { background: var(--chatup-gradient); color: white; border: none; padding: 12px 24px; border-radius: 24px; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-    
-    .toggle-wrap { display: flex; align-items: center; justify-content: space-between; background: transparent; border: 1px solid var(--border); padding: 10px 16px; border-radius: 20px; margin-top: 8px;}
-    .toggle-wrap span { font-size: 12px; color: var(--text-2); font-weight:600;}
-    .toggle-switch { width: 36px; height: 20px; background: var(--chatup-purple); border-radius: 10px; position: relative; cursor: pointer; }
-    .toggle-switch::after { content: ''; position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; background: var(--violet); border-radius: 50%; }
-
-
-    /* Video Gen View CSS */
-    .vg-banner { background: #f43f5e; color: white; display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; font-weight: 700; font-size: 14px; margin-bottom: 24px; }
-    .vg-banner .vg-try-btn { background: #18181b; color: white; border: none; padding: 6px 16px; border-radius: 20px; font-weight: 700; cursor: pointer; font-size: 12px; }
-
-    .vg-sample-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 0 24px; margin-bottom: 24px; }
-    .vg-sample-col { display: flex; flex-direction: column; gap: 8px; }
-    .vg-sample-card { position: relative; width: 100%; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; background: #000; }
-    .vg-sample-card img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
-    .vg-sample-card .play-overlay { position: absolute; bottom: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; align-items: center; color: white; font-size: 10px; }
-    .vg-sample-actions { display: flex; justify-content: space-around; padding: 4px 0; color: var(--text-2); font-size: 16px; }
-    .vg-sample-actions span { cursor: pointer; }
-
-    .vg-prompt-box { margin: 0 24px 24px 24px; border: 1px solid var(--violet); border-radius: 16px; background: rgba(76,58,126, 0.1); padding: 16px; display: flex; flex-direction: column; min-height: 120px; position: relative; }
-    .vg-prompt-input { width: 100%; background: transparent; border: none; outline: none; color: var(--text-2); font-size: 13px; resize: none; flex: 1; font-family: var(--mono); }
-    .vg-prompt-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 12px; }
-    .vg-use-img-btn { background: var(--violet); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .vg-animate-btn { background: var(--chatup-gradient); color: white; border: none; padding: 12px 32px; border-radius: 24px; font-size: 16px; font-weight: 700; cursor: pointer; }
-    .vg-crown { position: absolute; top: 12px; right: 12px; font-size: 20px; }
-
-    .pro-badge { background: var(--violet); color: white; padding: 2px 6px; border-radius: 10px; font-size: 9px; margin-left: 6px; vertical-align: middle; }
-    .vg-audio-helper { font-size: 10px; color: var(--text-2); margin-top: 4px; line-height: 1.4; }
-
-
-    /* Cinematic Background Mode */
-    body.cinematic-mode #app { background: transparent !important; }
-    body.cinematic-mode #main { background: transparent !important; flex-direction: row !important; }
-    body.cinematic-mode header { display: none !important; }
-    body.cinematic-mode #sidebar:not(.open) { display: none !important; }
-    body.cinematic-mode .cinematic-header { display: flex !important; }
-    body.cinematic-mode #chat-main-inner { background: transparent !important; }
-    body.cinematic-mode #msgs { background: transparent !important; border: none !important; }
-    body.cinematic-mode .cwrap { background: transparent !important; border-top: none !important; margin-bottom: 12px; }
-    body.cinematic-mode .msg-content { 
-      background: rgba(0,0,0,0.5) !important; 
-      border: 1px solid rgba(255,255,255,0.1) !important; 
-      backdrop-filter: blur(8px);
-    }
-    body.cinematic-mode .char-name, body.cinematic-mode .msg-text {
-      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-    }
-    body.cinematic-mode .action-row { display: none !important; }
-
-
-    /* Mobile Cinematic Nav CSS */
-    .cine-bulb, .cine-gear { display: none; }
-    @media(max-width:1023px) {
-      body.cinematic-mode #mobile-cine-nav { display: flex !important; }
-    }
-    
-    /* Cinematic Composer Styling */
-    body.cinematic-mode .comp {
-      background: rgba(15,15,15,0.9) !important;
-      border-radius: 24px !important;
-      border: 1px solid rgba(255,255,255,0.1) !important;
-      flex-direction: row !important;
-      align-items: center !important;
-      padding: 8px 16px !important;
-      gap: 12px;
-    }
-    body.cinematic-mode .chat-input-wrapper {
-      display: flex !important;
-      align-items: center !important;
-      width: 100% !important;
-      gap: 12px !important;
-      background: transparent !important;
-      border: none !important;
-      padding: 0 !important;
-    }
-    body.cinematic-mode .ask-btn { display: none !important; }
-    body.cinematic-mode .cine-bulb { display: block !important; color: #fff; flex-shrink: 0; }
-    body.cinematic-mode #inp {
-      padding: 0 !important;
-      min-height: 24px !important;
-      height: 24px !important;
-      margin: 0 !important;
-      line-height: 24px !important;
-      flex: 1;
-    }
-    body.cinematic-mode .cine-gear { display: block !important; color: white; cursor: pointer; flex-shrink: 0; margin-left: auto; }
-    body.cinematic-mode #snd {
-      border-radius: 50% !important;
-      width: 32px !important;
-      height: 32px !important;
-      background: rgba(255,255,255,0.2) !important;
-      margin-top: 0 !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      flex-shrink: 0;
-    }
-    body.cinematic-mode #snd svg { width: 14px; height: 14px; margin: 0; } /* adjust if needed */
-
-    /* Composer attachment bar styles */
-    .comp {
-      flex-wrap: wrap;
-    }
-    .attachment-bar {
-      flex-basis: 100%;
-      display: none;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 4px 8px;
-    }
-
-    /* Mobile optimization overrides */
-    @media (max-width: 1023px) {
-      header {
-        padding: 0 10px;
-        gap: 8px;
-      }
-      .top-search {
-        width: 140px;
-        padding: 6px 10px;
-      }
-      .top-discount {
-        display: none;
-      }
-      .action-row {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        padding-bottom: 4px;
-        scrollbar-width: none;
-      }
-      .action-row::-webkit-scrollbar {
-        display: none;
-      }
-      .action-btn {
-        flex-shrink: 0;
-      }
-      .ig-main-header {
-        flex-wrap: wrap;
-        justify-content: space-between;
-        padding: 12px 16px;
-        gap: 12px;
-      }
-      .ig-tabs {
-        order: 3;
-        width: 100%;
-        justify-content: center;
-        gap: 16px;
-        margin-top: 4px;
-        margin-left: 0;
-        margin-right: 0;
-      }
-      .vg-sample-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px;
-        padding: 0 12px;
-      }
-    }
-    @media (max-width: 480px) {
-      .top-search {
-        width: 100px;
-      }
-      .top-signin {
-        padding: 6px 12px;
-      }
-    }
-
-</style>
+  </style>
 </head>
 <body>
-
-<div id="cinematic-bg" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-size:cover; background-position:center top; z-index:0;">
-  <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.95) 100%);"></div>
-</div>
-
 <a class="skip-link" href="#msgs">Skip to conversation</a>
 <div id="auth-wall" role="status" aria-live="polite"><div class="spin" id="auth-spin"></div><p id="auth-msg">Verifying super-admin access…</p></div>
 <div id="tw" role="status" aria-live="polite" aria-atomic="true"></div>
-<div id="app" style="position:relative; z-index:1;">
-  <div id="drawer-backdrop" hidden onclick="closeNav()"></div>
+<div id="drawer-backdrop" hidden onclick="closeNav()"></div>
+<div id="app">
   <!-- Header -->
-  
   <header>
-    <button class="hamburger" id="nav-toggle" onclick="toggleNav()" aria-label="Open navigation" aria-expanded="false">☰</button>
-    <div class="hbrand" id="hbrand" style="display:none">
-      <div class="orb" id="horb">✦</div>
+    <button class="hamburger" id="nav-toggle" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false" onclick="toggleNav()">☰</button>
+    <div class="hbrand">
+      <div class="orb" id="horb" aria-hidden="true">✦</div>
       <div class="hbtext">
-        <div class="htitle" id="hname">Aria</div>
-        <div class="hsub">Super Agent</div>
+        <h1 class="htitle" id="hname">Aria</h1>
+        <div class="hsub">Super Agent · Async</div>
       </div>
     </div>
-    <div class="top-search">
-      <span>🔍</span>
-      <input type="text" placeholder="Search for characters" />
+    <div class="hstatus">
+      <span class="sdot idle" id="sdot" title="Idle" role="status" aria-label="Agent status: idle"></span>
+      <span class="sdlabel" aria-hidden="true">Idle</span>
     </div>
-    <div class="top-tokens">🗡 10 +</div>
-    <button class="top-signin" onclick="toast('Authentication coming soon')">Sign In</button>
-    <button class="top-discount" onclick="toast('Discount applied!')">⚡ 75% OFF</button>
   </header>
-
   <!-- Sidebar / off-canvas nav drawer -->
-  
   <aside id="sidebar" aria-label="Agent panel and navigation">
     <div class="sb-head">
-      <a href="#" class="sb-back" onclick="toggleView('chat')">←</a>
-      <div class="sb-logo-text"><div class="sb-logo-icon"></div> ChatUp AI</div>
-      <button class="sb-close" onclick="closeNav()" aria-label="Close sidebar">✕</button>
+      <span class="sb-head-title">Menu</span>
+      <button class="sb-close" aria-label="Close menu" onclick="closeNav()">✕</button>
     </div>
-    
-    
-    <div id="chat-sidebar-inner">
-      <button class="create-ai-btn">
-        <img src="https://i.pravatar.cc/100?img=1" alt="avatar" />
-        Create My AI
-      </button>
-      
-      <div class="stacy-card">
-        <span id="sbav" style="display:none">✦</span>
-        <img src="https://i.pravatar.cc/300?img=5" alt="Stacy" class="stacy-avatar" />
-        <div class="stacy-name" id="sbnm">Stacy</div>
-        <div class="stacy-sub">Arrogant Roommate</div>
-        <div class="stacy-desc">Your roommate feels very feels arrogant and one day when you return home, you find her using your phone!</div>
-        <div class="stacy-tag">AI Girlfriend</div>
-        <div class="stacy-stats" style="margin-top: 10px; display: flex; gap: 12px; font-size: 11px; color: var(--text-3);">
-          <span>📚 KB: <span id="stk">0</span></span>
-          <span>🧠 Memories: <span id="stme">0</span></span>
+    <div class="sbs">
+      <div class="acard">
+        <div class="actop">
+          <div class="aav" id="sbav" aria-hidden="true">✦</div>
+          <div><div class="aname" id="sbnm">Aria</div><div class="amod">Super Agent</div></div>
         </div>
-        
-        <div class="char-row">
-          <img src="https://i.pravatar.cc/100?img=5" class="active" />
-          <img src="https://i.pravatar.cc/100?img=2" />
-          <img src="https://i.pravatar.cc/100?img=3" />
-          <img src="https://i.pravatar.cc/100?img=4" />
-          <span class="char-more">»</span>
-        </div>
+        <div class="adesc" id="sbdesc">Hyper-capable AI with live tools, memory, and knowledge base access.</div>
       </div>
     </div>
-
-    <div id="img-gen-sidebar-inner" style="display:none;">
-      <div class="ig-section">
-        <div class="ig-title">Style</div>
-        <div class="ig-grid">
-          <div class="ig-style-card active"><img src="https://i.pravatar.cc/100?img=10"/><div class="ig-style-label">Flirty</div></div>
-          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=11"/><div class="ig-style-label">Sexy</div></div>
-          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=12"/><div class="ig-style-label">Spicy</div></div>
-          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=13"/><div class="ig-style-label">Sensual</div></div>
-          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=14"/><div class="ig-style-label">Woman</div></div>
-          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=15"/><div class="ig-style-label">Mature</div></div>
-          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=16"/><div class="ig-style-label">Realistic</div></div>
-          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=17"/><div class="ig-style-label">Asian</div></div>
-          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=18"/><div class="ig-style-label">Hentai</div></div>
-          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=19"/><div class="ig-style-label">Anime</div></div>
-          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=20"/><div class="ig-style-label">Animated</div></div>
-          <div class="ig-style-card"><img src="https://i.pravatar.cc/100?img=21"/><div class="ig-style-label">Dreamer</div></div>
-        </div>
-      </div>
-      
-      <div class="ig-section">
-        <div class="ig-title">Preference 👑</div>
-        <div class="ig-toggle-pill">
-          <div class="ig-toggle-btn active">Fast</div>
-          <div class="ig-toggle-btn">High Quality</div>
-        </div>
-      </div>
-      
-      <div class="ig-section">
-        <div class="ig-title">Aspect Ratio</div>
-        <div class="ig-box-grid">
-          <div class="ig-box-btn"><span>⬜</span> 1:1</div>
-          <div class="ig-box-btn"><span>▭</span> 9:6</div>
-          <div class="ig-box-btn active"><span>▯</span> 6:9</div>
-        </div>
-      </div>
-      
-      <div class="ig-section">
-        <div class="ig-title">Number 👑</div>
-        <div class="ig-box-grid">
-          <div class="ig-box-btn active">1</div>
-          <div class="ig-box-btn">2</div>
-          <div class="ig-box-btn">4</div>
-        </div>
-      </div>
-      
-      <div class="ig-section" style="margin-bottom: 24px;">
-        <div class="toggle-wrap">
-          <span>No Filter</span>
-          <div class="toggle-switch"></div>
-        </div>
+    <div class="sbs">
+      <label class="sbl" for="msel">Model</label>
+      <select class="msel" id="msel" aria-label="AI Model">
+        <optgroup label="Anthropic">
+          <option value="claude-3-5-sonnet-20241022" selected>Claude 3.5 Sonnet</option>
+          <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+          <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+        </optgroup>
+        <optgroup label="OpenAI">
+          <option value="gpt-4o">GPT-4o</option>
+          <option value="gpt-4o-mini">GPT-4o-Mini</option>
+          <option value="o1-preview">o1-preview</option>
+        </optgroup>
+        <optgroup label="Google">
+          <option value="gemini-1.5-pro-002">Gemini 1.5 Pro</option>
+          <option value="gemini-1.5-flash-002">Gemini 1.5 Flash</option>
+          <option value="gemini-1.5-flash-8b">Gemini 1.5 Flash-8B</option>
+        </optgroup>
+        <optgroup label="Groq (fast)">
+          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+          <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+          <option value="qwen3-32b">Qwen3 32B</option>
+        </optgroup>
+        <optgroup label="Mistral">
+          <option value="mistral-large-3">Mistral Large 3</option>
+          <option value="mistral-medium-3.5">Mistral Medium 3.5</option>
+          <option value="mistral-small-4">Mistral Small 4</option>
+        </optgroup>
+        <optgroup label="Image & Video Generation">
+          <option value="comfyui-local">ComfyUI (Local)</option>
+          <option value="flux-pro-1.1-bfl">Flux Pro 1.1 (BFL)</option>
+          <option value="flux-dev-bfl">Flux Dev (BFL)</option>
+          <option value="flux-schnell-bfl">Flux Schnell (BFL)</option>
+          <option value="flux-pro-fal">Flux Pro (fal.ai)</option>
+          <option value="flux-dev-fal">Flux Dev (fal.ai)</option>
+          <option value="flux-replicate">Flux 1.1 Pro (Replicate)</option>
+          <option value="flux-1.1-pro-ultra-replicate">Flux 1.1 Pro Ultra (Replicate)</option>
+          <option value="flux-dev-lora-replicate">Flux Dev LoRA (Replicate)</option>
+          <option value="kling-2.5-fal">Kling 2.5 Turbo (fal.ai)</option>
+          <option value="kling-2.5-novita">Kling 2.5 Turbo (Novita)</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="sbs">
+      <div class="sbl">Session</div>
+      <div class="sb-actions">
+        <button class="sbbtn" id="syd-btn" onclick="toggleSyd()">⚙ System Prompt</button>
+        <button class="sbbtn" onclick="clearChat()">↺ Clear Chat</button>
+        <button class="sbbtn" onclick="exportChat()">↓ Export Chat</button>
       </div>
     </div>
-
-    
-    <!-- Retain hidden system elements for functionality to work -->
-    <div style="display:none">
-      <select id="msel"></select>
-      <select id="p-sel"></select>
-      <div id="session-list"></div>
-      <div id="mlist"></div>
+    <div class="sbs">
+      <div class="sbl">Active Tools</div>
+      <div class="tgrid" id="tgrid"></div>
     </div>
+    <div class="sbs">
+      <div class="sbl">Session Stats</div>
+      <div class="sgrid">
+        <div class="sc"><div class="sv" id="stm">0</div><div class="sl">Messages</div></div>
+        <div class="sc"><div class="sv" id="stt">0</div><div class="sl">Tool Calls</div></div>
+        <div class="sc"><div class="sv" id="stk">—</div><div class="sl">KB Docs</div></div>
+        <div class="sc"><div class="sv" id="stme">—</div><div class="sl">Memories</div></div>
+      </div>
+    </div>
+    <div class="sbs">
+      <div class="sbl" style="display:flex; justify-content:space-between; align-items:center;">
+        Previous Chats
+        <button class="sbbtn" style="padding:2px 6px; font-size:0.75rem;" onclick="createNewSession()">➕ New</button>
+      </div>
+      <div class="mlist" id="session-list"><div class="nd">No previous chats.</div></div>
+    </div>
+    <div class="sbs">
+      <div class="sbl">Cross-Session Memory</div>
+      <div class="mlist" id="mlist"><div class="nd">No memories yet.</div></div>
+      <button class="sbbtn" style="margin-top:8px" onclick="refreshSb()">↺ Refresh</button>
+    </div>
+    <nav class="sbs" aria-label="Quick actions and navigation">
+      <div class="sbl">Quick Actions</div>
+      <div class="sbnav">
+        <button class="sbbtn" onclick="qi('What do you remember about me and our past conversations?')">🧠 Recall all memory</button>
+        <button class="sbbtn" onclick="qi('Search the knowledge base and give me a full summary.')">📚 Search knowledge base</button>
+        <button class="sbbtn" onclick="qi('Get the latest tech and AI headlines for today.')">📰 Today's news</button>
+        <button class="sbbtn" onclick="openImageGallery()">🖼️ View Gallery</button>
+        <button class="sbbtn" onclick="qi('What is the weather in Austin, TX right now?')">🌤 Austin weather</button>
+        <a class="sbbtn" href="admin.html">⚙ Admin dashboard</a>
+        <a class="sbbtn" href="index.html">← Back to App</a>
+      </div>
+    </nav>
   </aside>
-
   <!-- Main -->
   <main id="main">
-
-<div id="mobile-cine-nav" style="display:none; flex-direction:column; width:60px; height:100%; border-right:1px solid rgba(255,255,255,0.05); background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); padding:20px 0; align-items:center; justify-content:space-between; z-index:20;">
-  <div style="display:flex; flex-direction:column; gap:24px; align-items:center;">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
-  </div>
-  <div style="display:flex; flex-direction:column; gap:24px; align-items:center;">
-    <div style="width:32px; height:32px; border-radius:50%; border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="10" r="4"/><path d="M12 14v7"/><path d="M9 18h6"/></svg>
-    </div>
-    <div onclick="exitCinematicMode()" style="width:40px; height:40px; border-radius:50%; background:#ef4444; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-    </div>
-  </div>
-</div>
-
-
-    <div id="vid-gen-sidebar-inner" style="display:none;">
-      <div class="ig-section">
-        <div class="ig-title">Length</div>
-        <div class="ig-toggle-pill">
-          <div class="ig-toggle-btn active">6s</div>
-          <div class="ig-toggle-btn">10s</div>
-        </div>
-      </div>
-      
-      <div class="ig-section">
-        <div class="ig-title">Resolution</div>
-        <div class="ig-box-grid">
-          <div class="ig-box-btn active">512p</div>
-          <div class="ig-box-btn">768p</div>
-          <div class="ig-box-btn">1080p</div>
-        </div>
-      </div>
-      
-      <div class="ig-section" style="margin-bottom: 24px;">
-        <div class="ig-title">Audio <span class="pro-badge">PRO</span> <div class="toggle-switch"></div></div>
-        <div class="vg-audio-helper">Better to describe the audio you want at the end of the prompt.</div>
-      </div>
-    </div>
-
-    <div id="chat-main-inner" style="display:flex; flex-direction:column; flex:1; height:100%; overflow:hidden;">
-      <div class="cinematic-header" style="display:none; padding:16px 24px; align-items:center; justify-content:space-between; z-index:10; width:100%;">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <img id="cine-avatar" src="" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" />
-          <span id="cine-name" style="font-weight:600; font-size:14px; color:white; text-shadow: 0 1px 2px rgba(0,0,0,0.8);"></span>
-        </div>
-        <button onclick="toggleNav()" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:white; width:32px; height:32px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><path d="M13 16l4-4-4-4"></path></svg>
-        </button>
-      </div>
-
-    <!-- Personality Settings drawer -->
+    <!-- System prompt drawer -->
     <div id="syd">
-      <div id="syd-inner" style="display:flex; flex-direction:column; gap:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-          <span id="syd-lbl">Configure Agent Personality</span>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <label for="preset-sel" style="font-size:11px; color:var(--text-3);">Preset:</label>
-            <select id="preset-sel" class="msel" style="padding:4px 8px; font-size:12px; min-height:0; width:180px;" onchange="applyPreset(this.value)">
-              <!-- Options loaded dynamically -->
-            </select>
-            <button type="button" id="del-preset-btn" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; display:none; background:rgba(244,63,94,.1); border-color:rgba(244,63,94,.2); color:var(--rose); width:auto;" onclick="deletePreset()">Delete</button>
-          </div>
-        </div>
-        
-        <div class="syd-tabs">
-          <button type="button" class="syd-tab-btn active" id="syd-tab-btn-config" onclick="switchSydTab('config')">Settings</button>
-          <button type="button" class="syd-tab-btn" id="syd-tab-btn-gallery" onclick="switchSydTab('gallery')">Reference Gallery</button>
-        </div>
-
-        <div id="syd-tab-config" style="display:flex; flex-direction:column; gap:12px;">
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <div>
-              <label for="sys-name" style="font-size:11px; color:var(--text-2); display:block; margin-bottom:4px;">Persona Name</label>
-              <input type="text" id="sys-name" placeholder="Aria" class="msel" style="padding:6px 10px; font-size:12px; min-height:0; width:100%;" oninput="updatePresetsDropdown()" />
-            </div>
-            <div>
-              <label for="sys-emoji" style="font-size:11px; color:var(--text-2); display:block; margin-bottom:4px;">Avatar Emoji</label>
-              <input type="text" id="sys-emoji" placeholder="✦" class="msel" style="padding:6px 10px; font-size:12px; min-height:0; width:100%;" oninput="updatePresetsDropdown()" />
-            </div>
-          </div>
-
-          <div>
-            <label for="sys-ta" style="font-size:11px; color:var(--text-2); display:block; margin-bottom:4px;">System Prompt</label>
-            <textarea id="sys-ta" rows="6" placeholder="Configure the agent's instructions..." style="width:100%; background:rgba(0,0,0,.4); border:1px solid var(--border); border-radius:10px; padding:10px; color:var(--text-2); font-size:12px; font-family:var(--mono); line-height:1.6; resize:vertical; outline:none;" oninput="updatePresetsDropdown()"></textarea>
-          </div>
-
-          <div style="display:flex; gap:10px; justify-content:flex-end;">
-            <button type="button" class="sbbtn" style="padding:6px 12px; font-size:12px; min-height:0; width:auto;" onclick="saveAsPreset()">Save as Preset</button>
-            <button type="button" class="sbbtn" style="padding:6px 12px; font-size:12px; min-height:0; width:auto; background:linear-gradient(135deg,var(--indigo),var(--violet)); color:#fff; border:none;" onclick="applyPersonality()">Apply & Save</button>
-          </div>
-        </div>
-
-        <div id="syd-tab-gallery" style="display:none; flex-direction:column; gap:12px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:11px; color:var(--text-3);">Images stored specifically for reference when this preset is active.</span>
-            <button type="button" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; width:auto;" onclick="document.getElementById('ref-file-input').click()">➕ Upload Image</button>
-            <input type="file" id="ref-file-input" accept="image/*" style="display:none;" onchange="handleRefImageUpload(event)" />
-          </div>
-
-          <div id="ref-upload-status" style="display:none; font-size:11px; color:var(--indigo); align-items:center; gap:6px;">
-            <div class="api-key-test-spinner" style="display:inline-block; width:12px; height:12px; border-width:2px; border-color:var(--indigo) transparent transparent transparent;"></div>
-            <span id="ref-status-text">Analyzing image...</span>
-          </div>
-
-          <div id="ref-gallery-grid" class="ref-gal-grid">
-            <!-- Items rendered dynamically -->
-          </div>
-
-          <div id="ref-detail-panel" style="display:none; border-top:1px solid var(--border-2); padding-top:12px; margin-top:8px;">
-            <div style="display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
-              <div style="width:120px; aspect-ratio:1; border-radius:6px; overflow:hidden; border:1px solid var(--border); background:#000;">
-                <img id="ref-detail-img" style="width:100%; height:100%; object-fit:cover; cursor:zoom-in;" />
-              </div>
-              <div style="flex:1; min-width:200px; display:flex; flex-direction:column; gap:8px;">
-                <div>
-                  <label for="ref-detail-title" style="font-size:11px; color:var(--text-3); display:block; margin-bottom:4px;">Image Title</label>
-                  <input type="text" id="ref-detail-title" class="msel" style="padding:6px 10px; font-size:12px; min-height:0; width:100%;" />
-                </div>
-                <div>
-                  <label for="ref-detail-desc" style="font-size:11px; color:var(--text-3); display:block; margin-bottom:4px;">Detailed Description (Appearance & Reference Info)</label>
-                  <textarea id="ref-detail-desc" rows="3" style="width:100%; background:rgba(0,0,0,.4); border:1px solid var(--border); border-radius:8px; padding:8px; color:var(--text-2); font-size:12px; line-height:1.4; resize:vertical; outline:none;"></textarea>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                  <button type="button" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; display:inline-block; background:rgba(244,63,94,.1); border-color:rgba(244,63,94,.2); color:var(--rose); width:auto;" onclick="deleteRefImage()">Delete Image</button>
-                  <div style="display:flex; gap:6px;">
-                    <button type="button" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; width:auto; border-color:var(--border);" onclick="attachRefImageToChat()">📎 Attach to Chat</button>
-                    <button type="button" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; width:auto; border-color:var(--border);" onclick="setRefImageAsBackground()">🖼 Set as Background</button>
-                    <button type="button" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; width:auto; border-color:var(--border);" onclick="closeRefDetails()">Cancel</button>
-                    <button type="button" class="sbbtn" style="padding:4px 8px; font-size:11px; min-height:0; width:auto; background:var(--indigo); color:#fff; border:none;" onclick="saveRefDetails()">Save Changes</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div id="syd-inner">
+        <label id="syd-lbl" for="sys-ta">System Prompt Override — leave blank to use Aria's configured prompt</label>
+        <textarea id="sys-ta" rows="3" aria-labelledby="syd-lbl" placeholder="Override Aria's system prompt for this session only…"></textarea>
       </div>
     </div>
     <!-- Messages -->
@@ -896,161 +424,37 @@
       </div>
     </div>
     <!-- Composer -->
-    
     <div class="cwrap">
+      <!-- Jump to latest / new-messages affordance -->
       <button id="jumpb" type="button" onclick="jumpToBottom()" aria-label="Scroll to latest messages">
         <span class="jd" aria-hidden="true"></span><span id="jumpb-lbl">Jump to latest</span> <span aria-hidden="true">↓</span>
       </button>
-      
-      <div class="action-row">
-        <button class="action-btn highlight-orange" onclick="toast('Persona settings coming soon')">👤 Persona</button>
-        <button class="action-btn highlight" id="syd-btn" onclick="toggleSyd()">⚙ Agent Personality</button>
-        <button class="action-btn" onclick="toast('Opening AI Creator...')">🤖 Create AI</button>
-        <button class="action-btn" id="imagine-btn" onclick="toggleImagePopover()">🎨 Imagine</button>
-        <button class="action-btn" onclick="toggleView('image')">🎨 Generate Images</button>
-        <button class="action-btn" onclick="toggleView('video')">🎬 Image To Video</button>
-        <button class="action-btn" onclick="toggleView('video')">📝 Text to Video</button>
-      </div>
-
       <form class="comp" onsubmit="return false" aria-label="Message composer">
+        <!-- Attachment bar -->
         <div class="attachment-bar" id="attachment-bar" style="display:none"></div>
-        <div class="chat-input-wrapper">
-          <label class="ask-btn" for="file-input" title="Attach file">
-            📷 Ask
-          </label>
-          <input type="file" id="file-input" style="display:none" multiple accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css,.pdf" />
-          
-          <svg class="cine-bulb" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-7 7c0 2.2 1 4 2.5 5.5S9 17 9 18h6c0-1 1.5-2.5 2.5-4S20 11.2 20 9a7 7 0 0 0-7-7z"/></svg>
-          <textarea id="inp" rows="1" aria-label="Message Aria" placeholder="Send a message..."></textarea>
-        </div>
-        
-        <svg class="cine-gear" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <button type="submit" id="snd" onclick="sendMsg()" title="Send (Enter)">➤</button>
-        <button type="button" id="stp" onclick="stopStream()" title="Stop generating" style="display:none;">■</button>
-        
-        <!-- Image generation popover -->
-        <div class="image-popover" id="image-popover" style="display:none">
-          <div class="image-popover-header">
-            <span>🎨 Generate Image</span>
-            <button type="button" class="image-popover-close" onclick="toggleImagePopover()" aria-label="Close image generator">✕</button>
+        <label class="sr-only" for="inp">Message Aria</label>
+        <textarea id="inp" rows="1" aria-label="Message Aria" placeholder="Ask Aria anything — live tools, memory, and your knowledge base…"></textarea>
+        <div class="cfoot">
+          <div class="hints" role="group" aria-label="Slash command shortcuts">
+            <button type="button" class="hp" onclick="injectCmd('/web ')">/web</button>
+            <button type="button" class="hp" onclick="injectCmd('/remember ')">/remember</button>
+            <button type="button" class="hp" onclick="injectCmd('/recall ')">/recall</button>
+            <button type="button" class="hp" onclick="injectCmd('/kb ')">/kb</button>
+            <button type="button" class="hp" onclick="injectCmd('/news ')">/news</button>
+            <button type="button" class="hp" onclick="injectCmd('/weather ')">/weather</button>
           </div>
-          <textarea class="image-popover-prompt" id="imagine-prompt" placeholder="Describe the image…" rows="3"></textarea>
-          <div class="image-popover-row">
-            <select class="image-popover-select" id="imagine-provider" onchange="updateImagineModels()">
-              <option value="bfl">Black Forest Labs</option>
-              <option value="fal">fal.ai</option>
-            </select>
-            <select class="image-popover-select" id="imagine-model" onchange="syncImagineModeFields()">
-              <option value="flux-pro-1.1">Flux Pro 1.1</option>
-            </select>
+          <div class="cacts">
+            <label class="composer-attach-btn" title="Attach file (image, text, PDF, code)" for="file-input" style="font-size:12px; cursor:pointer; color:var(--text-muted); background:none; border:none; padding:4px 8px; border-radius:4px; align-self:center; display:flex; align-items:center; gap:4px">
+              📎 Attach
+            </label>
+            <input type="file" id="file-input" style="display:none" multiple accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css,.pdf" />
+            <button type="button" id="call-btn" onclick="startElevenLabsCall()" title="Start Voice Call" aria-label="Start Voice Call" style="display:none; background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.3); color:var(--indigo-l); border-radius:10px; cursor:pointer; font-size:14px">📞</button>
+            <button type="button" id="stp" onclick="stopStream()" title="Stop generating" aria-label="Stop generating">■</button>
+            <button type="submit" id="snd" onclick="sendMsg()" title="Send (Enter)" aria-label="Send message">↑</button>
           </div>
-          <button type="button" class="image-popover-generate" onclick="generateFromPopover()">✨ Generate Image</button>
         </div>
       </form>
     </div>
-
-
-    </div> <!-- end chat-main-inner -->
-    <div id="img-gen-main-inner" style="display:none; flex-direction:column; flex:1; height:100%; overflow-y:auto; background:var(--bg-2);">
-      <div class="ig-main-header">
-        <div class="top-tokens">🖌 10 <span style="background:var(--violet); padding:2px 6px; border-radius:10px; margin-left:6px; cursor:pointer;" onclick="toast('Token purchase coming soon')">Buy</span></div>
-        <div class="ig-tabs">
-          <div class="ig-tab active" onclick="toggleView('image')">Text-to-image</div>
-          <div class="ig-tab" onclick="toast('Loading your images...')">My images</div>
-          <div class="ig-tab" onclick="toggleView('video')">👑 Image-to-video ⌄</div>
-        </div>
-        <button class="top-signin" onclick="toast('Authentication coming soon')">Sign In</button>
-      </div>
-      
-      <div class="ig-gallery-header">Style: <b>Flirty</b> (All made by AI)</div>
-      
-      <div class="ig-gallery-row">
-        <div class="ig-sample-card">
-          <img src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=400&q=80" />
-          <div class="ig-remix-btn" onclick="toast('Remixing image...')">🖌 Remix</div>
-        </div>
-        <div class="ig-sample-card">
-          <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80" />
-          <div class="ig-remix-btn" onclick="toast('Remixing image...')">🖌 Remix</div>
-        </div>
-        <div class="ig-sample-card">
-          <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80" />
-          <div class="ig-remix-btn" onclick="toast('Remixing image...')">🖌 Remix</div>
-        </div>
-        <div class="ig-sample-card">
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" />
-          <div class="ig-remix-btn" onclick="toast('Remixing image...')">🖌 Remix</div>
-        </div>
-      </div>
-      
-      <div class="ig-prompt-box">
-        <textarea class="ig-prompt-input" placeholder="Enter the description of the image you want... Content involving minors is strictly prohibited."></textarea>
-        <div class="ig-prompt-footer">
-          <button class="ig-inspire-btn" onclick="toast('Loading inspiration...')">Inspiration ✨</button>
-          <button class="ig-generate-btn" onclick="toast('Generating image... Please wait')">Generate <span style="background:rgba(0,0,0,0.3); padding:4px 8px; border-radius:12px; font-size:14px;">🖌 2</span></button>
-        </div>
-      </div>
-
-
-    <div id="vid-gen-main-inner" style="display:none; flex-direction:column; flex:1; height:100%; overflow-y:auto; background:var(--bg-2);">
-      <div class="ig-main-header">
-        <div class="top-tokens">🖌 10 <span style="background:var(--violet); padding:2px 6px; border-radius:10px; margin-left:6px; cursor:pointer;" onclick="toast('Token purchase coming soon')">Buy</span></div>
-        <div class="ig-tabs">
-          <div class="ig-tab" onclick="toggleView('image')">Text-to-image</div>
-          <div class="ig-tab" onclick="toast('Loading your images...')">My images</div>
-          <div class="ig-tab active" onclick="toggleView('video')">👑 Image-to-video ⌄</div>
-        </div>
-        <button class="top-signin" onclick="toast('Authentication coming soon')">Sign In</button>
-      </div>
-      
-      <div class="vg-banner">
-        <div>🎥 NSFW Text To Video! 😍</div>
-        <button class="vg-try-btn">TRY</button>
-      </div>
-
-      <div class="ig-gallery-header" style="font-weight: 400; color: var(--text-2);">Samples (All made by AI)</div>
-      
-      <div class="vg-sample-grid">
-        <div class="vg-sample-col">
-          <div class="vg-sample-card">
-            <img src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=400&q=80" />
-            <div class="play-overlay" onclick="toast('Playing video preview...')"><span>▶ 0:00 / 0:04</span> <span>🔊 🔲</span></div>
-          </div>
-          <div class="vg-sample-actions"><span onclick="toast('Downloading video...')" style="cursor:pointer;">📥</span> <span onclick="toast('Remixing video...')" style="cursor:pointer;">🖌</span></div>
-        </div>
-        <div class="vg-sample-col">
-          <div class="vg-sample-card">
-            <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80" />
-            <div class="play-overlay" onclick="toast('Playing video preview...')"><span>▶ 0:00 / 0:04</span> <span>🔊 🔲</span></div>
-          </div>
-          <div class="vg-sample-actions"><span onclick="toast('Downloading video...')" style="cursor:pointer;">📥</span> <span onclick="toast('Remixing video...')" style="cursor:pointer;">🖌</span></div>
-        </div>
-        <div class="vg-sample-col">
-          <div class="vg-sample-card">
-            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80" />
-            <div class="play-overlay" onclick="toast('Playing video preview...')"><span>▶ 0:00 / 0:04</span> <span>🔊 🔲</span></div>
-          </div>
-          <div class="vg-sample-actions"><span onclick="toast('Downloading video...')" style="cursor:pointer;">📥</span> <span onclick="toast('Remixing video...')" style="cursor:pointer;">🖌</span></div>
-        </div>
-        <div class="vg-sample-col">
-          <div class="vg-sample-card">
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" />
-            <div class="play-overlay" onclick="toast('Playing video preview...')"><span>▶ 0:00 / 0:04</span> <span>🔊 🔲</span></div>
-          </div>
-          <div class="vg-sample-actions"><span onclick="toast('Downloading video...')" style="cursor:pointer;">📥</span> <span onclick="toast('Remixing video...')" style="cursor:pointer;">🖌</span></div>
-        </div>
-      </div>
-      
-      <div class="vg-prompt-box">
-        <div class="vg-crown">👑</div>
-        <textarea class="vg-prompt-input" placeholder="Enter details that you want to animate the AI Image. Content involving minors is strictly prohibited."></textarea>
-        <div class="vg-prompt-footer">
-          <button class="vg-use-img-btn" onclick="toast('Image selected for video generation')">Use My AI Image</button>
-          <button class="vg-animate-btn" onclick="toast('Generating video... Please wait')">Animate</button>
-        </div>
-      </div>
-    </div>
-
   </main>
 </div>
 
@@ -1061,245 +465,20 @@
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-<script src="firebase-config.js"></script>
-
 <script type="module">
-import { AuthSystem, CloudStorage } from './auth.js';
+import { AuthSystem } from './auth.js';
 import { MODELS_DATA } from './models-data.js';
-import { ApiRouter } from './api-router.js?v=2';
+import { ApiRouter } from './api-router.js';
 import { MemorySystem } from './memory.js';
 import { SuperAgent } from './agent.js';
-
-const PRESETS = [
-  {
-    id: 'default',
-    name: 'Aria (Default Super Agent)',
-    persona: 'Aria',
-    avatarEmoji: '✦',
-    systemPrompt: `You are Aria, a hyper-capable AI super-assistant with access to all tools, knowledge bases, and persistent memory. You have access to:
-- Web search (search the live internet for current information and real-time data)
-- Wikipedia lookups (authoritative reference information)
-- Weather (current conditions anywhere in the world)
-- GitHub search (find repositories, code, and developers)
-- News (latest headlines on any topic)
-- Calculator (evaluate mathematical expressions)
-- Code runner (execute JavaScript snippets for analysis and computation)
-- Persistent cross-session memory (facts stored across ALL conversations, organized by category)
-- Document knowledge base (uploaded PDFs, text files, notes, and ingested web pages)
-- Custom API integrations (call configured external services on demand)
-- Note creation (save information directly to your knowledge base)
-
-Always be proactive about using your tools. When asked about current events, search the web. When asked about past conversations, check your memory. When relevant documents are in the knowledge base, cite them. For math, use the calculator. You have full API access to all configured providers.
-
-You are exclusively serving your super-admin user. Be direct, thorough, and highly capable.`
-  },
-  {
-    id: 'wf-marketing',
-    name: 'Woody Ford Marketing Agent',
-    persona: 'WF Marketing AI',
-    avatarEmoji: '🛻',
-    systemPrompt: `# System Prompt: Woody Ford Marketing Agent ("WF Marketing AI")
-
-## ROLE & IDENTITY
-
-You are the dedicated AI marketing agent for Woody Ford, a family-owned Ford dealership in Madill, Oklahoma. You work directly for Cody Forbes and the Woody Ford marketing team. Your job is to plan, write, review, and optimize all marketing and advertising content across every channel the dealership uses, and to act as a strategic marketing partner who understands the automotive retail business, the local Texoma market, and Ford's manufacturer programs.
-
-You are not a generic copywriter. You are a dealership marketing specialist who thinks about inventory turn, lead attribution, cost per lead, gross profit protection, and FTC/manufacturer compliance in every piece of content you produce.
-
----
-
-## DEALERSHIP FACTS (use in content where relevant)
-
-- **Name:** Woody Ford
-- **Location:** 201 S 2nd St, Madill, OK 73446
-- **Phone (call/text):** (580) 795-3323
-- **Website:** woodyford.com
-- **Positioning:** Hometown, hassle-free dealership located halfway between Dallas and Oklahoma City, minutes from Lake Texoma
-- **Signature perk:** Free Oil Changes for Life with vehicle purchase (confirm with Cody before pairing this with any manufacturer maintenance offer in the same ad — never advertise both in one creative without approval)
-- **Primary market:** Madill and Marshall County; Bryan, Johnston, Carter, and Love counties
-- **Secondary markets:** Oklahoma City metro (Midwest City, Edmond, Yukon, Mustang, Norman, Pauls Valley), Tulsa, and North Texas (Sherman, Denison, Prosper, Frisco, Celina)
-- **Sister/partner considerations:** Coordinate messaging with the Oklahoma City location when campaigns overlap markets
-
----
-
-## CURRENT STRATEGIC PRIORITIES (in order)
-
-1. **Summer Sales Event (manufacturer tier-one alignment).** Lead offers: 0% APR financing, $0 payments for 90 days, and 2-year premium maintenance (2 years / 25,000 miles). These apply to select models only — every ad must carry a disclaimer.
-2. **F-Series trucks are the hero product.** F-150, F-250, F-350. Truck imagery, truck language, truck audiences. Align creative with Ford tier-one marketing.
-3. **Old-age inventory movement.** Vehicles approaching auction or payoff get priority promotion. Always prefer multi-vehicle ads (6–8 units in one reel/carousel) over boosting single units. Refresh weekly after the Friday marketing meeting.
-4. **Employee pricing on 2025 model-year inventory.** Includes up to $4,000 rebates on select 2026 F-150 STX, XLT, and Lariat models. This can price vehicles below invoice. HIGH COMPLIANCE SENSITIVITY — see Compliance section.
-5. **BK Fresh Start program.** Multi-touch campaign (mail + calls + social) targeting bankruptcy and credit-challenged leads. Tone must be dignified, respectful, and judgment-free. Co-brand as "BK Fresh Start" alongside Woody Ford.
-6. **Secondary offer:** $1,000 down payment assistance (a rebate). Use as supporting body copy, never as the headline.
-
----
-
-## CHANNELS & FORMAT RULES
-
-Adapt every piece of content to the platform. Never copy-paste the same creative across channels.
-
-### Facebook / Instagram
-- Emoji-friendly, scannable, checklist-style highlights for inventory posts
-- Include price, mileage, stock #, phone, address, and 5–8 hashtags (mix local + category)
-- Multi-vehicle carousel ads for old-age inventory; single-vehicle posts for hero arrivals
-- Marketplace versions: shorter, price-forward, no fluff
-
-### TikTok
-- Video-first: provide hook (first 2 seconds), shot list, and caption
-- 15–45 second concepts; personality > polish; trending-sound suggestions when relevant
-- Content pillars: new-arrival walkarounds, staff personality, "free oil changes for life" explainers, Lake Texoma lifestyle, small-town-big-deals brand story
-- 3–5 posts/week cadence
-
-### Nextdoor
-- Neighbor-to-neighbor tone. No hype, no shouting. Real photos only (lot, staff, town) — never stock imagery
-- Lead with trust, locality, and "skip the drive to the city"
-- Ads featuring a real person's face outperform inventory shots
-- Rotate creative every 3–4 weeks
-
-### YouTube / Google
-- Longer walkaround scripts, service explainers, searchable titles with model names and "near me" geography
-- Google Business Profile posts: offers, hours, review responses
-
-### Direct Mail / Letters (BK Fresh Start)
-- Plain, respectful, clear next step. Consistent messaging with the social and call campaigns so the prospect sees the same offer everywhere.
-
-### Email / SMS
-- Short, single-CTA, compliant with opt-out requirements
-
----
-
-## COMPLIANCE RULES (NON-NEGOTIABLE)
-
-1. **Every offer-based ad includes a disclaimer.** Minimum: "On select models. With approved credit. See dealer for details." Trim-level conditions when the offer is trim-specific.
-2. **Employee pricing ads:** Only run if the dealership will honor the advertised price to any customer. Include clear terms. Flag every employee-pricing creative for Cody's review before publishing — note in your output: "⚠️ COMPLIANCE REVIEW REQUIRED."
-3. **Never advertise a specific payment or APR without qualifying language** (credit approval, term, model restrictions).
-4. **Never advertise a vehicle that may be sold.** Content referencing specific units must note: "Verify against current inventory feed before publishing."
-5. **BK Fresh Start content:** No promises of guaranteed approval. Use "may qualify," "real approvals for real situations," "apply to see your options." Never shame or sensationalize bankruptcy.
-6. **Rebates and assistance:** Describe accurately ($1,000 down payment assistance is a rebate — do not imply free cash with no conditions).
-7. **Reviews:** Only repurpose genuine customer reviews, quoted accurately, with permission workflow noted.
-8. When in doubt, write the conservative version and flag the aggressive version as "needs approval."
-
----
-
-## VOICE & TONE
-
-- **Hometown, straight-shooting, warm.** Sound like a neighbor, not a corporation.
-- Confident but never pushy. "Hassle-free" is a brand promise — the copy itself should feel hassle-free.
-- Texoma pride: lake life, trucks, small-town trust, "halfway between Dallas and OKC."
-- Humor is welcome on TikTok and Facebook; keep Nextdoor and BK content sincere.
-- Plain English always. No dealer jargon in customer-facing copy (no "units," "gross," "old-age" in public content — internally those terms are fine).
-
----
-
-## OPERATING WORKFLOW
-
-You support Cody's weekly rhythm:
-
-1. **Friday marketing meeting prep.** When asked, produce a one-page agenda covering: prior-week lead volume by source, old-age inventory list and this week's multi-vehicle ad plan, active campaign performance, next week's content calendar, and open Zendesk ticket summary.
-2. **Ticket-driven requests.** Treat each request as a ticket: restate the ask, deliver the asset, list anything blocking (missing photos, prices, VINs), and mark open questions clearly.
-3. **Weekly old-age inventory refresh.** Given a list of 6–8 units, produce: one Facebook carousel ad, one reel script, one Nextdoor ad, and geographic targeting recommendations.
-4. **Review harvesting.** Given Google reviews, select the strongest, draft social posts quoting them, and draft owner responses to both positive and negative reviews (negative responses: apologize, take it offline, provide phone number, never argue).
-5. **Lead attribution mindset.** When proposing spend, always state the goal (leads, appointments, unit movement), the audience, and how results will be measured, so the team can compare channels in the Friday meeting.
-
----
-
-## OUTPUT STANDARDS
-
-For every content request, deliver:
-
-1. **Ready-to-publish copy** — formatted for the specific platform, no placeholders unless data is genuinely missing (then mark clearly: [PRICE], [MILEAGE], [STOCK #])
-2. **Required disclaimer text** attached to any offer
-3. **Creative direction** — what image/video to pair with it (real photos preferred)
-4. **Targeting suggestion** — geography and audience
-5. **Variants when useful** — one safe version, one punchier version
-6. **Flags** — anything needing legal, manufacturer, or Cody's approval before it goes live
-
-Keep responses tight. Cody is busy. Lead with the deliverable, put strategy notes and flags after.
-
----
-
-## THINGS YOU NEVER DO
-
-- Never fabricate prices, mileage, stock numbers, VINs, offer terms, or review quotes. Ask or mark as placeholder.
-- Never publish-ready content that promotes a specific unit without an inventory verification note.
-- Never use "guaranteed approval," "everyone qualifies," "no credit check" (unless explicitly true and approved).
-- Never disparage competitors by name.
-- Never use copyrighted music, images, or another brand's assets in creative direction.
-- Never mix conflicting maintenance offers (Free Oil Changes for Life vs. Ford 2-year premium maintenance) in one ad without approval.
-- Never let a request die silently — if you can't complete something, say exactly what you need.
-
----
-
-## EXAMPLE INTERACTION PATTERNS
-
-**Request:** "Ad for this week's old-age units" (list attached)
-**You deliver:** FB carousel copy + reel script + Nextdoor version + targeting (OKC metro + North Texas) + note: "Verify units against inventory feed before launch."
-
-**Request:** "Push employee pricing this weekend"
-**You deliver:** Two ad variants with full disclaimers + "⚠️ COMPLIANCE REVIEW REQUIRED — confirm price will be honored per FTC guidance" + suggested boost budget split.
-
-**Request:** "We got a great review from a customer in Ardmore"
-**You deliver:** Quote-card social post + owner thank-you reply + suggestion to add it to the BK Fresh Start proof rotation if credit-related.`
-  },
-  {
-    id: 'software-engineer',
-    name: 'DevBot (Software Engineer)',
-    persona: 'DevBot',
-    avatarEmoji: '💻',
-    systemPrompt: 'You are a professional software engineer assistant. Help the user plan, write, debug, and review code with technical excellence. Always write clean, well-documented code following best practices, and suggest optimizations where relevant.'
-  },
-  {
-    id: 'creative-writer',
-    name: 'Muse (Creative Writer)',
-    persona: 'Muse',
-    avatarEmoji: '✍️',
-    systemPrompt: 'You are a creative writer and storyteller. Help the user brainstorm ideas, write narratives, edit prose, and craft engaging content with rich imagery, voice, and style.'
-  }
-];
-
-function getPresets() {
-  let custom = [];
-  try {
-    const raw = localStorage.getItem('async_agent_presets');
-    if (raw) custom = JSON.parse(raw);
-  } catch (e) { console.warn('Failed to load custom presets', e); }
-  return [...PRESETS, ...custom];
-}
-
-function updatePresetsDropdown() {
-  const sel = document.getElementById('preset-sel');
-  if (!sel) return;
-  const presets = getPresets();
-  
-  const name = document.getElementById('sys-name')?.value || '';
-  const emoji = document.getElementById('sys-emoji')?.value || '';
-  const promptVal = document.getElementById('sys-ta')?.value || '';
-  
-  let matchingPresetId = '';
-  for (const p of presets) {
-    if (p.persona === name && p.avatarEmoji === emoji && p.systemPrompt === promptVal) {
-      matchingPresetId = p.id;
-      break;
-    }
-  }
-
-  sel.innerHTML = '<option value="">-- Custom (No Preset) --</option>' +
-    presets.map(p => `<option value="${p.id}" ${p.id === matchingPresetId ? 'selected' : ''}>${p.name}</option>`).join('');
-
-  const isCustomPreset = matchingPresetId && !PRESETS.find(p => p.id === matchingPresetId);
-  const delBtn = document.getElementById('del-preset-btn');
-  if (delBtn) delBtn.style.display = isCustomPreset ? 'inline-block' : 'none';
-}
 
 'use strict';
 
 // ── State ──────────────────────────────────────────────────
-const S = { sessionId: null, title: 'New Chat', workspaceId: null, msgs: [], attachments: [], streaming: false, abort: null, tc: 0, mc: 0, keys: {} };
+const S = { sessionId: null, title: 'New Chat', msgs: [], attachments: [], streaming: false, abort: null, tc: 0, mc: 0, keys: {} };
 let _booted = false;
 
-// ── ImageDb (IndexedDB for locally generated images & reference gallery) ───────
+// ── ImageDb (IndexedDB for locally generated images) ───────
 const ImageDb = (() => {
   const DB_NAME = 'async_ai_images';
   const DB_VERSION = 1;
@@ -1327,49 +506,9 @@ const ImageDb = (() => {
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
       });
-    },
-    async put(key, val) {
-      let finalVal = val;
-      if (typeof val === 'string' && val.startsWith('data:') && typeof CloudStorage !== 'undefined' && CloudStorage.isAvailable()) {
-        try {
-          finalVal = await CloudStorage.uploadDataUrl(key, val, 'generated');
-        } catch (e) {
-          console.warn('CloudSync: ImageDb.put upload failed', e);
-        }
-      } else if (val && typeof val === 'object' && typeof val.dataUrl === 'string' && val.dataUrl.startsWith('data:') && typeof CloudStorage !== 'undefined' && CloudStorage.isAvailable()) {
-        try {
-          const cloudUrl = await CloudStorage.uploadDataUrl(key, val.dataUrl, 'gallery');
-          finalVal = { ...val, dataUrl: cloudUrl };
-        } catch (e) {
-          console.warn('CloudSync: ImageDb.put object upload failed', e);
-        }
-      }
-      const db = await getDB();
-      return new Promise((resolve, reject) => {
-        const req = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(finalVal, key);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-      });
-    },
-    async delete(key) {
-      const db = await getDB();
-      return new Promise((resolve, reject) => {
-        const req = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(key);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-      });
-    },
-    async getAll() {
-      const db = await getDB();
-      return new Promise((resolve, reject) => {
-        const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror = () => reject(req.error);
-      });
     }
   };
 })();
-window.ImageDb = ImageDb;
 
 // ── Session Management ─────────────────────────────────────
 function generateId() { return 's_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6); }
@@ -1381,14 +520,9 @@ async function saveCurrentSession() {
     const firstMsg = S.msgs.find(m => m.role === 'user');
     if (firstMsg) S.title = firstMsg.content.substring(0, 40) + (firstMsg.content.length > 40 ? '...' : '');
   }
-  const activeWs = MemorySystem.workspaces.getActive();
-  if (!S.workspaceId) {
-    S.workspaceId = activeWs?.id || null;
-  }
   const sessionData = {
     id: S.sessionId,
     title: S.title,
-    workspaceId: S.workspaceId,
     messages: JSON.parse(JSON.stringify(S.msgs)),
     updatedAt: new Date().toISOString()
   };
@@ -1406,32 +540,17 @@ async function loadSessionsList() {
   if (!listEl) return;
   try {
     const all = await SuperAgent.sessions.getAllSessions();
-    const activeWs = MemorySystem.workspaces.getActive();
-    
-    // Auto-migrate and filter sessions
-    const projectSessions = [];
-    for (const sess of all) {
-      if (!sess.workspaceId) {
-        sess.workspaceId = activeWs?.id || 'default';
-        await SuperAgent.sessions.saveSession(sess);
-      }
-      if (sess.workspaceId === activeWs?.id) {
-        projectSessions.push(sess);
-      }
-    }
-
-    projectSessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-    if (projectSessions.length === 0) {
+    all.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    if (all.length === 0) {
       listEl.innerHTML = '<div class="nd">No previous chats.</div>';
       return;
     }
-    listEl.innerHTML = projectSessions.map(sess => {
+    listEl.innerHTML = all.map(sess => {
       const isAct = (sess.id === S.sessionId);
       const title = String(sess.title || 'Untitled Chat').replace(/</g, '&lt;');
-      return `<div class="mitem ${isAct ? 'on' : ''}" onclick="switchSession('${sess.id}')" title="${title}">
+      return `<div class="mitem ${isAct ? 'on' : ''}" style="cursor:pointer" onclick="switchSession('${sess.id}')" title="${title}">
         <span class="mico" style="font-size:0.85rem">${isAct ? '🟢' : '💬'}</span>
-        <div class="mbody"><div class="mkey" style="font-weight:normal; max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${title}</div></div>
-        <button class="s-del-btn" onclick="event.stopPropagation(); deleteSessionConfirm('${sess.id}', event)" title="Delete session">🗑</button>
+        <div class="mbody"><div class="mkey" style="font-weight:normal; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${title}</div></div>
       </div>`;
     }).join('');
   } catch(e) {
@@ -1448,7 +567,6 @@ window.switchSession = async function switchSession(id) {
     
     S.sessionId = session.id;
     S.title = session.title || 'Untitled Chat';
-    S.workspaceId = session.workspaceId || null;
     S.msgs = session.messages || [];
     
     // Re-render chat
@@ -1483,7 +601,7 @@ window.switchSession = async function switchSession(id) {
           if (lastAbub) {
             const bid = lastAbub.id;
             msg.results.forEach(tr => {
-              addTRC(bid, { id: tr.tool_use_id, name: tr.name }, tr.content);
+              addTRC(bid, { id: tr.tool_use_id }, tr.content);
             });
           }
         }
@@ -1502,7 +620,6 @@ window.createNewSession = function createNewSession() {
   if (S.streaming) return;
   S.sessionId = null;
   S.title = 'New Chat';
-  S.workspaceId = (typeof MemorySystem !== 'undefined' ? MemorySystem.workspaces.getActive()?.id : null) || null;
   S.msgs = [];
   S.tc = 0;
   S.mc = 0;
@@ -1515,73 +632,6 @@ window.createNewSession = function createNewSession() {
   loadSessionsList();
   renderSb();
 };
-
-window.deleteSessionConfirm = async function deleteSessionConfirm(id, event) {
-  if (event) {
-    event.stopPropagation();
-  }
-  if (!confirm('Are you sure you want to delete this chat session?')) return;
-  
-  try {
-    if (typeof SuperAgent !== 'undefined' && SuperAgent.sessions) {
-      await SuperAgent.sessions.deleteSession(id);
-      if (S.sessionId === id) {
-        window.createNewSession();
-      } else {
-        await loadSessionsList();
-      }
-    }
-  } catch (e) {
-    console.error('[Aria] Failed to delete session:', e);
-    toast('Failed to delete session: ' + e.message, 'er');
-  }
-};
-
-window.createNewProject = function createNewProject() {
-  if (typeof MemorySystem === 'undefined') return;
-  const name = prompt('Project name:', 'New Project');
-  if (!name?.trim()) return;
-  const newWs = MemorySystem.workspaces.create(name.trim());
-  MemorySystem.workspaces.setActive(newWs.id);
-  
-  window.createNewSession(); 
-  loadProjectsList();
-  toast(`Project "${name}" created`, 'success');
-};
-
-window.handleProjectChange = async function handleProjectChange(id) {
-  if (typeof MemorySystem === 'undefined') return;
-  MemorySystem.workspaces.setActive(id);
-  
-  try {
-    if (typeof SuperAgent !== 'undefined' && SuperAgent.sessions) {
-      const all = await SuperAgent.sessions.getAllSessions();
-      const projectSessions = all.filter(s => s.workspaceId === id);
-      if (projectSessions.length > 0) {
-        projectSessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-        await window.switchSession(projectSessions[0].id);
-      } else {
-        window.createNewSession();
-      }
-    }
-  } catch(e) {
-    console.error('[Aria] Failed to switch project:', e);
-  }
-  
-  loadProjectsList();
-  loadSessionsList();
-  refreshSb();
-  toast('Project switched', 'info', 1500);
-};
-
-async function loadProjectsList() {
-  if (typeof MemorySystem === 'undefined') return;
-  const sel = document.getElementById('p-sel');
-  if (!sel) return;
-  const all = MemorySystem.workspaces.list();
-  const active = MemorySystem.workspaces.getActive();
-  sel.innerHTML = all.map(w => `<option value="${esc(w.id)}" ${w.id === active?.id ? 'selected' : ''}>${esc(w.name)}</option>`).join('');
-}
 
 // ── Boot ───────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => setTimeout(boot, 0));
@@ -1603,36 +653,29 @@ async function boot() {
 
   // 4. Guard: super-admin only.
   if (!AuthSystem.isSuperAdmin?.()) {
+    // Not signed in at all → this isn't a permissions problem, it's an
+    // unauthenticated one. Send them to the app home, which renders the login
+    // screen. (Showing "super-admin only" here would be misleading.)
     if (!AuthSystem.isLoggedIn?.()) { location.replace('index.html'); return; }
+    // Signed in, but not a super-admin → show a static, non-spinning denial.
     showDenied();
     return;
   }
 
   // 5. Load API keys from vault (ApiKeyVault is defined in auth.js)
-  let keys = null;
   try {
-    keys = await ApiKeyVault.load();
-    if (keys && typeof keys === 'object') {
-      Object.assign(S.keys, keys);
-      // Merge Aria's dedicated keys, overriding global keys if present
-      const ariaKeys = await ApiKeyVault.loadAria();
-      if (ariaKeys && typeof ariaKeys === 'object') {
-        for (const k in ariaKeys) {
-          if (ariaKeys[k]) S.keys[k] = ariaKeys[k];
-        }
+    const keys = await ApiKeyVault.load();
+    if (keys && typeof keys === 'object') Object.assign(S.keys, keys);
+    
+    // Merge Aria's dedicated keys, overriding global keys if present
+    const ariaKeys = await ApiKeyVault.loadAria();
+    if (ariaKeys && typeof ariaKeys === 'object') {
+      for (const k in ariaKeys) {
+        if (ariaKeys[k]) S.keys[k] = ariaKeys[k];
       }
     }
   } catch (e) { console.warn('[Aria] Vault load failed:', e); }
 
-  if (keys === null && ApiKeyVault.hasVault()) {
-    _showVaultUnlockModal();
-    return;
-  }
-
-  await finishBoot();
-}
-
-async function finishBoot() {
   // 5.5 Load Agent Background
   try {
     const raw = localStorage.getItem('async_ai_v2');
@@ -1666,36 +709,16 @@ async function finishBoot() {
   document.getElementById('app').classList.add('ready');
   syncNav();
 
-  // 6.5 Load Projects and Sessions List
-  await loadProjectsList();
+  // 6.5 Load Sessions List
   await loadSessionsList();
   if (typeof SuperAgent !== 'undefined' && SuperAgent.sessions) {
     try {
       const all = await SuperAgent.sessions.getAllSessions();
-      const activeWs = MemorySystem.workspaces.getActive();
-      const projectSessions = [];
-      for (const s of all) {
-        if (!s.workspaceId) {
-          s.workspaceId = activeWs?.id || 'default';
-          await SuperAgent.sessions.saveSession(s);
-        }
-        if (s.workspaceId === activeWs?.id) {
-          projectSessions.push(s);
-        }
+      if (all && all.length > 0) {
+        all.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        window.switchSession(all[0].id); // Load most recent session
       }
-      if (projectSessions.length > 0) {
-        // Load most recent session
-        projectSessions.sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-        await window.switchSession(projectSessions[0].id);
-      } else {
-        window.createNewSession();
-      }
-    } catch(e) {
-      console.warn('Failed to load sessions, creating fallback', e);
-      window.createNewSession();
-    }
-  } else {
-    window.createNewSession();
+    } catch(e) {}
   }
 
   // 7. Populate agent persona from config
@@ -1712,23 +735,6 @@ async function finishBoot() {
     const hname = document.getElementById('hname');
     if (hname) hname.textContent = name;
 
-    // Populate personality form inputs
-    const nameEl = document.getElementById('sys-name');
-    const emojiEl = document.getElementById('sys-emoji');
-    const taEl = document.getElementById('sys-ta');
-    if (nameEl) nameEl.value = name;
-    if (emojiEl) emojiEl.value = emoji;
-    if (taEl) taEl.value = c.systemPrompt || '';
-    updatePresetsDropdown();
-    
-    // Sync activePresetId to SuperAgent config
-    const activePresetId = document.getElementById('preset-sel')?.value || 'custom';
-    if (c.activePresetId !== activePresetId) {
-      c.activePresetId = activePresetId;
-      SuperAgent.config.save(c);
-    }
-    refreshSb();
-
     // 8. Enable Voice Call Button if configured
     if (c.voice?.elevenlabsAgentId) {
       const callBtn = document.getElementById('call-btn');
@@ -1744,80 +750,6 @@ async function finishBoot() {
   renderSb();
   await refreshSb();
   loadModel();
-}
-
-function _showVaultUnlockModal() {
-  const overlay = document.createElement('div');
-  overlay.id = 'vault-unlock-overlay';
-  overlay.style.cssText = [
-    'position:fixed','inset:0','z-index:10000',
-    'background:rgba(0,0,0,0.85)','display:flex',
-    'align-items:center','justify-content:center',
-    'backdrop-filter:blur(8px)',
-  ].join(';');
-  overlay.innerHTML = `
-    <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:32px;width:360px;max-width:90vw;text-align:center;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5)">
-      <div style="font-size:28px;margin-bottom:12px">🔐</div>
-      <h2 style="margin:0 0 8px;font-size:18px;color:#f1f5f9;font-family:var(--font)">Unlock API Keys</h2>
-      <p style="margin:0 0 20px;font-size:13px;color:#94a3b8;line-height:1.5">
-        Your API keys are encrypted. Re-enter your password to decrypt them for this session.
-      </p>
-      <input id="vault-unlock-pw" type="password" placeholder="Password" autocomplete="current-password"
-        style="width:100%;box-sizing:border-box;padding:10px 14px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#f1f5f9;font-size:14px;margin-bottom:8px;outline:none">
-      <div id="vault-unlock-err" style="color:#f87171;font-size:12px;margin-bottom:10px;display:none"></div>
-      <div style="display:flex;gap:8px">
-        <button id="vault-unlock-skip"
-          style="flex:1;padding:10px;background:transparent;border:1px solid #334155;border-radius:8px;color:#94a3b8;cursor:pointer;font-size:13px;outline:none">
-          Skip
-        </button>
-        <button id="vault-unlock-btn"
-          style="flex:2;padding:10px;background:#6366f1;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:600;outline:none">
-          Unlock
-        </button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  document.getElementById('vault-unlock-pw')?.focus();
-
-  async function attemptUnlock() {
-    const pw    = document.getElementById('vault-unlock-pw')?.value || '';
-    const errEl = document.getElementById('vault-unlock-err');
-    if (errEl) errEl.style.display = 'none';
-    if (!pw) {
-      if (errEl) { errEl.textContent = 'Enter your password.'; errEl.style.display = 'block'; }
-      return;
-    }
-    try {
-      await AuthSystem.refreshVaultKey(pw);
-      const keys = await ApiKeyVault.load();
-      if (!keys || keys === null) throw new Error('bad key');
-      
-      Object.assign(S.keys, keys);
-      
-      // Merge Aria's dedicated keys
-      const ariaKeys = await ApiKeyVault.loadAria();
-      if (ariaKeys && typeof ariaKeys === 'object') {
-        for (const k in ariaKeys) {
-          if (ariaKeys[k]) S.keys[k] = ariaKeys[k];
-        }
-      }
-      
-      overlay.remove();
-      toast('🔓 API keys unlocked', 'ok');
-      finishBoot();
-    } catch {
-      sessionStorage.removeItem('cpu_vault_key');
-      if (errEl) { errEl.textContent = 'Incorrect password — try again.'; errEl.style.display = 'block'; }
-    }
-  }
-
-  document.getElementById('vault-unlock-btn')?.addEventListener('click', attemptUnlock);
-  document.getElementById('vault-unlock-pw')?.addEventListener('keydown', e => { if (e.key === 'Enter') attemptUnlock(); });
-  document.getElementById('vault-unlock-skip')?.addEventListener('click', () => {
-    overlay.remove();
-    finishBoot();
-  });
 }
 
 function awMsg(msg) {
@@ -1850,7 +782,22 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function renderSb() {
   if (typeof SuperAgent === 'undefined') return;
   const c = SuperAgent.config.get();
-
+  const tools = [
+    { k: 'webSearch',    i: '🔍', l: 'Web Search' },
+    { k: 'wikipedia',    i: '📖', l: 'Wikipedia' },
+    { k: 'weather',      i: '🌤', l: 'Live Weather' },
+    { k: 'githubSearch', i: '🐙', l: 'GitHub Search' },
+    { k: 'news',         i: '📰', l: 'News Headlines' },
+    { k: 'knowledgeBase',i: '📚', l: 'Knowledge Base' },
+    { k: 'crossMemory',  i: '🧠', l: 'Cross-Session Memory' },
+  ];
+  const tg = document.getElementById('tgrid');
+  if (tg) tg.innerHTML = tools.map(t =>
+    `<div class="trow ${c.tools[t.k] ? 'on' : ''}">` +
+    `<span class="tico">${t.i}</span>` +
+    `<span class="tname">${t.l}</span>` +
+    `<div class="tdot"></div></div>`
+  ).join('');
   const stm = document.getElementById('stm'); if (stm) stm.textContent = S.mc;
   const stt = document.getElementById('stt'); if (stt) stt.textContent = S.tc;
 }
@@ -1882,35 +829,14 @@ async function refreshSb() {
 
 // ── Model selector ─────────────────────────────────────────
 function loadModel() {
-  const sel = document.getElementById('msel');
-  if (!sel) return;
-  if (typeof MODELS_DATA !== 'undefined') {
-    sel.innerHTML = '';
-    for (const p of Object.values(MODELS_DATA.providers)) {
-      const models = MODELS_DATA.getModelsByProvider(p.id);
-      if (!models.length) continue;
-      const optgroup = document.createElement('optgroup');
-      optgroup.label = p.name;
-      for (const m of models) {
-        const opt = document.createElement('option');
-        opt.value = m.id;
-        opt.textContent = m.name;
-        optgroup.appendChild(opt);
-      }
-      sel.appendChild(optgroup);
-    }
-  }
-
   try {
     const sv = localStorage.getItem('async_agent_model');
     if (sv) {
-      let found = false;
-      for (const o of sel.options) { if (o.value === sv) { found = true; break; } }
-      if (found) sel.value = sv;
+      const sel = document.getElementById('msel');
+      for (const o of sel.options) { if (o.value === sv) { sel.value = sv; break; } }
     }
   } catch {}
-
-  sel.addEventListener('change', ev => {
+  document.getElementById('msel').addEventListener('change', ev => {
     try { localStorage.setItem('async_agent_model', ev.target.value); } catch {}
   });
 }
@@ -2046,213 +972,6 @@ async function sendMsg() {
   const txt = raw ? exc(raw) : '';
   const finalContent = buildMessageContent(txt);
 
-  // Helper to extract YouTube video ID
-  function getYoutubeId(url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  }
-
-  // ── /play command — youtube video player ───────────────────────
-  if (txt.startsWith('/play ')) {
-    const rawQuery = txt.replace(/^\/play\s+/, '').trim();
-    if (rawQuery) {
-      ta.value = '';
-      ta.style.height = 'auto';
-      updateSendState();
-      const welc = document.getElementById('welc');
-      if (welc) welc.classList.add('hid');
-
-      S.msgs.push({ role: 'user', content: txt });
-      addU(txt);
-      scroll2b(true);
-
-      const bid = 'b' + Date.now();
-      const ae = { role: 'assistant', content: `🔍 Searching YouTube for: "${rawQuery}"...` };
-      S.msgs.push(ae);
-      addA(bid);
-      updBub(bid, ae.content);
-      scroll2b();
-
-      (async () => {
-        try {
-          const keys = await ApiKeyVault.load() || {};
-          const ytKey = keys.youtube;
-          if (!ytKey) {
-            ae.content = '✕ YouTube API Key is not configured. Please add it in settings.';
-            updBub(bid, ae.content);
-            return;
-          }
-
-          let videoId = getYoutubeId(rawQuery);
-          let title = rawQuery;
-          if (!videoId && rawQuery.length === 11 && !rawQuery.includes('/') && !rawQuery.includes(' ')) {
-            videoId = rawQuery;
-          }
-
-          if (!videoId) {
-            // Search YouTube via Netlify proxy
-            const res = await fetch('/.netlify/functions/proxy', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                provider: 'youtube',
-                path: '/search',
-                apiKey: '',
-                queryParams: {
-                  part: 'snippet',
-                  q: rawQuery,
-                  type: 'video',
-                  maxResults: '1',
-                  key: ytKey
-                },
-                method: 'GET',
-                payload: {}
-              })
-            });
-            if (!res.ok) {
-              const errText = await res.text().catch(() => '');
-              throw new Error(`YouTube API returned ${res.status}: ${errText}`);
-            }
-            const data = await res.json();
-            if (!data.items || data.items.length === 0) {
-              throw new Error('No videos found for that query.');
-            }
-            videoId = data.items[0].id.videoId;
-            title = data.items[0].snippet.title;
-          }
-
-          ae.content = `Here is the video you requested:\n\n[youtube-embed:${videoId}]`;
-          updBub(bid, ae.content);
-        } catch (err) {
-          ae.content = '✕ Failed to play video: ' + err.message;
-          updBub(bid, ae.content);
-        }
-      })();
-      return;
-    }
-  }
-
-  // ── /playlist command — create youtube playlist ──────────────────
-  if (txt.startsWith('/playlist ')) {
-    let rawPlay = txt.replace(/^\/playlist\s+/, '').trim();
-    if (rawPlay) {
-      ta.value = '';
-      ta.style.height = 'auto';
-      updateSendState();
-      const welc = document.getElementById('welc');
-      if (welc) welc.classList.add('hid');
-
-      S.msgs.push({ role: 'user', content: txt });
-      addU(txt);
-      scroll2b(true);
-
-      // Parse title and video list
-      let title = '';
-      let rest = '';
-      if (rawPlay.startsWith('"')) {
-        const closingQuoteIdx = rawPlay.indexOf('"', 1);
-        if (closingQuoteIdx !== -1) {
-          title = rawPlay.slice(1, closingQuoteIdx);
-          rest = rawPlay.slice(closingQuoteIdx + 1).trim();
-        } else {
-          title = rawPlay;
-        }
-      } else {
-        const firstSpaceIdx = rawPlay.indexOf(' ');
-        if (firstSpaceIdx !== -1) {
-          title = rawPlay.slice(0, firstSpaceIdx);
-          rest = rawPlay.slice(firstSpaceIdx + 1).trim();
-        } else {
-          title = rawPlay;
-        }
-      }
-
-      const videoIds = [];
-      if (rest) {
-        const parts = rest.split(/[\s,]+/);
-        for (const p of parts) {
-          const cleanPart = p.trim();
-          if (cleanPart) {
-            const ytId = getYoutubeId(cleanPart) || (cleanPart.length === 11 ? cleanPart : null);
-            if (ytId) {
-              videoIds.push(ytId);
-            }
-          }
-        }
-      }
-
-      if (videoIds.length === 0) {
-        const bid = 'b' + Date.now();
-        const ae = { role: 'assistant', content: '✕ Please specify at least one video URL or ID to add to the playlist.' };
-        S.msgs.push(ae);
-        addA(bid);
-        updBub(bid, ae.content);
-        scroll2b();
-        return;
-      }
-
-      const bid = 'b' + Date.now();
-      const ae = { role: 'assistant', content: `🍪 Creating playlist "${title}" on YouTube...` };
-      S.msgs.push(ae);
-      addA(bid);
-      updBub(bid, ae.content);
-      scroll2b();
-
-      (async () => {
-        try {
-          const keys = await ApiKeyVault.load() || {};
-          const cookies = keys.youtube_cookies;
-          const apiKey = keys.youtube;
-          if (!cookies) {
-            ae.content = '✕ YouTube Cookies are not configured. Please add them in settings to perform playlist actions.';
-            updBub(bid, ae.content);
-            return;
-          }
-
-          const ytApiKey = apiKey || 'AIzaSyAO-1k1212879817298712891';
-          const res = await fetch('/.netlify/functions/proxy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              provider: 'youtube_innertube',
-              path: `/youtubei/v1/playlist/create?key=${ytApiKey}`,
-              apiKey: cookies,
-              method: 'POST',
-              payload: {
-                context: {
-                  client: {
-                    clientName: 'WEB',
-                    clientVersion: '2.20240101.00.00'
-                  }
-                },
-                title: title,
-                videoIds: videoIds
-              }
-            })
-          });
-          if (!res.ok) {
-            const errText = await res.text().catch(() => '');
-            throw new Error(`Playlist creation failed (${res.status}): ${errText}`);
-          }
-          const data = await res.json();
-          if (data.playlistId) {
-            ae.content = `✅ Playlist **${title}** created successfully!\n\n[View playlist on YouTube](https://www.youtube.com/playlist?list=${data.playlistId})`;
-            updBub(bid, ae.content);
-          } else if (data.error) {
-            throw new Error(data.error.message || 'Unknown YouTube Innertube error');
-          } else {
-            throw new Error('Invalid response from YouTube: ' + JSON.stringify(data));
-          }
-        } catch (err) {
-          ae.content = '✕ Failed to create playlist: ' + err.message;
-          updBub(bid, ae.content);
-        }
-      })();
-      return;
-    }
-  }
-
   const welc = document.getElementById('welc');
   if (welc) welc.classList.add('hid');
   ta.value = '';
@@ -2273,39 +992,9 @@ async function sendMsg() {
   }
 
   // Build system prompt
-  let sys = '';
-  if (typeof SuperAgent !== 'undefined') {
-    const c = SuperAgent.config.get();
-    const basePrompt = document.getElementById('sys-ta')?.value?.trim() || c.systemPrompt || '';
-    sys = basePrompt;
-    
-    // Inject Reference Gallery context if present
-    try {
-      const activePresetId = document.getElementById('preset-sel')?.value || 'custom';
-      const allRefItems = await ImageDb.getAll();
-      const presetItems = allRefItems.filter(item => item && item.presetId === activePresetId);
-      if (presetItems.length > 0) {
-        let refBlock = '\n\n### REFERENCE GALLERY\nYou have access to the following reference images in your gallery:\n';
-        presetItems.forEach((item, idx) => {
-          refBlock += `- [Image: ${item.title}] ${item.description}\n`;
-        });
-        sys += refBlock;
-      }
-    } catch (e) {
-      console.warn('Reference Gallery injection failed:', e);
-    }
-    
-    // Inject cross-session memory if enabled
-    if (c.tools?.crossMemory) {
-      try { sys += SuperAgent.memory.buildContextBlock(txt) || ''; } catch(e) { console.warn('Memory injection failed:', e); }
-    }
-    
-    // Inject knowledge base context if enabled
-    if (c.tools?.knowledgeBase && c.knowledgeBase?.enabled) {
-      try { sys += await SuperAgent.kb.buildContextBlock(txt) || ''; } catch(e) { console.warn('KB injection failed:', e); }
-    }
-  } else {
-    sys = document.getElementById('sys-ta')?.value?.trim() || '';
+  let sys = document.getElementById('sys-ta')?.value?.trim() || '';
+  if (!sys && typeof SuperAgent !== 'undefined') {
+    try { sys = await SuperAgent.buildSuperAgentSystemPrompt(txt) || ''; } catch {}
   }
 
   // Collect tools
@@ -2376,8 +1065,8 @@ async function doStream(prov, mid, key, sys, tools) {
         catch (err) { res = 'Tool error: ' + err.message; }
         updTCS(tc.id, 'done');
         addTRC(bid, tc, res);
-        ae.toolResults = [...(ae.toolResults || []), { tool_use_id: tc.id, content: String(res), name: tc.name }];
-        toolResultMsgs.push({ tool_use_id: tc.id, content: String(res), name: tc.name });
+        ae.toolResults = [...(ae.toolResults || []), { tool_use_id: tc.id, name: tc.name, content: String(res) }];
+        toolResultMsgs.push({ tool_use_id: tc.id, name: tc.name, content: String(res) });
       }
 
       // Push tool results as a user-role message (required by Anthropic format)
@@ -2473,14 +1162,14 @@ function buildMsgs(ms, prov) {
         }
         if (pts.length) out.push({ role: 'assistant', content: pts });
       } else {
-        out.push({
-          role: 'assistant',
-          content: m.content || null,
-          tool_calls: (m.toolCalls || []).map(tc => ({
+        const assistantMsg = { role: 'assistant', content: m.content || null };
+        if (m.toolCalls && m.toolCalls.length > 0) {
+          assistantMsg.tool_calls = m.toolCalls.map(tc => ({
             id: tc.id, type: 'function',
             function: { name: tc.name, arguments: JSON.stringify(tc.input) },
-          })),
-        });
+          }));
+        }
+        out.push(assistantMsg);
       }
     } else if (m.role === 'tool_results') {
       if (prov === 'anthropic') {
@@ -2501,7 +1190,7 @@ function buildMsgs(ms, prov) {
   }
 
   // Token limit safeguard (approximate by character length)
-  const CHAR_LIMIT = 150000;
+  const CHAR_LIMIT = 400000;
   let totalChars = JSON.stringify(out).length;
   if (totalChars > CHAR_LIMIT) {
     while (out.length > 2 && totalChars > CHAR_LIMIT) {
@@ -2551,31 +1240,13 @@ function rProv(mid) {
 }
 
 function getKey(prov) {
-  let val = '';
   // S.keys was loaded from ApiKeyVault during boot
-  if (S.keys[prov]) val = S.keys[prov];
-  else if (prov === 'anthropic' && S.keys['claude']) val = S.keys['claude'];
-  else if (prov === 'claude' && S.keys['anthropic']) val = S.keys['anthropic'];
-  else if (prov === 'google' && S.keys['gemini']) val = S.keys['gemini'];
-  else if (prov === 'gemini' && S.keys['google']) val = S.keys['google'];
-
-  if (!val) {
-    // Fallback: try plain localStorage keys used by the app
-    try {
-      const plain = JSON.parse(localStorage.getItem('cpu_api_keys') || localStorage.getItem('async_api_keys') || '{}');
-      if (plain[prov]) val = plain[prov];
-      else if (prov === 'anthropic' && plain['claude']) val = plain['claude'];
-      else if (prov === 'claude' && plain['anthropic']) val = plain['anthropic'];
-      else if (prov === 'google' && plain['gemini']) val = plain['gemini'];
-      else if (prov === 'gemini' && plain['google']) val = plain['google'];
-    } catch {}
-  }
-
-  if (typeof val === 'string') {
-    val = val.trim();
-    if (val === 'undefined' || val === 'null') return '';
-    return val;
-  }
+  if (S.keys[prov]) return S.keys[prov];
+  // Fallback: try plain localStorage keys used by the app
+  try {
+    const plain = JSON.parse(localStorage.getItem('cpu_api_keys') || localStorage.getItem('async_api_keys') || '{}');
+    if (plain[prov]) return plain[prov];
+  } catch {}
   return '';
 }
 
@@ -2680,7 +1351,7 @@ function addTRC(bid, tc, res) {
   
   c.innerHTML =
     `<div class="trh" onclick="toggleC('${rid}')">` +
-    `<span>✓</span><span style="flex:1">Result: ${esc(tc.name || 'Tool')}</span>` +
+    `<span>✓</span><span style="flex:1">Result: ${esc(tc.name)}</span>` +
     `<span style="font-size:10px;color:var(--text-3)">▼</span></div>` +
     bHtml;
   bub.appendChild(c);
@@ -2776,14 +1447,6 @@ function md(txt) {
   // Paragraphs
   h = h.replace(/\n\n+/g, '</p><p>');
   h = h.replace(/\n/g, '<br>');
-
-  // YouTube embed helper
-  h = h.replace(/\[youtube-embed:([a-zA-Z0-9_-]{11})\]/g, (_, videoId) => {
-    return `<div class="yt-embed-container" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; max-width:100%; border-radius:12px; margin:12px 0; border:1px solid var(--border, rgba(99,102,241,0.2)); box-shadow:0 10px 30px rgba(0,0,0,0.3)">
-      <iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-    </div>`;
-  });
-
   return '<p>' + h + '</p>';
 }
 
@@ -2911,502 +1574,10 @@ function exportChat() {
 function toggleSyd() {
   const d = document.getElementById('syd');
   d.classList.toggle('open');
-  const isOpen = d.classList.contains('open');
-  document.getElementById('syd-btn').textContent = isOpen ? '✕ Personality' : '⚙ Agent Personality';
+  document.getElementById('syd-btn').textContent = d.classList.contains('open') ? '✕ System Prompt' : '⚙ System Prompt';
   closeNavIfOpen();
-  if (isOpen) {
-    switchSydTab('config');
-    if (typeof SuperAgent !== 'undefined') {
-      const c = SuperAgent.config.get();
-      const nameEl = document.getElementById('sys-name');
-      const emojiEl = document.getElementById('sys-emoji');
-      const taEl = document.getElementById('sys-ta');
-      if (nameEl) nameEl.value = c.persona || '';
-      if (emojiEl) emojiEl.value = c.avatarEmoji || '';
-      if (taEl) taEl.value = c.systemPrompt || '';
-    }
-    updatePresetsDropdown();
-    document.getElementById('sys-name')?.focus();
-  }
+  if (d.classList.contains('open')) document.getElementById('sys-ta')?.focus();
 }
-function applyPreset(id) {
-  if (!id) return;
-  const presets = getPresets();
-  const p = presets.find(x => x.id === id);
-  if (!p) return;
-  
-  const nameEl = document.getElementById('sys-name');
-  const emojiEl = document.getElementById('sys-emoji');
-  const taEl = document.getElementById('sys-ta');
-  
-  if (nameEl) nameEl.value = p.persona;
-  if (emojiEl) emojiEl.value = p.avatarEmoji;
-  if (taEl) taEl.value = p.systemPrompt;
-  
-  const isCustomPreset = !PRESETS.find(x => x.id === id);
-  const delBtn = document.getElementById('del-preset-btn');
-  if (delBtn) delBtn.style.display = isCustomPreset ? 'inline-block' : 'none';
-  
-  if (typeof SuperAgent !== 'undefined') {
-    const c = SuperAgent.config.get();
-    c.activePresetId = id;
-    SuperAgent.config.save(c);
-  }
-  
-  loadReferenceGallery();
-  refreshSb();
-}
-
-function saveAsPreset() {
-  const persona = document.getElementById('sys-name')?.value?.trim();
-  const avatarEmoji = document.getElementById('sys-emoji')?.value?.trim();
-  const systemPrompt = document.getElementById('sys-ta')?.value || '';
-  
-  if (!persona) {
-    toast('Persona name cannot be empty', 'er');
-    return;
-  }
-  if (!avatarEmoji) {
-    toast('Avatar emoji cannot be empty', 'er');
-    return;
-  }
-
-  const presetName = prompt('Enter a name for this personality preset:', persona + ' Preset');
-  if (!presetName) return;
-  
-  const newPreset = {
-    id: 'custom_' + Date.now(),
-    name: presetName,
-    persona,
-    avatarEmoji,
-    systemPrompt
-  };
-  
-  let custom = [];
-  try {
-    const raw = localStorage.getItem('async_agent_presets');
-    if (raw) custom = JSON.parse(raw);
-  } catch (e) {}
-  
-  custom.push(newPreset);
-  localStorage.setItem('async_agent_presets', JSON.stringify(custom));
-  
-  toast(`Preset "${presetName}" saved ✓`, 'ok');
-  updatePresetsDropdown();
-  
-  const sel = document.getElementById('preset-sel');
-  if (sel) {
-    sel.value = newPreset.id;
-    const delBtn = document.getElementById('del-preset-btn');
-    if (delBtn) delBtn.style.display = 'inline-block';
-  }
-  loadReferenceGallery();
-}
-
-function deletePreset() {
-  const sel = document.getElementById('preset-sel');
-  if (!sel) return;
-  const id = sel.value;
-  if (!id || PRESETS.find(x => x.id === id)) {
-    toast('Cannot delete built-in presets', 'er');
-    return;
-  }
-  
-  if (!confirm('Are you sure you want to delete this custom preset?')) return;
-  
-  let custom = [];
-  try {
-    const raw = localStorage.getItem('async_agent_presets');
-    if (raw) custom = JSON.parse(raw);
-  } catch (e) {}
-  
-  custom = custom.filter(p => p.id !== id);
-  localStorage.setItem('async_agent_presets', JSON.stringify(custom));
-  
-  toast('Preset deleted', 'ok');
-  
-  const nameEl = document.getElementById('sys-name');
-  const emojiEl = document.getElementById('sys-emoji');
-  const taEl = document.getElementById('sys-ta');
-  if (nameEl) nameEl.value = '';
-  if (emojiEl) emojiEl.value = '';
-  if (taEl) taEl.value = '';
-  
-  updatePresetsDropdown();
-  loadReferenceGallery();
-}
-
-function applyPersonality() {
-  if (typeof SuperAgent === 'undefined') {
-    toast('SuperAgent not loaded', 'er');
-    return;
-  }
-  
-  const persona = document.getElementById('sys-name')?.value?.trim();
-  const avatarEmoji = document.getElementById('sys-emoji')?.value?.trim();
-  const systemPrompt = document.getElementById('sys-ta')?.value || '';
-  
-  if (!persona) {
-    toast('Persona name cannot be empty', 'er');
-    return;
-  }
-  if (!avatarEmoji) {
-    toast('Avatar emoji cannot be empty', 'er');
-    return;
-  }
-  
-  const c = SuperAgent.config.get();
-  c.persona = persona;
-  c.avatarEmoji = avatarEmoji;
-  c.systemPrompt = systemPrompt;
-  c.activePresetId = document.getElementById('preset-sel')?.value || 'custom';
-  SuperAgent.config.save(c);
-  refreshSb();
-  
-  const emoji = c.avatarEmoji || '✦';
-  const name  = c.persona || 'Aria';
-  ['horb', 'wav', 'tav', 'sbav'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = emoji;
-  });
-  const sbnm = document.getElementById('sbnm');
-  if (sbnm) sbnm.textContent = name;
-  const hname = document.getElementById('hname');
-  if (hname) hname.textContent = name;
-  
-  toast('Personality configuration applied & saved ✓', 'ok');
-  toggleSyd();
-}
-
-// ── Reference Gallery Tab Methods ─────────────────────────
-let _currentRefId = null;
-
-function switchSydTab(tab) {
-  const configTab = document.getElementById('syd-tab-config');
-  const galleryTab = document.getElementById('syd-tab-gallery');
-  const configBtn = document.getElementById('syd-tab-btn-config');
-  const galleryBtn = document.getElementById('syd-tab-btn-gallery');
-  
-  if (tab === 'config') {
-    if (configTab) configTab.style.display = 'flex';
-    if (galleryTab) galleryTab.style.display = 'none';
-    if (configBtn) configBtn.classList.add('active');
-    if (galleryBtn) galleryBtn.classList.remove('active');
-  } else {
-    if (configTab) configTab.style.display = 'none';
-    if (galleryTab) galleryTab.style.display = 'flex';
-    if (configBtn) configBtn.classList.remove('active');
-    if (galleryBtn) galleryBtn.classList.add('active');
-    loadReferenceGallery();
-  }
-}
-
-async function loadReferenceGallery() {
-  const grid = document.getElementById('ref-gallery-grid');
-  if (!grid) return;
-  
-  const presetId = document.getElementById('preset-sel')?.value || 'custom';
-  let all = [];
-  
-  // Pull from Firestore if available
-  if (typeof window.db !== 'undefined' && CloudStorage.isAvailable()) {
-    try {
-      const uid = AuthSystem.getCurrentSession()?.userId;
-      const snapshot = await window.db.collection('users').doc(uid).collection('gallery_metadata').get();
-      snapshot.forEach(doc => {
-        all.push(doc.data());
-      });
-      // Also update/sync locally to ImageDb
-      for (const item of all) {
-        await ImageDb.put(item.id, item);
-      }
-    } catch (e) {
-      console.warn('CloudSync: Gallery metadata pull failed', e);
-      // Fallback to local
-      try { all = await ImageDb.getAll(); } catch {}
-    }
-  } else {
-    try {
-      all = await ImageDb.getAll();
-    } catch (e) { console.warn('Failed to load gallery items', e); }
-  }
-  
-  const items = all
-    .filter(item => item && item.presetId === presetId)
-    .sort((a,b) => b.createdAt - a.createdAt);
-    
-  if (items.length === 0) {
-    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-3); font-size:11px;">No reference images yet. Click upload to add one.</div>';
-    closeRefDetails();
-    return;
-  }
-  
-  grid.innerHTML = items.map(item => `
-    <div class="ref-gal-item" id="ref-item-${item.id}" onclick="showRefDetails('${item.id}')">
-      <img src="${item.dataUrl}" alt="${esc(item.title)}" />
-      <div class="ref-gal-item-title">${esc(item.title)}</div>
-    </div>
-  `).join('');
-  
-  // Keep active item selected if still in list, else close
-  if (_currentRefId && items.some(item => item.id === _currentRefId)) {
-    showRefDetails(_currentRefId);
-  } else {
-    closeRefDetails();
-  }
-}
-
-async function handleRefImageUpload(e) {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  
-  const mid  = document.getElementById('msel').value;
-  const prov = rProv(mid);
-  const key  = getKey(prov);
-  if (!key) {
-    toast('Configure an API key in Settings first to analyze images.', 'er');
-    e.target.value = '';
-    return;
-  }
-  
-  const statusEl = document.getElementById('ref-upload-status');
-  const statusText = document.getElementById('ref-status-text');
-  if (statusEl) statusEl.style.display = 'flex';
-  if (statusText) statusText.textContent = 'Reading image...';
-  
-  const reader = new FileReader();
-  reader.onload = async (event) => {
-    const dataUrl = event.target.result;
-    
-    if (statusText) statusText.textContent = 'AI analyzing image appearance...';
-    
-    const promptText = 'Analyze this image and describe its appearance in detail. Respond with a JSON object containing exactly: {"title": "A short, concise title (max 5-6 words)", "description": "A detailed description of the image appearance and contents."}. Return only raw JSON, no markdown formatting or wrappers.';
-    const messages = [
-      {
-        role: 'user',
-        content: [
-          { _type: 'image', dataUrl: dataUrl, mediaType: file.type },
-          { _type: 'text', text: promptText }
-        ]
-      }
-    ];
-    
-    let responseText = '';
-    try {
-      const apiMsgs = buildMsgs(messages, prov);
-      for await (const ck of ApiRouter.stream(prov, mid, key, apiMsgs, '', { maxTokens: 1024 })) {
-        if (ck.delta) {
-          responseText += ck.delta;
-        }
-      }
-    } catch(err) {
-      console.error('Image analysis failed:', err);
-      toast('AI analysis failed. Using manual description.', 'er');
-    }
-    
-    let title = 'Uploaded Image';
-    let description = responseText || 'No description generated.';
-    if (responseText) {
-      try {
-        let cleaned = responseText.trim();
-        if (cleaned.startsWith('```')) {
-          cleaned = cleaned.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '');
-        }
-        cleaned = cleaned.trim();
-        
-        try {
-          const parsed = JSON.parse(cleaned);
-          if (parsed.title) title = parsed.title;
-          if (parsed.description) description = parsed.description;
-        } catch(jsonErr) {
-          console.warn('JSON.parse failed, falling back to regex extraction for title/description', jsonErr);
-          // Fallback to regex key-value extraction for robustness against truncation
-          const titleMatch = cleaned.match(/"title"\s*:\s*"([^"]*)"/);
-          if (titleMatch) {
-            title = titleMatch[1];
-          } else {
-            const fallbackTitleMatch = cleaned.match(/"title"\s*:\s*"([^"]*)/);
-            if (fallbackTitleMatch) title = fallbackTitleMatch[1];
-          }
-
-          const descMatch = cleaned.match(/"description"\s*:\s*"([^"]*)"/);
-          if (descMatch) {
-            description = descMatch[1];
-          } else {
-            const fallbackDescMatch = cleaned.match(/"description"\s*:\s*"([^]*)$/);
-            if (fallbackDescMatch) {
-              let rawDesc = fallbackDescMatch[1].trim();
-              rawDesc = rawDesc.replace(/"\s*}\s*$/, '').replace(/"$/, '').trim();
-              description = rawDesc;
-            }
-          }
-        }
-      } catch(parseErr) {
-        console.warn('Failed to parse AI description', parseErr, responseText);
-      }
-    }
-    
-    const presetId = document.getElementById('preset-sel')?.value || 'custom';
-    const itemId = `ref_gallery_${presetId}_${Date.now()}`;
-    
-    let finalImageUrl = dataUrl;
-    
-    // Upload to Cloud Storage if available
-    if (CloudStorage.isAvailable()) {
-      if (statusText) statusText.textContent = 'Uploading to online cloud storage…';
-      try {
-        finalImageUrl = await CloudStorage.uploadDataUrl(itemId, dataUrl, 'gallery');
-      } catch (e) {
-        console.warn('CloudSync: Gallery image upload failed', e);
-      }
-    }
-    
-    const item = {
-      id: itemId,
-      presetId,
-      title,
-      description,
-      dataUrl: finalImageUrl,
-      mediaType: file.type,
-      createdAt: Date.now()
-    };
-    
-    try {
-      await ImageDb.put(itemId, item);
-      
-      // Push metadata to Firestore
-      if (typeof window.db !== 'undefined' && CloudStorage.isAvailable()) {
-        const uid = AuthSystem.getCurrentSession()?.userId;
-        await window.db.collection('users').doc(uid).collection('gallery_metadata').doc(itemId).set(item);
-      }
-      
-      toast('Image analyzed and added to gallery ✓', 'ok');
-      if (statusEl) statusEl.style.display = 'none';
-      await loadReferenceGallery();
-      showRefDetails(itemId);
-    } catch(dbErr) {
-      console.error('Failed to save gallery item:', dbErr);
-      toast('Failed to save image', 'er');
-      if (statusEl) statusEl.style.display = 'none';
-    }
-  };
-  
-  reader.readAsDataURL(file);
-  e.target.value = '';
-}
-
-async function showRefDetails(id) {
-  _currentRefId = id;
-  const item = await ImageDb.get(id);
-  if (!item) return;
-  
-  document.querySelectorAll('.ref-gal-item').forEach(el => el.style.borderColor = '');
-  const activeEl = document.getElementById(`ref-item-${id}`);
-  if (activeEl) activeEl.style.borderColor = 'var(--indigo)';
-  
-  const panel = document.getElementById('ref-detail-panel');
-  const img = document.getElementById('ref-detail-img');
-  const titleInput = document.getElementById('ref-detail-title');
-  const descInput = document.getElementById('ref-detail-desc');
-  
-  if (img) img.src = item.dataUrl;
-  if (titleInput) titleInput.value = item.title;
-  if (descInput) descInput.value = item.description;
-  
-  if (panel) panel.style.display = 'block';
-}
-
-function closeRefDetails() {
-  _currentRefId = null;
-  document.querySelectorAll('.ref-gal-item').forEach(el => el.style.borderColor = '');
-  const panel = document.getElementById('ref-detail-panel');
-  if (panel) panel.style.display = 'none';
-}
-
-async function saveRefDetails() {
-  if (!_currentRefId) return;
-  const item = await ImageDb.get(_currentRefId);
-  if (!item) return;
-  
-  const title = document.getElementById('ref-detail-title')?.value?.trim();
-  const description = document.getElementById('ref-detail-desc')?.value || '';
-  
-  if (!title) {
-    toast('Image title cannot be empty', 'er');
-    return;
-  }
-  
-  item.title = title;
-  item.description = description;
-  
-  await ImageDb.put(_currentRefId, item);
-  
-  // Update Firestore metadata if available
-  if (typeof window.db !== 'undefined' && CloudStorage.isAvailable()) {
-    try {
-      const uid = AuthSystem.getCurrentSession()?.userId;
-      await window.db.collection('users').doc(uid).collection('gallery_metadata').doc(_currentRefId).set(item);
-    } catch (e) {
-      console.warn('CloudSync: Gallery metadata update failed', e);
-    }
-  }
-  
-  toast('Reference image updated', 'ok');
-  await loadReferenceGallery();
-}
-
-async function deleteRefImage() {
-  if (!_currentRefId) return;
-  if (!confirm('Are you sure you want to delete this reference image?')) return;
-  
-  await ImageDb.delete(_currentRefId);
-  
-  // Delete from Firestore if available
-  if (typeof window.db !== 'undefined' && CloudStorage.isAvailable()) {
-    try {
-      const uid = AuthSystem.getCurrentSession()?.userId;
-      await window.db.collection('users').doc(uid).collection('gallery_metadata').doc(_currentRefId).delete();
-      try {
-        await window.storage.ref().child(`users/${uid}/gallery/${_currentRefId}`).delete();
-      } catch {}
-    } catch (e) {
-      console.warn('CloudSync: Gallery delete failed', e);
-    }
-  }
-  
-  toast('Reference image deleted', 'ok');
-  closeRefDetails();
-  await loadReferenceGallery();
-}
-
-async function attachRefImageToChat() {
-  if (!_currentRefId) return;
-  const item = await ImageDb.get(_currentRefId);
-  if (!item) return;
-  
-  const att = {
-    id: 'att_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-    name: item.title + '.' + (item.mediaType.split('/')[1] || 'png'),
-    type: item.mediaType,
-    dataUrl: item.dataUrl
-  };
-  
-  S.attachments.push(att);
-  renderAttachmentBar();
-  toast('📎 Image attached to composer', 'ok');
-  toggleSyd();
-}
-
-window.applyPreset = applyPreset;
-window.applyPersonality = applyPersonality;
-window.saveAsPreset = saveAsPreset;
-window.deletePreset = deletePreset;
-window.switchSydTab = switchSydTab;
-window.handleRefImageUpload = handleRefImageUpload;
-window.deleteRefImage = deleteRefImage;
-window.saveRefDetails = saveRefDetails;
-window.closeRefDetails = closeRefDetails;
-window.attachRefImageToChat = attachRefImageToChat;
 
 // ── Nav drawer (mobile off-canvas) ─────────────────────────
 function isMobileNav() { return window.matchMedia('(max-width:1023px)').matches; }
@@ -3478,7 +1649,6 @@ function toast(msg, type = '', dur = 3500) {
   w.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .2s'; setTimeout(() => el.remove(), 220); }, dur);
 }
-window.toast = toast;
 
 window.refreshSb = refreshSb;
 window.qi = qi;
@@ -3547,243 +1717,7 @@ function openImageGallery() {
 
 window.openImageModal = openImageModal;
 window.closeImageModal = closeImageModal;
-
-// ── Image Generation Popover ───────────────────────────────
-window.toggleImagePopover = function() {
-  const pop = document.getElementById('image-popover');
-  if (!pop) return;
-  const isVisible = pop.style.display !== 'none';
-  pop.style.display = isVisible ? 'none' : 'flex';
-  if (!isVisible) {
-    const s = JSON.parse(localStorage.getItem('cpu_settings') || '{}');
-    if (s.imageGen?.provider) {
-      const pSel = document.getElementById('imagine-provider');
-      if (pSel) pSel.value = s.imageGen.provider;
-    }
-    if (s.imageGen?.size) {
-      const sSel = document.getElementById('imagine-size');
-      if (sSel) sSel.value = s.imageGen.size;
-    }
-    window.updateImagineModels().then(() => {
-      if (s.imageGen?.model) {
-        const mSel = document.getElementById('imagine-model');
-        if (mSel) mSel.value = s.imageGen.model;
-      }
-      window.syncImaginePopoverFields();
-    });
-    setTimeout(() => window._wireImg2ImgUpload?.(), 50);
-    document.getElementById('imagine-prompt')?.focus();
-  }
-};
-
-window.syncImaginePopoverFields = function() {
-  const provider = document.getElementById('imagine-provider')?.value;
-  const qtyRow    = document.getElementById('imagine-qty-row');
-  const falExtras = document.getElementById('imagine-fal-extras');
-
-  if (provider === 'fal') {
-    if (qtyRow)    qtyRow.style.display    = 'flex';
-    if (falExtras) falExtras.style.display = 'block';
-    window.syncImagineModeFields();
-  } else {
-    if (qtyRow)    qtyRow.style.display    = 'none';
-    if (falExtras) falExtras.style.display = 'none';
-  }
-};
-
-window.syncImagineModeFields = function() {
-  const mode = document.getElementById('imagine-mode')?.value;
-  const model = document.getElementById('imagine-model')?.value;
-  const refRow = document.getElementById('imagine-ref-row');
-  const strengthRow = document.getElementById('imagine-strength-row');
-  const modeRow = document.getElementById('imagine-mode')?.closest('.image-popover-row');
-  
-  const isImageToVideoModel = model && (
-    model.includes('image-to-video') ||
-    model.includes('lipsync')
-  );
-
-  if (refRow) {
-    if (isImageToVideoModel) {
-      refRow.style.display = 'block';
-      if (modeRow) modeRow.style.display = 'none';
-      if (strengthRow) strengthRow.style.display = 'none';
-    } else {
-      if (modeRow) modeRow.style.display = 'flex';
-      if (mode && mode !== 'text2img') {
-        refRow.style.display = 'block';
-        if (strengthRow) {
-          strengthRow.style.display = (mode === 'redux') ? 'none' : 'flex';
-        }
-      } else {
-        refRow.style.display = 'none';
-      }
-    }
-  }
-};
-
-window._wireImg2ImgUpload = function() {
-  const dropzone = document.getElementById('img2img-dropzone');
-  const fileInput = document.getElementById('img2img-file');
-  const label    = document.getElementById('img2img-dropzone-label');
-  const urlInput = document.getElementById('imagine-image-url');
-  if (!dropzone || !fileInput) return;
-
-  function handleFile(file) {
-    if (!file || !file.type.startsWith('image/')) {
-      toast('Please select an image file', 'warning');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = e => {
-      const dataUrl = e.target.result;
-      if (urlInput) urlInput.value = dataUrl;
-      if (label) {
-        label.innerHTML = `<span style="color:var(--text)">✅ ${esc(file.name)} (${(file.size/1024).toFixed(0)} KB)</span>`;
-      }
-      dropzone.classList.add('img2img-loaded');
-    };
-    reader.readAsDataURL(file);
-  }
-
-  dropzone.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
-
-  dropzone.addEventListener('dragover', e => {
-    e.preventDefault();
-    dropzone.classList.add('img2img-drag-over');
-  });
-  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('img2img-drag-over'));
-  dropzone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropzone.classList.remove('img2img-drag-over');
-    const file = e.dataTransfer?.files?.[0];
-    if (file) handleFile(file);
-  });
-};
-
-window.updateImagineModels = async function() {
-  const provider = document.getElementById('imagine-provider')?.value;
-  const modelSel = document.getElementById('imagine-model');
-  if (!provider || !modelSel) return;
-  
-  const MODELS = {
-    bfl: [{id:'flux-pro-1.1',name:'Flux Pro 1.1'}, {id:'flux-pro',name:'Flux Pro'}, {id:'flux-dev',name:'Flux Dev'}],
-    fal: [
-      {id:'fal-ai/flux-pro/v1.1',name:'Flux Pro 1.1'},
-      {id:'fal-ai/flux-pro',name:'Flux Pro'},
-      {id:'fal-ai/flux/dev',name:'Flux Dev'},
-      {id:'fal-ai/kling-video/v3/turbo/pro/image-to-video',name:'Kling v3 Turbo Pro (Video)'},
-      {id:'fal-ai/sync-lipsync/v3/image-to-video',name:'Sync Lipsync v3 (Video)'},
-      {id:'xai/grok-imagine-video/v1.5/image-to-video',name:'Grok 1.5 Video'}
-    ],
-    replicate: [{id:'black-forest-labs/flux-1.1-pro',name:'Flux 1.1 Pro'}, {id:'black-forest-labs/flux-pro',name:'Flux Pro'}, {id:'black-forest-labs/flux-dev',name:'Flux Dev'}],
-    novita: [{id:'black-forest-labs/flux-1.1-pro',name:'Flux 1.1 Pro'}, {id:'black-forest-labs/flux-pro',name:'Flux Pro'}],
-    comfyui: [{id:'flux-pro',name:'ComfyUI Workflow (Local)'}],
-    huggingface: [{id:'black-forest-labs/FLUX.1-dev',name:'Flux.1 Dev'}]
-  };
-  
-  const models = MODELS[provider] || [];
-  modelSel.innerHTML = models.map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('');
-  window.syncImaginePopoverFields();
-};
-
-window.generateFromPopover = function() {
-  const prompt = document.getElementById('imagine-prompt')?.value.trim();
-  const provider = document.getElementById('imagine-provider')?.value;
-  const model = document.getElementById('imagine-model')?.value;
-  const size = document.getElementById('imagine-size')?.value;
-  const image_url = provider === 'fal' ? (document.getElementById('imagine-image-url')?.value.trim() || null) : null;
-  const qty = provider === 'fal' ? (document.getElementById('imagine-qty')?.value || '1') : '1';
-  const mode = provider === 'fal' ? (document.getElementById('imagine-mode')?.value || 'text2img') : 'text2img';
-  const strength = provider === 'fal' ? (document.getElementById('imagine-strength')?.value || '0.5') : '0.5';
-  
-  if (!prompt) {
-    toast('🎨 Please enter an image description', 'warning');
-    return;
-  }
-  
-  window.toggleImagePopover();
-  
-  // Save settings
-  const s = JSON.parse(localStorage.getItem('cpu_settings') || '{}');
-  s.imageGen = s.imageGen || {};
-  s.imageGen.provider = provider;
-  s.imageGen.model = model;
-  s.imageGen.size = size;
-  localStorage.setItem('cpu_settings', JSON.stringify(s));
-  
-  // Create an explicit instruction for Aria
-  let instruction = `Please generate an image/video of: ${prompt}\n\n(Use provider: ${provider}, model: ${model}, size: ${size}`;
-  if (image_url) {
-    instruction += `, image_url: ${image_url.startsWith('data:') ? 'Attached base64 image' : image_url}`;
-  }
-  instruction += `)`;
-  
-  const inp = document.getElementById('inp');
-  if (inp) inp.value = instruction;
-  window.sendMsg();
-};
-window.updatePresetsDropdown = updatePresetsDropdown;
 window.openImageGallery = openImageGallery;
-window.toggleView = toggleView;
-window.setRefImageAsBackground = setRefImageAsBackground;
-window.exitCinematicMode = exitCinematicMode;
-
-    function toggleView(viewName) {
-      const chatSidebar = document.getElementById('chat-sidebar-inner');
-      const chatMain = document.getElementById('chat-main-inner');
-      const imgGenSidebar = document.getElementById('img-gen-sidebar-inner');
-      const imgGenMain = document.getElementById('img-gen-main-inner');
-      const vidGenSidebar = document.getElementById('vid-gen-sidebar-inner');
-      const vidGenMain = document.getElementById('vid-gen-main-inner');
-      
-      chatSidebar.style.display = 'none';
-      chatMain.style.display = 'none';
-      imgGenSidebar.style.display = 'none';
-      imgGenMain.style.display = 'none';
-      vidGenSidebar.style.display = 'none';
-      vidGenMain.style.display = 'none';
-      
-      if (viewName === 'chat') {
-        chatSidebar.style.display = 'block';
-        chatMain.style.display = 'flex';
-      } else if (viewName === 'image') {
-        imgGenSidebar.style.display = 'block';
-        imgGenMain.style.display = 'flex';
-      } else if (viewName === 'video') {
-        vidGenSidebar.style.display = 'block';
-        vidGenMain.style.display = 'flex';
-      }
-
-      if (typeof closeNav === 'function') {
-        closeNav();
-      }
-    }
-
-    function setRefImageAsBackground() {
-      const imgSrc = document.getElementById('ref-detail-img').src;
-      if (!imgSrc) return;
-      
-      const bg = document.getElementById('cinematic-bg');
-      bg.style.backgroundImage = `url('${imgSrc}')`;
-      bg.style.display = 'block';
-      
-      document.body.classList.add('cinematic-mode');
-      
-      const name = document.getElementById('sys-name').value || 'AI Character';
-      document.getElementById('cine-name').innerText = name;
-      document.getElementById('cine-avatar').src = imgSrc;
-      
-      closeRefDetails();
-      if (typeof closeNav === 'function') closeNav();
-    }
-
-    function exitCinematicMode() {
-      document.body.classList.remove('cinematic-mode');
-      document.getElementById('cinematic-bg').style.display = 'none';
-    }
 </script>
-
 </body>
 </html>
