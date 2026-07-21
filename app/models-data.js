@@ -142,6 +142,28 @@ export const MODELS_DATA = {
 
     // ── Google ─────────────────────────────────────────────
     {
+      id: 'gemini-2.5-pro',
+      provider: 'google',
+      name: 'Gemini 2.5 Pro',
+      shortName: '2.5 Pro',
+      tier: 'flagship',
+      contextK: 2000,
+      inputPer1M: 1.25,
+      outputPer1M: 10.00,
+      supportsThinking: true,
+    },
+    {
+      id: 'gemini-2.0-flash',
+      provider: 'google',
+      name: 'Gemini 2.0 Flash',
+      shortName: '2.0 Flash',
+      tier: 'fast',
+      contextK: 1000,
+      inputPer1M: 0.10,
+      outputPer1M: 0.40,
+      supportsThinking: false,
+    },
+    {
       id: 'gemini-1.5-pro-002',
       provider: 'google',
       name: 'Gemini 1.5 Pro',
@@ -432,7 +454,16 @@ export const MODELS_DATA = {
   // ── Helpers ────────────────────────────────────────────────
 
   getModel(id) {
-    return this.models.find(m => m.id === id) || null;
+    if (!id) return null;
+    const found = this.models.find(m => m.id === id);
+    if (found) return found;
+    // Dynamic provider resolution for unlisted or custom model IDs
+    if (id.startsWith('gemini-')) return { id, provider: 'google', name: id, shortName: id, tier: 'flagship', contextK: 1000, inputPer1M: 1.25, outputPer1M: 5.0, supportsThinking: false };
+    if (id.startsWith('claude-')) return { id, provider: 'anthropic', name: id, shortName: id, tier: 'flagship', contextK: 200, inputPer1M: 3.0, outputPer1M: 15.0, supportsThinking: false };
+    if (id.startsWith('gpt-') || id.startsWith('o1') || id.startsWith('o3')) return { id, provider: 'openai', name: id, shortName: id, tier: 'flagship', contextK: 128, inputPer1M: 2.5, outputPer1M: 10.0, supportsThinking: false };
+    if (id.startsWith('mistral-') || id.startsWith('pixtral-')) return { id, provider: 'mistral', name: id, shortName: id, tier: 'flagship', contextK: 128, inputPer1M: 2.0, outputPer1M: 6.0, supportsThinking: false };
+    if (id.startsWith('llama-') || id.startsWith('gemma-') || id.startsWith('mixtral-')) return { id, provider: 'groq', name: id, shortName: id, tier: 'fast', contextK: 128, inputPer1M: 0.5, outputPer1M: 0.8, supportsThinking: false };
+    return null;
   },
 
   getProvider(id) {
