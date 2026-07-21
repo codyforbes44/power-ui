@@ -343,7 +343,7 @@ export const ImageRouter = (() => {
 
     const initiateResp = await cloudFetch({
       provider: 'fal',
-      baseUrl: 'https://fal.run',
+      baseUrl: 'https://rest.alpha.fal.ai',
       path: '/storage/upload/initiate',
       headers: {
         'Authorization': `Key ${apiKey}`,
