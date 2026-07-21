@@ -55,7 +55,7 @@ test('ApiRouter formats Gemini message sequence correctly', async () => {
   ];
 
   // Consume the stream generator
-  const gen = ApiRouter.stream('google', 'gemini-2.5-pro', 'mock-key', messages, 'system prompt');
+  const gen = ApiRouter.stream('google', 'gemini-2.5-flash', 'mock-key', messages, 'system prompt');
   for await (const chunk of gen) {
     // just consume the generator
   }

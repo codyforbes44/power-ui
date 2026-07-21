@@ -260,7 +260,7 @@ export const ApiRouter = (() => {
     // Convert messages, handle tool_result role and assistant tool_calls
     // (buildApiMessages() in app.js emits OpenAI-shaped { tool_calls: [...] }
     // for every non-Anthropic provider, including Gemini — translate here).
-    const contents = messages.map(m => {
+    const rawContents = messages.map(m => {
       if (m.role === 'tool') {
         // Tool result from our loop
         return {
@@ -283,6 +283,17 @@ export const ApiRouter = (() => {
         parts: [{ text: m.content }],
       };
     });
+
+    // Consolidate consecutive turns sharing the same role (e.g. tool result + follow-up user prompt)
+    const contents = [];
+    for (const item of rawContents) {
+      const prev = contents[contents.length - 1];
+      if (prev && prev.role === item.role) {
+        prev.parts.push(...item.parts);
+      } else {
+        contents.push(item);
+      }
+    }
 
     const payload = {
       contents,
