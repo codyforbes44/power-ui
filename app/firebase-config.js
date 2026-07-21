@@ -1,11 +1,11 @@
 // Firebase V8 SDK
 const firebaseConfig = {
-  apiKey: "AIzaSyCooVeed0T-B1xMG9z5yjNsREEhJl2ihqw",
-  authDomain: "async-power-ui-2026.firebaseapp.com",
-  projectId: "async-power-ui-2026",
-  storageBucket: "async-power-ui-2026.firebasestorage.app",
-  messagingSenderId: "170673568130",
-  appId: "1:170673568130:web:a64bc404e7b15135ee779b"
+  apiKey: "AIzaSyCl9lJkzHpbL5dPpshFfuwe8OLNk5iOS_o",
+  authDomain: "gen-lang-client-0549973600.firebaseapp.com",
+  projectId: "gen-lang-client-0549973600",
+  storageBucket: "gen-lang-client-0549973600.firebasestorage.app",
+  messagingSenderId: "139871254908",
+  appId: "1:139871254908:web:cf32528e90a8e0a0d08cf9"
 };
 
 // Initialize Firebase

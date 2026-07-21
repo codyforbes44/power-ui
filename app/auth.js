@@ -364,7 +364,7 @@ export const AuthSystem = (() => {
   // Every call here is guarded and time-bounded: a Firebase failure or a slow
   // network must NEVER block or delay the local AuthSystem flow (tests also
   // run with no Firebase SDK loaded at all).
-  const FIREBASE_EMAIL_DOMAIN = 'async-power-ui-2026.firebaseapp.com';
+  const FIREBASE_EMAIL_DOMAIN = (typeof firebaseConfig !== 'undefined' && firebaseConfig.authDomain) ? firebaseConfig.authDomain : 'gen-lang-client-0549973600.firebaseapp.com';
   const FIREBASE_MIN_PASSWORD = 6; // Firebase Email/Password minimum length
 
   async function sha256Hex(str) {
@@ -1376,7 +1376,7 @@ export const CloudStorage = (() => {
     }
 
     if (!bucket) {
-      bucket = 'async-power-ui-2026.appspot.com';
+      bucket = (typeof firebaseConfig !== 'undefined' && firebaseConfig.storageBucket) ? firebaseConfig.storageBucket : 'gen-lang-client-0549973600.firebasestorage.app';
     }
 
     // Convert Blob to base64 for JSON proxy transmission
