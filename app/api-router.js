@@ -103,7 +103,8 @@ export const ApiRouter = (() => {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `Anthropic API error ${response.status}`);
+      const rawMsg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || `HTTP ${response.status}`;
+      throw new Error(`Anthropic error (${response.status}): ${typeof rawMsg === 'object' ? JSON.stringify(rawMsg) : rawMsg}`);
     }
 
     let usage     = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
@@ -196,7 +197,8 @@ export const ApiRouter = (() => {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `API error ${response.status}`);
+      const rawMsg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || `HTTP ${response.status}`;
+      throw new Error(`${providerId} error (${response.status}): ${typeof rawMsg === 'object' ? JSON.stringify(rawMsg) : rawMsg}`);
     }
 
     let usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
@@ -338,7 +340,8 @@ export const ApiRouter = (() => {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `Gemini API error ${response.status}`);
+      const rawMsg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || `HTTP ${response.status}`;
+      throw new Error(`Gemini error (${response.status}): ${typeof rawMsg === 'object' ? JSON.stringify(rawMsg) : rawMsg}`);
     }
 
     let usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
